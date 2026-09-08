@@ -45,7 +45,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "release-apk": "node scripts/build-apk.js release",
+    "test-apk": "node scripts/build-apk.js debug"
   },
   "private": true
 }
