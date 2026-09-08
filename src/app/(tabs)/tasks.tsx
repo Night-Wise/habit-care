@@ -1,4 +1,4 @@
-import { Bell, Clock, Pencil, Trash2 } from 'lucide-react-native';
+import { Bell, Clock, Pencil, Trash2, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -20,6 +20,7 @@ function TaskManageItem({
   name,
   icon,
   timeMinutes,
+  priority = 0,
   notificationTime,
   notificationEnabled,
   onEdit,
@@ -30,12 +31,14 @@ function TaskManageItem({
   name: string;
   icon: string;
   timeMinutes?: number;
+  priority?: number;
   notificationTime?: string;
   notificationEnabled?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onToggleNotification: () => void;
 }) {
+  const prioLevel = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
   const [scaleAnim] = useState(() => new Animated.Value(1));
 
   const handleDelete = () => {
@@ -67,6 +70,38 @@ function TaskManageItem({
               {name}
             </Text>
             <View style={styles.badgesRow}>
+              {/* Priority badge */}
+              <View
+                style={[
+                  styles.priorityBadge,
+                  prioLevel >= 3
+                    ? styles.priorityBadgeHigh
+                    : prioLevel >= 1
+                    ? styles.priorityBadgeMed
+                    : styles.priorityBadgeNormal,
+                ]}
+              >
+                <Zap
+                  size={10}
+                  color={
+                    prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'
+                  }
+                  style={{ marginRight: 2 }}
+                />
+                <Text
+                  style={[
+                    styles.priorityBadgeText,
+                    prioLevel >= 3
+                      ? styles.priorityBadgeTextHigh
+                      : prioLevel >= 1
+                      ? styles.priorityBadgeTextMed
+                      : styles.priorityBadgeTextNormal,
+                  ]}
+                >
+                  P{prioLevel}
+                </Text>
+              </View>
+
               {notificationTime ? (
                 <Text style={styles.timingSubtext}>⏰ {notificationTime}</Text>
               ) : null}
@@ -158,6 +193,7 @@ export default function TasksScreen() {
               name={todo.name}
               icon={todo.icon}
               timeMinutes={todo.timeMinutes}
+              priority={todo.priority}
               notificationTime={todo.notificationTime}
               notificationEnabled={todo.notificationEnabled}
               onEdit={() =>
@@ -268,6 +304,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 4,
+  },
+  priorityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  priorityBadgeNormal: {
+    backgroundColor: '#f1f5f9',
+  },
+  priorityBadgeMed: {
+    backgroundColor: '#fef3c7',
+  },
+  priorityBadgeHigh: {
+    backgroundColor: '#fee2e2',
+  },
+  priorityBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  priorityBadgeTextNormal: {
+    color: '#64748b',
+  },
+  priorityBadgeTextMed: {
+    color: '#b45309',
+  },
+  priorityBadgeTextHigh: {
+    color: '#b91c1c',
   },
   timingSubtext: {
     fontSize: 11,

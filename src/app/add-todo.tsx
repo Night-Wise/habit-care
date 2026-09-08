@@ -1,4 +1,4 @@
-import { Bell, Clock, Search } from 'lucide-react-native';
+import { Bell, Clock, Search, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
@@ -46,6 +46,7 @@ export default function AddTodoScreen() {
   // Scheduled timing & notification toggle state
   const [scheduledTime, setScheduledTime] = useState('06:00 AM');
   const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [priority, setPriority] = useState('0');
 
   // Derive quick icons list ensuring selectedIcon is included if custom
   const quickIcons = useMemo(() => {
@@ -62,12 +63,15 @@ export default function AddTodoScreen() {
     if (!canAdd) return;
     const parsed = parseInt(time.trim(), 10);
     const minutes = !isNaN(parsed) && parsed > 0 ? parsed : 30;
+    const parsedPriority = parseInt(priority.trim(), 10);
+    const prioVal = !isNaN(parsedPriority) ? parsedPriority : 0;
     await addTodo(
       name.trim(),
       selectedIcon ?? DEFAULT_ICON,
       minutes,
       scheduledTime.trim() || '06:00 AM',
-      notificationEnabled
+      notificationEnabled,
+      prioVal
     );
     router.back();
   };
@@ -205,6 +209,52 @@ export default function AddTodoScreen() {
                     ]}
                   >
                     {preset}m
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Priority Input Section */}
+        <View style={[styles.timeSectionHeader, { marginTop: 12 }]}>
+          <Text style={styles.sectionLabel}>Task Priority</Text>
+          <Text style={styles.timeDefaultHint}>(default 0, higher = higher priority)</Text>
+        </View>
+
+        <View style={styles.timeInputRow}>
+          <View style={styles.timeInputWrap}>
+            <Zap size={18} color="#f59e0b" style={{ marginRight: 6 }} />
+            <TextInput
+              style={styles.timeInput}
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
+              value={priority}
+              onChangeText={setPriority}
+              keyboardType="number-pad"
+              maxLength={4}
+            />
+            <Text style={styles.timeInputSuffix}>level</Text>
+          </View>
+
+          {/* Quick priority chips */}
+          <View style={styles.presetsRow}>
+            {[0, 1, 2, 3, 5].map((preset) => {
+              const isSelected = priority.trim() === String(preset);
+              return (
+                <TouchableOpacity
+                  key={preset}
+                  style={[styles.presetChip, isSelected && styles.presetChipSelected]}
+                  onPress={() => setPriority(String(preset))}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.presetChipText,
+                      isSelected && styles.presetChipTextSelected,
+                    ]}
+                  >
+                    P{preset}
                   </Text>
                 </TouchableOpacity>
               );

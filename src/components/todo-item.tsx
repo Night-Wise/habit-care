@@ -1,4 +1,4 @@
-import { Bell, Clock } from 'lucide-react-native';
+import { Bell, Clock, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -6,6 +6,7 @@ export interface TodoItemProps {
   name: string;
   icon: string;
   timeMinutes?: number;
+  priority?: number;
   notificationTime?: string;
   notificationEnabled?: boolean;
   completed: boolean;
@@ -18,6 +19,7 @@ export function TodoItem({
   name,
   icon,
   timeMinutes,
+  priority = 0,
   notificationTime,
   notificationEnabled,
   completed,
@@ -35,6 +37,8 @@ export function TodoItem({
     ]).start();
     onToggle();
   };
+
+  const prioLevel = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
 
   return (
     <Animated.View
@@ -80,6 +84,38 @@ export function TodoItem({
           </View>
 
           <View style={styles.badgesRow}>
+            {/* Priority Badge */}
+            <View
+              style={[
+                styles.priorityBadge,
+                prioLevel >= 3
+                  ? styles.priorityBadgeHigh
+                  : prioLevel >= 1
+                  ? styles.priorityBadgeMed
+                  : styles.priorityBadgeNormal,
+              ]}
+            >
+              <Zap
+                size={10}
+                color={
+                  prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'
+                }
+                style={{ marginRight: 2 }}
+              />
+              <Text
+                style={[
+                  styles.priorityBadgeText,
+                  prioLevel >= 3
+                    ? styles.priorityBadgeTextHigh
+                    : prioLevel >= 1
+                    ? styles.priorityBadgeTextMed
+                    : styles.priorityBadgeTextNormal,
+                ]}
+              >
+                P{prioLevel}
+              </Text>
+            </View>
+
             {onToggleNotification && (
               <TouchableOpacity
                 style={[
@@ -197,6 +233,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  priorityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  priorityBadgeNormal: {
+    backgroundColor: '#f1f5f9',
+  },
+  priorityBadgeMed: {
+    backgroundColor: '#fef3c7',
+  },
+  priorityBadgeHigh: {
+    backgroundColor: '#fee2e2',
+  },
+  priorityBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  priorityBadgeTextNormal: {
+    color: '#64748b',
+  },
+  priorityBadgeTextMed: {
+    color: '#b45309',
+  },
+  priorityBadgeTextHigh: {
+    color: '#b91c1c',
   },
   bellBtn: {
     width: 26,

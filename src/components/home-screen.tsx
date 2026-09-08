@@ -1,4 +1,4 @@
-import { BarChart2 } from 'lucide-react-native';
+import { BarChart2, Clock, Zap } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   Animated,
@@ -15,6 +15,21 @@ import Svg, { Circle } from 'react-native-svg';
 import { formatDateKey, isTodoCompleted, useTodos } from '@/context/todos-context';
 import { InsightsModal } from '@/components/insights-modal';
 import { TodoItem } from '@/components/todo-item';
+
+function parseTimeToMinutes(timeStr?: string): number {
+  if (!timeStr) return 1440;
+  const trimmed = timeStr.trim().toUpperCase();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+  if (!match) return 1440;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = match[3];
+
+  if (period === 'PM' && hours < 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+
+  return hours * 60 + minutes;
+}
 
 function getMonday(d: Date): Date {
   const date = new Date(d);
@@ -169,6 +184,7 @@ export function HomeScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [weekStartDate, setWeekStartDate] = useState<Date>(() => getMonday(new Date()));
   const [isInsightsOpen, setIsInsightsOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'timing' | 'priority'>('timing');
 
   const currentWeekMonday = getMonday(new Date());
   const isCurrentOrFutureWeek = weekStartDate.getTime() >= currentWeekMonday.getTime();
@@ -233,6 +249,24 @@ export function HomeScreen() {
     : isFutureDate
     ? `${selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (Upcoming)`
     : `${selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} Progress`;
+
+  const sortedTodos = React.useMemo(() => {
+    return [...todos].sort((a, b) => {
+      if (sortBy === 'priority') {
+        const pA = typeof a.priority === 'number' ? a.priority : 0;
+        const pB = typeof b.priority === 'number' ? b.priority : 0;
+        if (pB !== pA) return pB - pA;
+        return parseTimeToMinutes(a.notificationTime) - parseTimeToMinutes(b.notificationTime);
+      } else {
+        const tA = parseTimeToMinutes(a.notificationTime);
+        const tB = parseTimeToMinutes(b.notificationTime);
+        if (tA !== tB) return tA - tB;
+        const pA = typeof a.priority === 'number' ? a.priority : 0;
+        const pB = typeof b.priority === 'number' ? b.priority : 0;
+        return pB - pA;
+      }
+    });
+  }, [todos, sortBy]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -345,6 +379,33 @@ export function HomeScreen() {
       {/* Progress */}
       <ProgressBar done={done} total={total} label={progressLabel} />
 
+      {/* Sort options bar */}
+      <View style={styles.sortBar}>
+        <Text style={styles.sortBarLabel}>Sort Tasks</Text>
+        <View style={styles.sortToggleGroup}>
+          <TouchableOpacity
+            style={[styles.sortTabBtn, sortBy === 'timing' && styles.sortTabBtnActive]}
+            onPress={() => setSortBy('timing')}
+            activeOpacity={0.8}
+          >
+            <Clock size={12} color={sortBy === 'timing' ? '#ffffff' : '#64748b'} style={{ marginRight: 4 }} />
+            <Text style={[styles.sortTabText, sortBy === 'timing' && styles.sortTabTextActive]}>
+              Timing
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortTabBtn, sortBy === 'priority' && styles.sortTabBtnActive]}
+            onPress={() => setSortBy('priority')}
+            activeOpacity={0.8}
+          >
+            <Zap size={12} color={sortBy === 'priority' ? '#ffffff' : '#64748b'} style={{ marginRight: 4 }} />
+            <Text style={[styles.sortTabText, sortBy === 'priority' && styles.sortTabTextActive]}>
+              Priority
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Task list */}
       <ScrollView
         style={styles.list}
@@ -363,14 +424,14 @@ export function HomeScreen() {
         )}
         {!isLoaded ? (
           <Text style={styles.emptyText}>Loading...</Text>
-        ) : todos.length === 0 ? (
+        ) : sortedTodos.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📋</Text>
             <Text style={styles.emptyText}>No tasks yet</Text>
             <Text style={styles.emptySubtext}>Tap + to add your first task</Text>
           </View>
         ) : (
-          todos.map((todo) => {
+          sortedTodos.map((todo) => {
             const completed = isTodoCompleted(todo, selectedDateKey);
             return (
               <TodoItem
@@ -378,6 +439,7 @@ export function HomeScreen() {
                 name={todo.name}
                 icon={todo.icon}
                 timeMinutes={todo.timeMinutes}
+                priority={todo.priority}
                 notificationTime={todo.notificationTime}
                 notificationEnabled={todo.notificationEnabled}
                 completed={completed}
@@ -668,5 +730,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#1e40af',
+  },
+  sortBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  sortBarLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  sortToggleGroup: {
+    flexDirection: 'row',
+    backgroundColor: '#e2e8f0',
+    borderRadius: 10,
+    padding: 3,
+    gap: 3,
+  },
+  sortTabBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  sortTabBtnActive: {
+    backgroundColor: '#6366f1',
+  },
+  sortTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  sortTabTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });
