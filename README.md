@@ -27,6 +27,58 @@ You can start developing by editing the files inside the **app** directory. This
 
 ## Building Android APKs
 
+### Prerequisites
+
+Install and configure the following tools before building an APK:
+
+- **Node.js** (LTS recommended) and npm
+- **Java JDK 17**; set `JAVA_HOME` to the JDK 17 installation directory
+- **Android Studio**, including the Android SDK and SDK Platform Tools
+- Android SDK packages required by this project:
+   - Android SDK Platform 36
+   - Android SDK Build-Tools 36.0.0
+   - Android SDK Command-line Tools
+   - Android NDK 27.1.12297006
+
+After installing Android Studio, complete its first-run setup so the Android SDK is downloaded. Configure the SDK location using either the `ANDROID_HOME` environment variable or the `android/local.properties` file:
+
+```properties
+sdk.dir=C:\\Users\\<username>\\AppData\\Local\\Android\\Sdk
+```
+
+Verify that Java and the Android SDK are available before building:
+
+```bash
+java -version
+adb --version
+```
+
+The project uses the Gradle wrapper included in the repository, so a separate Gradle installation is not required.
+
+If the project does not have an `android` folder, the APK build script automatically runs:
+
+```bash
+npx expo prebuild --platform android
+```
+
+You can also run this command manually before building an APK.
+
+### Build Debug APK with npm
+
+```bash
+npm run test-apk
+```
+
+The debug APK is saved to `build-apk/app-debug.apk`.
+
+### Build Release APK with npm
+
+```bash
+npm run release-apk
+```
+
+The release APK is saved to `build-apk/app-release.apk`.
+
 ### Build Debug APK
 
 ```bash

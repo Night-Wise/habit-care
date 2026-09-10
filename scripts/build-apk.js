@@ -28,6 +28,7 @@ const BUILD_REANIMATED_VERSION = '4.5.1';
 const ORIGINAL_REANIMATED_VERSION = '3.19.5';
 
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 function setReanimatedVersionInPackageJson(version) {
   if (fs.existsSync(packageJsonPath)) {
@@ -43,6 +44,17 @@ function setReanimatedVersionInPackageJson(version) {
 function runNpmInstall() {
   console.log(`\n📥 Running npm install to sync dependencies...\n`);
   execSync(`${npmCmd} install`, {
+    cwd: rootDir,
+    stdio: 'inherit',
+    env: process.env,
+  });
+}
+
+function ensureAndroidProject() {
+  if (fs.existsSync(androidDir)) return;
+
+  console.log(`\n📱 Android folder not found. Running Expo prebuild...\n`);
+  execSync(`${npxCmd} expo prebuild --platform android`, {
     cwd: rootDir,
     stdio: 'inherit',
     env: process.env,
@@ -83,13 +95,16 @@ try {
     fs.mkdirSync(buildApkDir, { recursive: true });
   }
 
-  // 2. Clean stale CXX build cache if Paper/Fabric mismatch exists
+  // 2. Generate the native Android project when this is a managed Expo project
+  ensureAndroidProject();
+
+  // 3. Clean stale CXX build cache if Paper/Fabric mismatch exists
   try {
     fs.rmSync(path.join(androidDir, 'app', '.cxx'), { recursive: true, force: true });
     fs.rmSync(path.join(rootDir, 'node_modules', 'react-native-reanimated', 'android', '.cxx'), { recursive: true, force: true });
   } catch (_) {}
 
-  // 3. Execute Gradle build with New Architecture enabled
+  // 4. Execute Gradle build with New Architecture enabled
   const gradleCmd = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
   execSync(`${gradleCmd} ${gradleTask} -PnewArchEnabled=true`, {
     cwd: androidDir,
@@ -97,7 +112,7 @@ try {
     env: process.env,
   });
 
-  // 4. Copy built APK to build-apk/ directory
+  // 5. Copy built APK to build-apk/ directory
   if (fs.existsSync(outputApkPath)) {
     fs.copyFileSync(outputApkPath, destApkPath);
     console.log(`\n✅ Successfully built ${apkFilename} and saved to build-apk/${apkFilename}\n`);
