@@ -7,11 +7,8 @@ Next features to add:
 6. Check how to publish app in Playstore
 7. Add option to login & signup to save data online 
 8. Add option to add friend and see there todo daily tasks progress.
-9. In todo task items - add one more field priority -> with number value (default 0 value) -> More the number more the prioriy
-10. In todo task items - in home page - add option to sort tasks based on priority or timings 
 11. Add a tabular view of all the items to show task done or not done for one month
-12. Update icon & Name of the app & generate the .apk file
-13. Write a make file -> To generate .apk file and paste into the build-apk folder (create the folder if not exists) 
+
 
 Features which are done: 
 ------------------------
@@ -20,3 +17,7 @@ Features which are done:
 4. Generate .apk file and Install & Test it
 1. Notification - with timing, also add test Notification in setting option - to check if Notification is working as expected
 0. Add timing option for each to do iteam for reminder
+12. Update icon & Name of the app & generate the .apk file
+13. Write a make file -> To generate .apk file and paste into the build-apk folder (create the folder if not exists) 
+10. In todo task items - in home page - add option to sort tasks based on priority or timings 
+9. In todo task items - add one more field priority -> with number value (default 0 value) -> More the number more the prioriy
