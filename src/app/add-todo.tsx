@@ -1,18 +1,18 @@
-import { Bell, Clock, Search, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { Bell, Clock, Search, Zap } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -32,6 +32,7 @@ const SCHEDULE_TIMING_PRESETS = [
 ];
 
 const DEFAULT_ICON = '✅';
+const CATEGORY_PRESETS = ['Health', 'Fitness', 'Food', 'Development', 'Learning', 'Job', 'Finance', 'Personal', 'Home'];
 
 export default function AddTodoScreen() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function AddTodoScreen() {
   const [name, setName] = useState('');
   const [time, setTime] = useState('30');
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
+  const [category, setCategory] = useState('');
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
 
   // Scheduled timing & notification toggle state
@@ -71,7 +73,8 @@ export default function AddTodoScreen() {
       minutes,
       scheduledTime.trim() || '06:00 AM',
       notificationEnabled,
-      prioVal
+      prioVal,
+      category
     );
     router.back();
   };
@@ -108,6 +111,34 @@ export default function AddTodoScreen() {
           maxLength={60}
           autoFocus
         />
+
+        {/* Optional category */}
+        <Text style={styles.sectionLabel}>Category (optional)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Choose or enter a category"
+          placeholderTextColor="#9ca3af"
+          value={category}
+          onChangeText={setCategory}
+          maxLength={30}
+        />
+        <View style={styles.timingPresetsWrap}>
+          {CATEGORY_PRESETS.map((preset) => {
+            const isSelected = category.trim().toLowerCase() === preset.toLowerCase();
+            return (
+              <TouchableOpacity
+                key={preset}
+                style={[styles.timingChip, isSelected && styles.timingChipSelected]}
+                onPress={() => setCategory(isSelected ? '' : preset)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.timingChipText, isSelected && styles.timingChipTextSelected]}>
+                  {preset}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         {/* Task Scheduled Time */}
         <View style={styles.timeSectionHeader}>

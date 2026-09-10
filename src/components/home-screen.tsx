@@ -1,20 +1,20 @@
 import { BarChart2, Clock, Zap } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Animated,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
-import { formatDateKey, isTodoCompleted, useTodos } from '@/context/todos-context';
 import { InsightsModal } from '@/components/insights-modal';
 import { TodoItem } from '@/components/todo-item';
+import { formatDateKey, isTodoCompleted, useTodos } from '@/context/todos-context';
 
 function parseTimeToMinutes(timeStr?: string): number {
   if (!timeStr) return 1440;
@@ -438,6 +438,7 @@ export function HomeScreen() {
                 key={todo.id}
                 name={todo.name}
                 icon={todo.icon}
+                category={todo.category}
                 timeMinutes={todo.timeMinutes}
                 priority={todo.priority}
                 notificationTime={todo.notificationTime}

@@ -1,18 +1,18 @@
-import { Bell, Clock, Search, Zap } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { Bell, Clock, Search, Zap } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -30,6 +30,7 @@ const SCHEDULE_TIMING_PRESETS = [
   '6:00 PM',
   '10:30 PM',
 ];
+const CATEGORY_PRESETS = ['Health', 'Fitness', 'Food', 'Development', 'Learning', 'Job', 'Finance', 'Personal', 'Home'];
 
 export default function EditTodoScreen() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function EditTodoScreen() {
   const [name, setName] = useState(todo?.name ?? '');
   const [time, setTime] = useState(String(todo?.timeMinutes ?? 30));
   const [selectedIcon, setSelectedIcon] = useState<string>(todo?.icon ?? '✅');
+  const [category, setCategory] = useState<string>(todo?.category ?? '');
   const [scheduledTime, setScheduledTime] = useState<string>(todo?.notificationTime ?? '06:00 AM');
   const [notificationEnabled, setNotificationEnabled] = useState<boolean>(
     todo?.notificationEnabled ?? false
@@ -84,7 +86,8 @@ export default function EditTodoScreen() {
       minutes,
       scheduledTime.trim() || '06:00 AM',
       notificationEnabled,
-      prioVal
+      prioVal,
+      category
     );
     router.back();
   };
@@ -121,6 +124,34 @@ export default function EditTodoScreen() {
           maxLength={60}
           autoFocus
         />
+
+        {/* Optional category */}
+        <Text style={styles.sectionLabel}>Category (optional)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Choose or enter a category"
+          placeholderTextColor="#9ca3af"
+          value={category}
+          onChangeText={setCategory}
+          maxLength={30}
+        />
+        <View style={styles.timingPresetsWrap}>
+          {CATEGORY_PRESETS.map((preset) => {
+            const isSelected = category.trim().toLowerCase() === preset.toLowerCase();
+            return (
+              <TouchableOpacity
+                key={preset}
+                style={[styles.timingChip, isSelected && styles.timingChipSelected]}
+                onPress={() => setCategory(isSelected ? '' : preset)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.timingChipText, isSelected && styles.timingChipTextSelected]}>
+                  {preset}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         {/* Task Scheduled Time */}
         <View style={styles.timeSectionHeader}>

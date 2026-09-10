@@ -7,6 +7,7 @@ export interface Todo {
   id: string;
   name: string;
   icon: string;
+  category?: string;
   timeMinutes?: number;
   priority?: number;
   createdAt?: string;
@@ -225,7 +226,8 @@ interface TodosContextType {
     timeMinutes?: number,
     notificationTime?: string,
     notificationEnabled?: boolean,
-    priority?: number
+    priority?: number,
+    category?: string
   ) => Promise<void>;
   toggleTodo: (id: string, dateKey?: string) => void;
   deleteTodo: (id: string) => void;
@@ -236,7 +238,8 @@ interface TodosContextType {
     timeMinutes?: number,
     notificationTime?: string,
     notificationEnabled?: boolean,
-    priority?: number
+    priority?: number,
+    category?: string
   ) => Promise<void>;
   toggleTodoNotification: (id: string) => Promise<void>;
   isTodoCompleted: (todo: Todo, dateKey?: string) => boolean;
@@ -278,6 +281,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
             id: String(t.id),
             name: t.name,
             icon: t.icon,
+            category: typeof t.category === 'string' ? t.category : '',
             timeMinutes,
             priority,
             createdAt: t.createdAt || new Date().toISOString(),
@@ -312,7 +316,8 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     timeMinutes?: number,
     notificationTime?: string,
     notificationEnabled?: boolean,
-    priority?: number
+    priority?: number,
+    category?: string
   ) => {
     const minutes =
       typeof timeMinutes === 'number' && !isNaN(timeMinutes) && timeMinutes > 0
@@ -332,6 +337,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       id,
       name: name.trim(),
       icon,
+      category: category?.trim() || '',
       timeMinutes: minutes,
       priority: prio,
       createdAt: new Date().toISOString(),
@@ -376,7 +382,8 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     timeMinutes?: number,
     notificationTime?: string,
     notificationEnabled?: boolean,
-    priority?: number
+    priority?: number,
+    category?: string
   ) => {
     const minutes =
       typeof timeMinutes === 'number' && !isNaN(timeMinutes) && timeMinutes > 0
@@ -403,6 +410,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
               ...t,
               name: name.trim(),
               icon,
+              category: category?.trim() || '',
               timeMinutes: minutes,
               priority: prio,
               notificationTime: timeStr,
@@ -518,6 +526,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
           id: item.id ? String(item.id) : `${Date.now()}_${i}`,
           name: String(item.name).trim(),
           icon: item.icon ? String(item.icon) : '📝',
+          category: typeof item.category === 'string' ? item.category.trim() : '',
           timeMinutes,
           priority,
           createdAt: item.createdAt ? String(item.createdAt) : new Date().toISOString(),
@@ -554,6 +563,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
                 ...existing,
                 name: imp.name || existing.name,
                 icon: imp.icon || existing.icon,
+                category: imp.category || existing.category || '',
                 timeMinutes: imp.timeMinutes || existing.timeMinutes,
                 priority: typeof imp.priority === 'number' ? imp.priority : existing.priority,
                 notificationTime: imp.notificationTime || existing.notificationTime,

@@ -1,10 +1,11 @@
 import { Bell, Clock, Zap } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export interface TodoItemProps {
   name: string;
   icon: string;
+  category?: string;
   timeMinutes?: number;
   priority?: number;
   notificationTime?: string;
@@ -18,6 +19,7 @@ export interface TodoItemProps {
 export function TodoItem({
   name,
   icon,
+  category,
   timeMinutes,
   priority = 0,
   notificationTime,
@@ -76,6 +78,7 @@ export function TodoItem({
             >
               {name}
             </Text>
+            {category ? <Text style={styles.categoryText}>{category}</Text> : null}
             {notificationTime ? (
               <Text style={styles.timingSubtext}>
                 ⏰ {notificationTime}
@@ -226,6 +229,12 @@ const styles = StyleSheet.create({
   timingSubtext: {
     fontSize: 11,
     fontWeight: '600',
+    color: '#6366f1',
+    marginTop: 2,
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#6366f1',
     marginTop: 2,
   },

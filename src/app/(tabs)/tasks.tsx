@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Pencil, Trash2, X, Zap } from 'lucide-react-native';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -60,15 +60,23 @@ function MonthlyTable({
   monthDate,
   sortBy,
   sortDirection,
+  groupByCategory,
 }: {
   todos: Todo[];
   monthDate: Date;
   sortBy: 'completion' | 'priority';
   sortDirection: 'asc' | 'desc';
+  groupByCategory: boolean;
 }) {
   const days = getMonthDays(monthDate);
   const todayKey = formatDateKey(new Date());
+  const getCategoryLabel = (todo: Todo) => todo.category?.trim() || 'Uncategorized';
   const sortedTodos = [...todos].sort((firstTodo, secondTodo) => {
+    if (groupByCategory) {
+      const categoryOrder = getCategoryLabel(firstTodo).localeCompare(getCategoryLabel(secondTodo));
+      if (categoryOrder !== 0) return categoryOrder;
+    }
+
     const firstValue = sortBy === 'completion'
       ? getMonthlyCompletionStats(firstTodo, days, todayKey).completionPercentage
       : firstTodo.priority ?? 0;
@@ -111,51 +119,61 @@ function MonthlyTable({
           </View>
         </View>
 
-        {sortedTodos.map((todo) => {
+        {sortedTodos.map((todo, index) => {
           const { startDateKey, trackedDays, completedDays, completionPercentage } =
             getMonthlyCompletionStats(todo, days, todayKey);
           const priority = typeof todo.priority === 'number' && !isNaN(todo.priority)
             ? todo.priority
             : 0;
+          const categoryLabel = getCategoryLabel(todo);
+          const previousCategory = index > 0 ? getCategoryLabel(sortedTodos[index - 1]) : null;
+          const showCategoryHeader = groupByCategory && categoryLabel !== previousCategory;
 
           return (
-          <View key={todo.id} style={styles.monthDataRow}>
-            <View style={styles.monthTaskColumn}>
-              <Text style={styles.monthTaskIcon}>{todo.icon}</Text>
-              <Text style={styles.monthTaskName} numberOfLines={1}>{todo.name}</Text>
-              <Text style={styles.monthTaskPriority}>P{priority}</Text>
-            </View>
-            {days.map((day) => {
-              const dateKey = formatDateKey(day);
-              const isBeforeStart = dateKey < getTodoStartDateKey(todo);
-              const isFuture = dateKey > todayKey;
-              const isDone = !isBeforeStart && !isFuture && isTodoCompleted(todo, dateKey);
+          <Fragment key={todo.id}>
+            {showCategoryHeader && (
+              <View style={styles.monthCategoryHeader}>
+                <Text style={styles.monthCategoryHeaderText}>{categoryLabel}</Text>
+              </View>
+            )}
+            <View style={styles.monthDataRow}>
+              <View style={styles.monthTaskColumn}>
+                <Text style={styles.monthTaskIcon}>{todo.icon}</Text>
+                <Text style={styles.monthTaskName} numberOfLines={1}>{todo.name}</Text>
+                <Text style={styles.monthTaskPriority}>P{priority}</Text>
+              </View>
+              {days.map((day) => {
+                const dateKey = formatDateKey(day);
+                const isBeforeStart = dateKey < startDateKey;
+                const isFuture = dateKey > todayKey;
+                const isDone = !isBeforeStart && !isFuture && isTodoCompleted(todo, dateKey);
 
-              return (
-                <View
-                  key={`${todo.id}-${dateKey}`}
-                  style={[
-                    styles.monthDayColumn,
-                    styles.monthStatusCell,
-                    dateKey === todayKey && styles.todayColumn,
-                  ]}
-                >
-                  {isDone ? (
-                    <Check size={14} color="#059669" strokeWidth={3} />
-                  ) : isBeforeStart || isFuture ? (
-                    <Text style={styles.futureMark}>-</Text>
-                  ) : (
-                    <X size={13} color="#ef4444" strokeWidth={2.5} />
-                  )}
-                </View>
-              );
-            })}
-            <View style={styles.monthSummaryColumn}>
-              <Text style={styles.monthSummaryText}>
-                {completedDays}/{trackedDays.length} ({completionPercentage}%)
-              </Text>
+                return (
+                  <View
+                    key={`${todo.id}-${dateKey}`}
+                    style={[
+                      styles.monthDayColumn,
+                      styles.monthStatusCell,
+                      dateKey === todayKey && styles.todayColumn,
+                    ]}
+                  >
+                    {isDone ? (
+                      <Check size={14} color="#059669" strokeWidth={3} />
+                    ) : isBeforeStart || isFuture ? (
+                      <Text style={styles.futureMark}>-</Text>
+                    ) : (
+                      <X size={13} color="#ef4444" strokeWidth={2.5} />
+                    )}
+                  </View>
+                );
+              })}
+              <View style={styles.monthSummaryColumn}>
+                <Text style={styles.monthSummaryText}>
+                  {completedDays}/{trackedDays.length} ({completionPercentage}%)
+                </Text>
+              </View>
             </View>
-          </View>
+          </Fragment>
           );
         })}
         <View style={styles.monthTotalsRow}>
@@ -206,6 +224,7 @@ function TaskManageItem({
   id,
   name,
   icon,
+  category,
   timeMinutes,
   priority = 0,
   notificationTime,
@@ -217,6 +236,7 @@ function TaskManageItem({
   id: string;
   name: string;
   icon: string;
+  category?: string;
   timeMinutes?: number;
   priority?: number;
   notificationTime?: string;
@@ -256,6 +276,7 @@ function TaskManageItem({
             <Text style={styles.taskName} numberOfLines={1}>
               {name}
             </Text>
+            {category ? <Text style={styles.taskCategory}>{category}</Text> : null}
             <View style={styles.badgesRow}>
               {/* Priority badge */}
               <View
@@ -343,6 +364,7 @@ export default function TasksScreen() {
   const [viewMode, setViewMode] = useState<'manage' | 'month'>('manage');
   const [sortBy, setSortBy] = useState<'completion' | 'priority'>('completion');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [groupByCategory, setGroupByCategory] = useState(false);
   const [monthDate, setMonthDate] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
@@ -466,6 +488,15 @@ export default function TasksScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              style={[styles.categoryToggle, groupByCategory && styles.categoryToggleActive]}
+              onPress={() => setGroupByCategory((current) => !current)}
+              accessibilityLabel="Toggle grouping by category"
+            >
+              <Text style={[styles.categoryToggleText, groupByCategory && styles.categoryToggleTextActive]}>
+                {groupByCategory ? 'Grouped by category' : 'Group by category'}
+              </Text>
+            </TouchableOpacity>
             <View style={styles.legendRow}>
               <Text style={styles.legendText}><Check size={13} color="#059669" /> Done</Text>
               <Text style={styles.legendText}><X size={13} color="#cbd5e1" /> Not done</Text>
@@ -475,6 +506,7 @@ export default function TasksScreen() {
               monthDate={monthDate}
               sortBy={sortBy}
               sortDirection={sortDirection}
+              groupByCategory={groupByCategory}
             />
           </View>
         ) : (
@@ -484,6 +516,7 @@ export default function TasksScreen() {
               id={todo.id}
               name={todo.name}
               icon={todo.icon}
+              category={todo.category}
               timeMinutes={todo.timeMinutes}
               priority={todo.priority}
               notificationTime={todo.notificationTime}
@@ -639,6 +672,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  categoryToggle: {
+    alignSelf: 'flex-start',
+    marginHorizontal: 14,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  categoryToggleActive: {
+    backgroundColor: '#eef2ff',
+  },
+  categoryToggleText: {
+    color: SUBTEXT,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  categoryToggleTextActive: {
+    color: PURPLE,
+  },
   legendRow: {
     flexDirection: 'row',
     gap: 14,
@@ -664,6 +717,21 @@ const styles = StyleSheet.create({
   },
   monthDataRow: {
     flexDirection: 'row',
+  },
+  monthCategoryHeader: {
+    minHeight: 32,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    backgroundColor: '#eef2ff',
+    borderBottomWidth: 1,
+    borderColor: '#c7d2fe',
+  },
+  monthCategoryHeaderText: {
+    color: PURPLE,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   monthTotalsRow: {
     flexDirection: 'row',
@@ -819,6 +887,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: TEXT,
+  },
+  taskCategory: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: PURPLE,
+    marginTop: 3,
   },
   badgesRow: {
     flexDirection: 'row',
