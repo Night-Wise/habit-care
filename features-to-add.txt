@@ -11,6 +11,9 @@ Next features to add:
 - While changing (Timing & priority) save this prefernces in local storage as well (in Home page) along with 
 Done %, Priority and Higest % first (preference) which user selected in local storage as well. So, that when we close and reopen the app
 it won't go to default values
+- Monthly view - Option (Graph option - Monthly view), Github type view of todo daily tasks (check)
+- Notification -> Voice notification (ring or call - Custome - voice speak), recurring notification (reminder multiple times in a day)
+- How to publish app in Playstore
 
 Features which are done: 
 ------------------------
