@@ -1,29 +1,31 @@
-import { AlertTriangle, BarChart3, Bell, Copy, Eye, FileDown, FileText, FolderOpen, Share2, Trash2, Upload } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import React, { useState } from 'react';
+import { AlertTriangle, BarChart3, Bell, Cloud, Copy, Eye, FileDown, FileText, FolderOpen, LogIn, LogOut, Share2, Trash2, Upload } from 'lucide-react-native';
+import { useState } from 'react';
 import {
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Modal,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/context/auth-context';
 import { useTodos } from '@/context/todos-context';
 import { sendTestNotification } from '@/utils/notifications';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { todos, exportData, importData, clearAllData } = useTodos();
+  const { todos, exportData, importData, clearAllData, replaceTodos } = useTodos();
+  const { user, isConfigured, authError, signInWithGoogle, signOut, syncTodos } = useAuth();
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -218,6 +220,25 @@ export default function SettingsScreen() {
     );
   };
 
+  const runCloudSync = async (mode: 'merge' | 'replace' | 'cloud') => {
+    try {
+      const syncedTodos = await syncTodos(todos, mode);
+      replaceTodos(syncedTodos);
+      showToast('Cloud sync complete.');
+    } catch (error: any) {
+      Alert.alert('Cloud sync failed', error?.message || 'Unable to sync your habits.');
+    }
+  };
+
+  const handleCloudSync = () => {
+    Alert.alert('Choose cloud sync', 'What should happen to your local habits?', [
+      { text: 'Merge local + cloud', onPress: () => runCloudSync('merge') },
+      { text: 'Replace cloud with local', onPress: () => runCloudSync('replace') },
+      { text: 'Use cloud only', onPress: () => runCloudSync('cloud') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" backgroundColor="#6366f1" />
@@ -260,6 +281,43 @@ export default function SettingsScreen() {
               <Text style={styles.statLabel}>Backup Size</Text>
             </View>
           </View>
+        </View>
+
+        {/* Account Section */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Cloud size={24} color="#0284c7" style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Cloud Account</Text>
+              <Text style={styles.cardSub}>
+                {user ? `Signed in as ${user.email || 'Google account'}` : 'Optional Google sign-in for cloud backup.'}
+              </Text>
+            </View>
+          </View>
+
+          {!user ? (
+            <TouchableOpacity
+              style={[styles.btn, styles.btnPrimary, { backgroundColor: '#0284c7' }, !isConfigured && { opacity: 0.55 }]}
+              onPress={signInWithGoogle}
+              activeOpacity={0.8}
+            >
+              <LogIn size={16} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.btnPrimaryText}>Continue with Google</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.btnRow}>
+              <TouchableOpacity style={[styles.btn, styles.btnPrimary, { backgroundColor: '#0284c7' }]} onPress={handleCloudSync} activeOpacity={0.8}>
+                <Cloud size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.btnPrimaryText}>Sync Habits</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={signOut} activeOpacity={0.8}>
+                <LogOut size={16} color="#334155" style={{ marginRight: 6 }} />
+                <Text style={styles.btnSecondaryText}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {!isConfigured && <Text style={styles.setupHint}>Add Supabase values from SUPABASE_SETUP.md to enable sign-in.</Text>}
+          {authError && <Text style={styles.errorText}>{authError}</Text>}
         </View>
 
         {/* Export Data Section */}
@@ -639,6 +697,18 @@ const styles = StyleSheet.create({
     color: SUBTEXT,
     marginTop: 2,
     lineHeight: 18,
+  },
+  setupHint: {
+    color: '#64748b',
+    fontSize: 12,
+    marginTop: 10,
+    lineHeight: 17,
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 12,
+    marginTop: 10,
+    lineHeight: 17,
   },
   btnRow: {
     flexDirection: 'row',

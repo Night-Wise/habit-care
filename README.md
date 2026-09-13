@@ -25,6 +25,47 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Google login and cloud sync
+
+Google login is optional. Without signing in, habits continue to be stored locally. Signed-in users can choose to merge local habits with cloud data, replace cloud data with local habits, or use cloud data only.
+
+### Configure Supabase
+
+1. Create or open your project at the [Supabase Dashboard](https://supabase.com/dashboard).
+2. Go to **Your Project > Connect** and copy the **Project URL**.
+3. Go to **Project > Settings > API Keys** and copy the **Publishable key**. It starts with `sb_publishable_`.
+4. Copy `.env.example` to `.env` and add the values:
+
+   ```text
+   EXPO_PUBLIC_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_************************
+   ```
+
+   `EXPO_PUBLIC_SUPABASE_ANON_KEY` is the existing environment-variable name used by this app. Put the newer Supabase **Publishable key** in that variable. Do not use a secret or service-role key in the app.
+5. Follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) to create the database table and enable Google OAuth. Do not add `GOOGLE_CLIENT_ID` to `.env` for this implementation; Supabase reads the Google OAuth client credentials from its provider settings.
+
+### Configure Google OAuth
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create or select a project.
+2. Configure **APIs & Services > OAuth consent screen** and add your Google account as a test user when the app is in testing.
+3. Under **APIs & Services > Credentials**, create a **Web application** OAuth client ID.
+4. In Supabase, open **Authentication > Providers > Google** and copy its callback URL. Add that URL to Google Cloud under **Authorized redirect URIs**. The URL normally looks like `https://your-project-ref.supabase.co/auth/v1/callback`.
+5. Paste the Google client ID and client secret into the Supabase Google provider and enable it.
+6. In Supabase **Authentication > URL Configuration**, add `habitapp://auth/callback` to the allowed Redirect URLs. For Expo Go, also allow the generated `exp://.../--/auth/callback` URL, or use `exp://**/--/auth/callback` if wildcard redirects are supported. For web testing, add the exact browser origin with `/auth/callback`, such as `http://localhost:8081/auth/callback` or `http://localhost:3000/auth/callback`.
+
+The Google client secret and Supabase secret/service-role key must remain in Supabase or on a server. Do not put either one in `.env` or the app.
+
+### Run backend and frontend
+
+There is no separate backend process in this repository. Supabase is the hosted backend for authentication and cloud habit storage. Configure it using [SUPABASE_SETUP.md](SUPABASE_SETUP.md), then run the Expo frontend:
+
+```bash
+npm install
+npx expo start --clear
+```
+
+Use the Expo terminal shortcuts to open Android, iOS, or web. Native Google OAuth requires a development build or release APK because the app uses the `habitapp://auth/callback` scheme.
+
 ## Building Android APKs
 
 ### Prerequisites

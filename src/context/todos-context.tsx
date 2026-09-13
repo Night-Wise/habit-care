@@ -249,6 +249,7 @@ interface TodosContextType {
     mode: 'merge' | 'replace'
   ) => { success: boolean; count: number; error?: string };
   clearAllData: () => void;
+  replaceTodos: (nextTodos: Todo[]) => void;
 }
 
 const TODOS_KEY = '@habit_app_todos';
@@ -618,6 +619,10 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     setTodos([]);
   };
 
+  const replaceTodos = (nextTodos: Todo[]) => {
+    setTodos(nextTodos);
+  };
+
   return (
     <TodosContext.Provider
       value={{
@@ -632,6 +637,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         exportData,
         importData,
         clearAllData,
+        replaceTodos,
       }}
     >
       {children}
