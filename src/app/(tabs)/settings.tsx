@@ -3,7 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { AlertTriangle, BarChart3, Bell, Cloud, Copy, Eye, FileDown, FileText, FolderOpen, LogIn, LogOut, Share2, Trash2, Upload } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -25,10 +25,12 @@ import { sendTestNotification } from '@/utils/notifications';
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { todos, exportData, importData, clearAllData, replaceTodos } = useTodos();
-  const { user, isConfigured, authError, signInWithGoogle, signOut, syncTodos } = useAuth();
+  const { user, isLoading, isConfigured, authError, signInWithGoogle, signOut, syncTodos } = useAuth();
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const authWasInitialized = useRef(false);
+  const previousUserId = useRef<string | null>(null);
 
   // Modals state
   const [isViewJsonOpen, setIsViewJsonOpen] = useState(false);
@@ -45,6 +47,26 @@ export default function SettingsScreen() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!authWasInitialized.current) {
+      authWasInitialized.current = true;
+      previousUserId.current = user?.id || null;
+      return;
+    }
+
+    const nextUserId = user?.id || null;
+    if (nextUserId === previousUserId.current) return;
+
+    if (nextUserId) {
+      Alert.alert('Sign-in successful', `Signed in as ${user?.email || 'your Google account'}.`);
+    } else {
+      Alert.alert('Signed out', 'You have been signed out successfully.');
+    }
+    previousUserId.current = nextUserId;
+  }, [isLoading, user]);
 
   // Calculate statistics
   const totalHabits = todos.length;
