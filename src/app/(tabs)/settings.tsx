@@ -5,16 +5,16 @@ import * as Sharing from 'expo-sharing';
 import { AlertTriangle, BarChart3, Bell, Cloud, Copy, Eye, FileDown, FileText, FolderOpen, LogIn, LogOut, Share2, Trash2, Upload } from 'lucide-react-native';
 import { useState } from 'react';
 import {
-    Alert,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,6 +28,7 @@ export default function SettingsScreen() {
   const { user, isConfigured, authError, signInWithGoogle, signOut, syncTodos } = useAuth();
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Modals state
   const [isViewJsonOpen, setIsViewJsonOpen] = useState(false);
@@ -38,6 +39,7 @@ export default function SettingsScreen() {
   const [pendingImportJson, setPendingImportJson] = useState<string | null>(null);
   const [importSummaryCount, setImportSummaryCount] = useState<number>(0);
   const [isConfirmImportOpen, setIsConfirmImportOpen] = useState(false);
+  const [isSyncChoiceOpen, setIsSyncChoiceOpen] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -221,22 +223,38 @@ export default function SettingsScreen() {
   };
 
   const runCloudSync = async (mode: 'merge' | 'replace' | 'cloud') => {
+    console.log('[Cloud Sync] Starting sync', { mode, localTodoCount: todos.length });
+    setIsSyncing(true);
+    showToast('Syncing habits with Supabase...');
     try {
       const syncedTodos = await syncTodos(todos, mode);
       replaceTodos(syncedTodos);
-      showToast('Cloud sync complete.');
+      console.log('[Cloud Sync] Sync completed successfully', {
+        mode,
+        syncedTodoCount: syncedTodos.length,
+      });
+      Alert.alert('Cloud sync successful', `${syncedTodos.length} habit${syncedTodos.length === 1 ? '' : 's'} synced successfully.`);
     } catch (error: any) {
+      console.error('[Cloud Sync] Sync failed', error);
       Alert.alert('Cloud sync failed', error?.message || 'Unable to sync your habits.');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const handleCloudSync = () => {
-    Alert.alert('Choose cloud sync', 'What should happen to your local habits?', [
-      { text: 'Merge local + cloud', onPress: () => runCloudSync('merge') },
-      { text: 'Replace cloud with local', onPress: () => runCloudSync('replace') },
-      { text: 'Use cloud only', onPress: () => runCloudSync('cloud') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    console.log('[Cloud Sync] Sync Habits pressed', {
+      isConfigured,
+      userId: user?.id,
+      localTodoCount: todos.length,
+    });
+    showToast('Choose how to sync your habits.');
+    setIsSyncChoiceOpen(true);
+  };
+
+  const chooseSyncMode = (mode: 'merge' | 'replace' | 'cloud') => {
+    setIsSyncChoiceOpen(false);
+    void runCloudSync(mode);
   };
 
   return (
@@ -306,9 +324,9 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           ) : (
             <View style={styles.btnRow}>
-              <TouchableOpacity style={[styles.btn, styles.btnPrimary, { backgroundColor: '#0284c7' }]} onPress={handleCloudSync} activeOpacity={0.8}>
+              <TouchableOpacity style={[styles.btn, styles.btnPrimary, { backgroundColor: '#0284c7' }, isSyncing && { opacity: 0.55 }]} onPress={handleCloudSync} disabled={isSyncing} activeOpacity={0.8}>
                 <Cloud size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.btnPrimaryText}>Sync Habits</Text>
+                <Text style={styles.btnPrimaryText}>{isSyncing ? 'Syncing...' : 'Sync Habits'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={signOut} activeOpacity={0.8}>
                 <LogOut size={16} color="#334155" style={{ marginRight: 6 }} />
@@ -564,6 +582,70 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={styles.cancelChoiceBtn}
               onPress={() => setIsConfirmImportOpen(false)}
+            >
+              <Text style={styles.cancelChoiceText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL 4: Cloud Sync Choice */}
+      <Modal visible={isSyncChoiceOpen} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: 500 }]}>
+            <Text style={styles.confirmIcon}>☁️</Text>
+            <Text style={styles.confirmTitle}>Choose cloud sync</Text>
+            <Text style={styles.confirmSub}>
+              What should happen to your local habits?
+            </Text>
+
+            <View style={styles.confirmChoiceGroup}>
+              <TouchableOpacity
+                style={styles.choiceBtn}
+                onPress={() => chooseSyncMode('merge')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.choiceBtnIcon}>🔀</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.choiceBtnTitle}>Merge local + cloud</Text>
+                  <Text style={styles.choiceBtnSub}>
+                    Keep local habits and add or update habits from the cloud.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.choiceBtn}
+                onPress={() => chooseSyncMode('replace')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.choiceBtnIcon}>⬆️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.choiceBtnTitle}>Replace cloud with local</Text>
+                  <Text style={styles.choiceBtnSub}>
+                    Upload this device&apos;s habits and overwrite cloud data.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.choiceBtn}
+                onPress={() => chooseSyncMode('cloud')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.choiceBtnIcon}>⬇️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.choiceBtnTitle}>Use cloud only</Text>
+                  <Text style={styles.choiceBtnSub}>
+                    Replace this device&apos;s habits with the cloud data.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.cancelChoiceBtn}
+              onPress={() => setIsSyncChoiceOpen(false)}
             >
               <Text style={styles.cancelChoiceText}>Cancel</Text>
             </TouchableOpacity>

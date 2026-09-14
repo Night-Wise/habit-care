@@ -16,6 +16,10 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_************************
 
 ## 2. Create the habit table
 
+The app cannot create this table automatically. It runs with a client-safe publishable key, while creating tables requires a privileged server-side key. Run the SQL below once in the Supabase dashboard under **SQL Editor**, or run the idempotent migration at `supabase/migrations/20260914000000_create_habit_data.sql` with the Supabase CLI.
+
+If sync currently reports `PGRST205` or says that `public.habit_data` is missing, this step has not been completed for the Supabase project referenced by your `.env` file.
+
 Open Supabase **SQL Editor** and run:
 
 ```sql

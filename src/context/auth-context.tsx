@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 👇 Decode the redirect_uri Supabase embedded in the OAuth URL
     const oauthUrl = new URL(data.url);
-    console.log('[Auth] Supabase OAuth URL redirect_uri param =>', oauthUrl.searchParams.get('redirect_uri'));
+    console.log('[Auth] Supabase OAuth URL redirect_to param =>', oauthUrl.searchParams.get('redirect_to'));
 
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
     if (result.type === 'success') {
@@ -135,28 +135,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const syncTodos = async (localTodos: Todo[], mode: SyncMode) => {
-    if (!session?.user) throw new Error('Sign in before syncing your habits.');
+    console.log('[Cloud Sync] Preparing Supabase sync', {
+      mode,
+      localTodoCount: localTodos.length,
+      userId: session?.user?.id,
+      isConfigured: isSupabaseConfigured,
+    });
 
+    if (!isSupabaseConfigured) {
+      const error = new Error('Supabase is not configured. Add the Supabase environment variables and restart the app.');
+      console.error('[Cloud Sync] Supabase is not configured', error);
+      throw error;
+    }
+    if (!session?.user) {
+      const error = new Error('Sign in before syncing your habits.');
+      console.error('[Cloud Sync] No authenticated user', error);
+      throw error;
+    }
+
+    console.log('[Cloud Sync] Fetching habit_data row', { userId: session.user.id });
     const { data, error } = await supabase
       .from('habit_data')
       .select('todos')
       .eq('user_id', session.user.id)
       .maybeSingle();
-    if (error) throw error;
+    if (error) {
+      console.error('[Cloud Sync] Supabase fetch failed', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      if (error.code === 'PGRST205') {
+        throw new Error('The Supabase habit_data table is missing. Run the SQL from SUPABASE_SETUP.md in your Supabase SQL Editor, then try syncing again.');
+      }
+      throw error;
+    }
 
     const cloudTodos = Array.isArray(data?.todos) ? (data.todos as Todo[]) : [];
+    console.log('[Cloud Sync] Supabase fetch succeeded', { cloudTodoCount: cloudTodos.length });
     const nextTodos = mode === 'cloud'
       ? cloudTodos
       : mode === 'replace'
         ? localTodos
         : mergeTodos(localTodos, cloudTodos);
 
+    console.log('[Cloud Sync] Saving habit_data row', { nextTodoCount: nextTodos.length });
     const { error: saveError } = await supabase.from('habit_data').upsert({
       user_id: session.user.id,
       todos: nextTodos,
       updated_at: new Date().toISOString(),
     });
-    if (saveError) throw saveError;
+    if (saveError) {
+      console.error('[Cloud Sync] Supabase save failed', {
+        message: saveError.message,
+        code: saveError.code,
+        details: saveError.details,
+        hint: saveError.hint,
+      });
+      throw saveError;
+    }
+    console.log('[Cloud Sync] Supabase save succeeded');
     return nextTodos;
   };
 

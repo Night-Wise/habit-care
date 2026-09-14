@@ -2,8 +2,8 @@ import { useRouter } from 'expo-router';
 import { Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Pencil, Trash2, X, Zap } from 'lucide-react-native';
 import { Fragment, useState } from 'react';
 import {
-  Alert,
   Animated,
+  Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -247,16 +247,15 @@ function TaskManageItem({
 }) {
   const prioLevel = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
   const [scaleAnim] = useState(() => new Animated.Value(1));
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Task',
-      `Are you sure you want to delete "${name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: onDelete },
-      ]
-    );
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    setIsDeleteConfirmOpen(false);
+    onDelete();
   };
 
   const handlePressIn = () => {
@@ -353,6 +352,35 @@ function TaskManageItem({
           </TouchableOpacity>
         </View>
       </View>
+      <Modal visible={isDeleteConfirmOpen} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.confirmIcon}>🗑️</Text>
+            <Text style={styles.confirmTitle}>Delete Task</Text>
+            <Text style={styles.confirmSub}>
+              Are you sure you want to delete &quot;{name}&quot;?
+            </Text>
+
+            <View style={styles.deleteChoiceRow}>
+              <TouchableOpacity
+                style={styles.cancelChoiceBtn}
+                onPress={() => setIsDeleteConfirmOpen(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.cancelChoiceText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteConfirmBtn}
+                onPress={confirmDelete}
+                activeOpacity={0.8}
+              >
+                <Trash2 size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.deleteConfirmText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
 }
@@ -980,5 +1008,74 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: CARD,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  confirmIcon: {
+    fontSize: 40,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  confirmTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: TEXT,
+    textAlign: 'center',
+  },
+  confirmSub: {
+    fontSize: 13,
+    color: SUBTEXT,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  deleteChoiceRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  cancelChoiceBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelChoiceText: {
+    color: '#334155',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  deleteConfirmBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#dc2626',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteConfirmText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
