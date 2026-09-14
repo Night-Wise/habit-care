@@ -50,6 +50,17 @@ function mergeTodos(localTodos: Todo[], cloudTodos: Todo[]): Todo[] {
   return Array.from(merged.values());
 }
 
+function getMissingSupabaseConfigMessage(): string {
+  const missing = [] as string[];
+  if (!process.env.EXPO_PUBLIC_SUPABASE_URL) missing.push('EXPO_PUBLIC_SUPABASE_URL');
+  if (!process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+
+  const missingLabel = missing.length > 1 ? missing.join(' and ') : missing[0];
+  const verb = missing.length > 1 ? 'are missing' : 'is missing';
+
+  return `Supabase is not configured yet: ${missingLabel} ${verb} in .env. Add the values from SUPABASE_SETUP.md to enable Google sign-in.`;
+}
+
 function getAuthErrorMessage(message: string | undefined): string {
   if (message?.toLowerCase().includes('unsupported provider')) {
     return 'Google sign-in is not enabled in Supabase yet. Enable Authentication > Providers > Google and add the Google OAuth credentials.';
@@ -83,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     setAuthError(null);
     if (!isSupabaseConfigured) {
-      setAuthError('Add the Supabase environment variables before signing in.');
+      setAuthError(getMissingSupabaseConfigMessage());
       return;
     }
 
