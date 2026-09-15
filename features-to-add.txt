@@ -4,27 +4,26 @@ Next features to add:
 - UI - Improvement 
 - Add option to add custom number value -> Eg: Walk -> 7000 steps, Exercise -> 30 mins, etc
 - Check how to publish app in Playstore
-- Add option to login & signup to save data online 
-- Add option to add friend and see there todo daily tasks progress.
+- Add option to add friend and see their todo daily tasks progress.
 - Remove P0 (default priority) only from home page - minor change
 - While changing (Timing & priority) save this prefernces in local storage as well (in Home page) along with 
 Done %, Priority and Higest % first (preference) which user selected in local storage as well. So, that when we close and reopen the app
 it won't go to default values
 - Monthly view - Option (Graph option - Monthly view), Github type view of todo daily tasks (check)
 - Notification -> Voice notification (ring or call - Custome - voice speak), recurring notification (reminder multiple times in a day)
-- How to publish app in 
-- add login with google option as well optional for user. If they add this option, they will get option to save the data to DB. 
 
 Features which are done: 
 ------------------------
 
-5. Make the icon for todo task -> Generic -> Means more icons option instead static x number of icons.
-4. Generate .apk file and Install & Test it
-1. Notification - with timing, also add test Notification in setting option - to check if Notification is working as expected
-0. Add timing option for each to do iteam for reminder
-12. Update icon & Name of the app & generate the .apk file
-13. Write a make file -> To generate .apk file and paste into the build-apk folder (create the folder if not exists) 
-10. In todo task items - in home page - add option to sort tasks based on priority or timings 
-9. In todo task items - add one more field priority -> with number value (default 0 value) -> More the number more the prioriy
-11. Add a tabular view of all the items to show task done or not done for one month
-3. Tabular view all todo item - monthy view
+- Make the icon for todo task -> Generic -> Means more icons option instead static x number of icons.
+- Generate .apk file and Install & Test it
+- Notification - with timing, also add test Notification in setting option - to check if Notification is working as expected
+- Add timing option for each to do iteam for reminder
+- Update icon & Name of the app & generate the .apk file
+- Write a make file -> To generate .apk file and paste into the build-apk folder (create the folder if not exists) 
+- In todo task items - in home page - add option to sort tasks based on priority or timings 
+- In todo task items - add one more field priority -> with number value (default 0 value) -> More the number more the prioriy
+- Add a tabular view of all the items to show task done or not done for one month
+- Tabular view all todo item - monthy view
+- add login with google option as well optional for user. If they add this option, they will get option to save the data to DB. 
+- Add option to login & signup to save data online 

@@ -17,6 +17,10 @@ export default function RootLayout() {
             name="edit-todo"
             options={{ presentation: 'modal', headerShown: false }}
           />
+          <Stack.Screen
+            name="friend-progress"
+            options={{ headerShown: false }}
+          />
         </Stack>
       </TodosProvider>
     </AuthProvider>

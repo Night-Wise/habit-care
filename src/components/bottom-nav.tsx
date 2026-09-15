@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
-import { Home, ListTodo, Plus, Settings } from 'lucide-react-native';
+import { Home, ListTodo, Plus, Settings, Users } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomNavProps {
-  activeTab?: 'home' | 'tasks' | 'settings';
+  activeTab?: 'home' | 'tasks' | 'friends' | 'settings';
   state?: any;
   navigation?: any;
 }
@@ -14,16 +14,16 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // Determine active tab route name dynamically from Tabs state or prop
   let currentTab = propsActiveTab || 'home';
   if (state && state.routes && typeof state.index === 'number') {
     const routeName = state.routes[state.index]?.name;
     if (routeName === 'index') currentTab = 'home';
     else if (routeName === 'tasks') currentTab = 'tasks';
+    else if (routeName === 'friends') currentTab = 'friends';
     else if (routeName === 'settings') currentTab = 'settings';
   }
 
-  const navigateToTab = (tabName: 'index' | 'tasks' | 'settings') => {
+  const navigateToTab = (tabName: 'index' | 'tasks' | 'friends' | 'settings') => {
     if (navigation) {
       navigation.navigate(tabName);
     } else {
@@ -35,7 +35,6 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       <View style={styles.bottomNav}>
-        {/* 1. Add (+) Button */}
         <View style={styles.navItem}>
           <Pressable
             style={({ pressed }) => [
@@ -44,11 +43,10 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
             ]}
             onPress={() => router.push('/add-todo')}
           >
-            <Plus size={24} color="#ffffff" strokeWidth={2.8} />
+            <Plus size={22} color="#ffffff" strokeWidth={2.8} />
           </Pressable>
         </View>
 
-        {/* 2. Home Tab */}
         <TouchableOpacity
           style={styles.navItem}
           onPress={() => currentTab !== 'home' && navigateToTab('index')}
@@ -56,7 +54,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
         >
           <View style={[styles.iconWrap, currentTab === 'home' && styles.iconWrapActive]}>
             <Home
-              size={22}
+              size={20}
               color={currentTab === 'home' ? PURPLE : INACTIVE_COLOR}
               strokeWidth={currentTab === 'home' ? 2.5 : 2}
             />
@@ -66,7 +64,6 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           </Text>
         </TouchableOpacity>
 
-        {/* 3. Tasks Tab */}
         <TouchableOpacity
           style={styles.navItem}
           onPress={() => currentTab !== 'tasks' && navigateToTab('tasks')}
@@ -74,7 +71,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
         >
           <View style={[styles.iconWrap, currentTab === 'tasks' && styles.iconWrapActive]}>
             <ListTodo
-              size={22}
+              size={20}
               color={currentTab === 'tasks' ? PURPLE : INACTIVE_COLOR}
               strokeWidth={currentTab === 'tasks' ? 2.5 : 2}
             />
@@ -84,7 +81,23 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           </Text>
         </TouchableOpacity>
 
-        {/* 4. Setting Tab */}
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => currentTab !== 'friends' && navigateToTab('friends')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.iconWrap, currentTab === 'friends' && styles.iconWrapActive]}>
+            <Users
+              size={20}
+              color={currentTab === 'friends' ? PURPLE : INACTIVE_COLOR}
+              strokeWidth={currentTab === 'friends' ? 2.5 : 2}
+            />
+          </View>
+          <Text style={currentTab === 'friends' ? styles.navLabelActive : styles.navLabel}>
+            Friends
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.navItem}
           onPress={() => currentTab !== 'settings' && navigateToTab('settings')}
@@ -92,7 +105,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
         >
           <View style={[styles.iconWrap, currentTab === 'settings' && styles.iconWrapActive]}>
             <Settings
-              size={22}
+              size={20}
               color={currentTab === 'settings' ? PURPLE : INACTIVE_COLOR}
               strokeWidth={currentTab === 'settings' ? 2.5 : 2}
             />
@@ -127,7 +140,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   navItem: {
     flex: 1,
@@ -135,7 +148,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrap: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 16,
   },
@@ -143,21 +156,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#eef2ff',
   },
   navLabelActive: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: PURPLE,
     marginTop: 3,
   },
   navLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     color: INACTIVE_COLOR,
     marginTop: 3,
   },
   addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: PURPLE,
     alignItems: 'center',
     justifyContent: 'center',

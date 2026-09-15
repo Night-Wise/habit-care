@@ -1,4 +1,4 @@
-import { BarChart2, Clock, Zap } from 'lucide-react-native';
+import { BarChart2, ChevronLeft, Clock, Zap } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
     Animated,
@@ -14,7 +14,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { InsightsModal } from '@/components/insights-modal';
 import { TodoItem } from '@/components/todo-item';
-import { formatDateKey, isTodoCompleted, useTodos } from '@/context/todos-context';
+import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
 
 function parseTimeToMinutes(timeStr?: string): number {
   if (!timeStr) return 1440;
@@ -177,8 +177,29 @@ function ProgressBar({ done, total, label }: { done: number; total: number; labe
   );
 }
 
-export function HomeScreen() {
-  const { todos, isLoaded, toggleTodo, toggleTodoNotification } = useTodos();
+export function HomeScreen({
+  todosOverride,
+  isLoadedOverride,
+  readOnly = false,
+  headerTitle,
+  headerSubtitle,
+  onBack,
+  emptySubtitle,
+  listBottomPadding,
+}: {
+  todosOverride?: Todo[];
+  isLoadedOverride?: boolean;
+  readOnly?: boolean;
+  headerTitle?: string;
+  headerSubtitle?: string;
+  onBack?: () => void;
+  emptySubtitle?: string;
+  listBottomPadding?: number;
+} = {}) {
+  const ownTodos = useTodos();
+  const todos = todosOverride ?? ownTodos.todos;
+  const isLoaded = isLoadedOverride ?? ownTodos.isLoaded;
+  const toggleTodo = ownTodos.toggleTodo;
   const insets = useSafeAreaInsets();
 
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
@@ -276,15 +297,23 @@ export function HomeScreen() {
       <View style={styles.header}>
         {/* Top title row */}
         <View style={styles.titleRow}>
-          <View>
-            <Text style={styles.headerTitle}>Daily Tasks</Text>
-            <Text style={styles.headerDate}>
-              {selectedDate.toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </Text>
+          <View style={styles.titleLeft}>
+            {onBack ? (
+              <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.8}>
+                <ChevronLeft size={22} color="#ffffff" />
+              </TouchableOpacity>
+            ) : null}
+            <View>
+              <Text style={styles.headerTitle}>{headerTitle || 'Daily Tasks'}</Text>
+              <Text style={styles.headerDate}>
+                {headerSubtitle ||
+                  selectedDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+              </Text>
+            </View>
           </View>
           <View style={styles.headerButtonsRow}>
             <TouchableOpacity
@@ -411,11 +440,11 @@ export function HomeScreen() {
         style={styles.list}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: insets.bottom + 90 },
+          { paddingBottom: listBottomPadding ?? insets.bottom + 90 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {isFutureDate && (
+        {isFutureDate && !readOnly && (
           <View style={styles.futureNoticeBanner}>
             <Text style={styles.futureNoticeText}>
               🔒 Future date tasks cannot be checked off yet.
@@ -428,7 +457,7 @@ export function HomeScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📋</Text>
             <Text style={styles.emptyText}>No tasks yet</Text>
-            <Text style={styles.emptySubtext}>Tap + to add your first task</Text>
+            <Text style={styles.emptySubtext}>{emptySubtitle || 'Tap + to add your first task'}</Text>
           </View>
         ) : (
           sortedTodos.map((todo) => {
@@ -444,9 +473,9 @@ export function HomeScreen() {
                 notificationTime={todo.notificationTime}
                 notificationEnabled={todo.notificationEnabled}
                 completed={completed}
-                disabled={isFutureDate}
+                disabled={readOnly || isFutureDate}
                 onToggle={() => {
-                  if (!isFutureDate) {
+                  if (!readOnly && !isFutureDate) {
                     toggleTodo(todo.id, selectedDateKey);
                   }
                 }}
@@ -492,6 +521,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 6,
+  },
+  titleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginRight: 8,
   },
   headerTitle: {
     fontSize: 26,

@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import type { Todo } from '@/context/todos-context';
+import { ensureUserProfile } from '@/lib/friends';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -81,11 +82,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setIsLoading(false);
+      if (data.session?.user) {
+        void ensureUserProfile(data.session.user.id, data.session.user.email);
+      }
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setIsLoading(false);
+      if (nextSession?.user) {
+        void ensureUserProfile(nextSession.user.id, nextSession.user.email);
+      }
     });
 
     return () => listener.subscription.unsubscribe();

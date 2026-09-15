@@ -45,6 +45,12 @@ create policy "Users can update their own habits"
   with check (auth.uid() = user_id);
 ```
 
+## 2b. Create friends tables
+
+Friends require extra tables so users can look each other up by email and share habit progress only after a request is accepted. Run the SQL in `supabase/migrations/20260915120000_create_friends.sql` in the Supabase **SQL Editor** after the `habit_data` table exists.
+
+Until this SQL is applied, the Friends tab cannot send requests or load another person's habits.
+
 ## 3. Enable Google sign-in
 
 1. In [Google Cloud Console](https://console.cloud.google.com/), create or select a project.
