@@ -4,13 +4,13 @@ Next features to add:
 - UI - Improvement 
 - Add option to add custom number value -> Eg: Walk -> 7000 steps, Exercise -> 30 mins, etc
 - Check how to publish app in Playstore
-- Add option to add friend and see their todo daily tasks progress.
 - Remove P0 (default priority) only from home page - minor change
 - While changing (Timing & priority) save this prefernces in local storage as well (in Home page) along with 
 Done %, Priority and Higest % first (preference) which user selected in local storage as well. So, that when we close and reopen the app
 it won't go to default values
 - Monthly view - Option (Graph option - Monthly view), Github type view of todo daily tasks (check)
 - Notification -> Voice notification (ring or call - Custome - voice speak), recurring notification (reminder multiple times in a day)
+- When sign in with google -> After completed successfull it should directly -> click sync button after that. To ask user to merge, pull or push. 
 
 Features which are done: 
 ------------------------
@@ -27,3 +27,4 @@ Features which are done:
 - Tabular view all todo item - monthy view
 - add login with google option as well optional for user. If they add this option, they will get option to save the data to DB. 
 - Add option to login & signup to save data online 
+- Add option to add friend and see their todo daily tasks progress.
