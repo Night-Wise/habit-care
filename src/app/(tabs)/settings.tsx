@@ -280,11 +280,11 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#6366f1" />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>Setting</Text>
         <Text style={styles.headerSub}>Export, Import & Manage your Habit Data</Text>
       </View>
@@ -678,7 +678,7 @@ export default function SettingsScreen() {
   );
 }
 
-const PURPLE = '#6366f1';
+const PURPLE = '#6264FD';
 const BG = '#f8f7ff';
 const CARD = '#ffffff';
 const TEXT = '#1e1b4b';
@@ -692,8 +692,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: PURPLE,
     paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 14,
   },
   headerTitle: {
     fontSize: 28,

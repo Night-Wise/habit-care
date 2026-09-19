@@ -230,6 +230,9 @@ interface TodosContextType {
     category?: string
   ) => Promise<void>;
   toggleTodo: (id: string, dateKey?: string) => void;
+  applyCompletionEdits: (
+    edits: { id: string; dateKey: string; completed: boolean }[]
+  ) => void;
   deleteTodo: (id: string) => void;
   editTodo: (
     id: string,
@@ -362,6 +365,31 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
           completions: {
             ...currentCompletions,
             [targetDate]: !currentlyDone,
+          },
+        };
+      })
+    );
+  };
+
+  const applyCompletionEdits = (
+    edits: { id: string; dateKey: string; completed: boolean }[]
+  ) => {
+    if (!edits.length) return;
+    const byTodo = new Map<string, Record<string, boolean>>();
+    for (const edit of edits) {
+      const current = byTodo.get(edit.id) || {};
+      current[edit.dateKey] = edit.completed;
+      byTodo.set(edit.id, current);
+    }
+    setTodos((prev) =>
+      prev.map((t) => {
+        const overrides = byTodo.get(t.id);
+        if (!overrides) return t;
+        return {
+          ...t,
+          completions: {
+            ...(t.completions || {}),
+            ...overrides,
           },
         };
       })
@@ -630,6 +658,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         isLoaded,
         addTodo,
         toggleTodo,
+        applyCompletionEdits,
         deleteTodo,
         editTodo,
         toggleTodoNotification,

@@ -1,8 +1,22 @@
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, X } from 'lucide-react-native';
-import { Fragment, useState } from 'react';
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Pencil,
+  RotateCcw,
+  Save,
+  X,
+} from 'lucide-react-native';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { formatDateKey, isTodoCompleted, Todo } from '@/context/todos-context';
+import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
+
+function draftKey(todoId: string, dateKey: string) {
+  return `${todoId}::${dateKey}`;
+}
 
 function getMonthDays(monthDate: Date): Date[] {
   const days: Date[] = [];
@@ -44,38 +58,150 @@ function getMonthlyCompletionStats(todo: Todo, days: Date[], todayKey: string) {
   };
 }
 
-function MonthlyTable({
-  todos,
-  monthDate,
-  sortBy,
-  sortDirection,
-  groupByCategory,
-}: {
-  todos: Todo[];
-  monthDate: Date;
-  sortBy: 'completion' | 'priority';
-  sortDirection: 'asc' | 'desc';
-  groupByCategory: boolean;
-}) {
-  const days = getMonthDays(monthDate);
-  const todayKey = formatDateKey(new Date());
+function getCompletionTone(percentage: number, hasTracked: boolean) {
+  if (!hasTracked) {
+    return { bg: '#f1f5f9', text: '#64748b', fill: '#cbd5e1' };
+  }
+  if (percentage >= 90) {
+    return { bg: '#d1fae5', text: '#047857', fill: '#10b981' };
+  }
+  if (percentage >= 75) {
+    return { bg: '#dcfce7', text: '#15803d', fill: '#22c55e' };
+  }
+  if (percentage >= 60) {
+    return { bg: '#ecfccb', text: '#4d7c0f', fill: '#84cc16' };
+  }
+  if (percentage >= 45) {
+    return { bg: '#fef9c3', text: '#a16207', fill: '#eab308' };
+  }
+  if (percentage >= 30) {
+    return { bg: '#ffedd5', text: '#c2410c', fill: '#f97316' };
+  }
+  if (percentage >= 15) {
+    return { bg: '#fee2e2', text: '#b91c1c', fill: '#ef4444' };
+  }
+  return { bg: '#fecaca', text: '#991b1b', fill: '#dc2626' };
+}
+
+function sortTodos(
+  todos: Todo[],
+  days: Date[],
+  todayKey: string,
+  sortBy: 'completion' | 'priority',
+  sortDirection: 'asc' | 'desc',
+  groupByCategory: boolean
+) {
   const getCategoryLabel = (todo: Todo) => todo.category?.trim() || 'Uncategorized';
-  const sortedTodos = [...todos].sort((firstTodo, secondTodo) => {
+  return [...todos].sort((firstTodo, secondTodo) => {
     if (groupByCategory) {
       const categoryOrder = getCategoryLabel(firstTodo).localeCompare(getCategoryLabel(secondTodo));
       if (categoryOrder !== 0) return categoryOrder;
     }
 
-    const firstValue = sortBy === 'completion'
-      ? getMonthlyCompletionStats(firstTodo, days, todayKey).completionPercentage
-      : firstTodo.priority ?? 0;
-    const secondValue = sortBy === 'completion'
-      ? getMonthlyCompletionStats(secondTodo, days, todayKey).completionPercentage
-      : secondTodo.priority ?? 0;
+    const firstValue =
+      sortBy === 'completion'
+        ? getMonthlyCompletionStats(firstTodo, days, todayKey).completionPercentage
+        : firstTodo.priority ?? 0;
+    const secondValue =
+      sortBy === 'completion'
+        ? getMonthlyCompletionStats(secondTodo, days, todayKey).completionPercentage
+        : secondTodo.priority ?? 0;
 
     return sortDirection === 'desc' ? secondValue - firstValue : firstValue - secondValue;
   });
-  const monthlyStats = todos.map((todo) => getMonthlyCompletionStats(todo, days, todayKey));
+}
+
+const DayCell = memo(function DayCell({
+  todoId,
+  todoName,
+  dateKey,
+  initialDone,
+  isEditable,
+  showAsEmpty,
+  isToday,
+  onToggle,
+  resetToken,
+}: {
+  todoId: string;
+  todoName: string;
+  dateKey: string;
+  initialDone: boolean;
+  isEditable: boolean;
+  showAsEmpty: boolean;
+  isToday: boolean;
+  onToggle?: (todoId: string, dateKey: string, nextCompleted: boolean) => void;
+  resetToken: number;
+}) {
+  const [done, setDone] = useState(initialDone);
+
+  useEffect(() => {
+    setDone(initialDone);
+  }, [initialDone, resetToken]);
+
+  const content = (
+    <View
+      style={[
+        styles.monthDayColumn,
+        styles.monthStatusCell,
+        isToday && styles.todayColumn,
+        isEditable && styles.editableCell,
+        isEditable && done && styles.editableCellDone,
+      ]}
+    >
+      {done && !showAsEmpty ? (
+        <Check size={14} color="#059669" strokeWidth={3} />
+      ) : showAsEmpty ? (
+        <Text style={styles.futureMark}>-</Text>
+      ) : (
+        <X size={13} color="#ef4444" strokeWidth={2.5} />
+      )}
+    </View>
+  );
+
+  if (!isEditable || !onToggle) {
+    return content;
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={() => {
+        const next = !done;
+        setDone(next);
+        onToggle(todoId, dateKey, next);
+      }}
+      activeOpacity={0.7}
+      accessibilityLabel={`${done ? 'Unmark' : 'Mark'} ${todoName} on ${dateKey}`}
+    >
+      {content}
+    </TouchableOpacity>
+  );
+});
+
+function MonthlyTable({
+  todos,
+  orderedTodos,
+  days,
+  todayKey,
+  groupByCategory,
+  isEditing,
+  onToggleCell,
+  resetToken,
+}: {
+  todos: Todo[];
+  orderedTodos: Todo[];
+  days: Date[];
+  todayKey: string;
+  groupByCategory: boolean;
+  isEditing: boolean;
+  onToggleCell?: (todoId: string, dateKey: string, nextCompleted: boolean) => void;
+  resetToken: number;
+}) {
+  const getCategoryLabel = (todo: Todo) => todo.category?.trim() || 'Uncategorized';
+
+  const monthlyStats = useMemo(
+    () => todos.map((todo) => getMonthlyCompletionStats(todo, days, todayKey)),
+    [todos, days, todayKey]
+  );
   const monthlyCompletedTotal = monthlyStats.reduce((sum, stats) => sum + stats.completedDays, 0);
   const monthlyTrackedTotal = monthlyStats.reduce((sum, stats) => sum + stats.trackedDays.length, 0);
   const monthlyPercentage = monthlyTrackedTotal
@@ -108,61 +234,74 @@ function MonthlyTable({
           </View>
         </View>
 
-        {sortedTodos.map((todo, index) => {
+        {orderedTodos.map((todo, index) => {
           const { startDateKey, trackedDays, completedDays, completionPercentage } =
             getMonthlyCompletionStats(todo, days, todayKey);
-          const priority = typeof todo.priority === 'number' && !isNaN(todo.priority)
-            ? todo.priority
-            : 0;
+          const priority =
+            typeof todo.priority === 'number' && !isNaN(todo.priority) ? todo.priority : 0;
           const categoryLabel = getCategoryLabel(todo);
-          const previousCategory = index > 0 ? getCategoryLabel(sortedTodos[index - 1]) : null;
+          const previousCategory =
+            index > 0 ? getCategoryLabel(orderedTodos[index - 1]) : null;
           const showCategoryHeader = groupByCategory && categoryLabel !== previousCategory;
+          const summaryTone = getCompletionTone(completionPercentage, trackedDays.length > 0);
 
           return (
-          <Fragment key={todo.id}>
-            {showCategoryHeader && (
-              <View style={styles.monthCategoryHeader}>
-                <Text style={styles.monthCategoryHeaderText}>{categoryLabel}</Text>
-              </View>
-            )}
-            <View style={styles.monthDataRow}>
-              <View style={styles.monthTaskColumn}>
-                <Text style={styles.monthTaskIcon}>{todo.icon}</Text>
-                <Text style={styles.monthTaskName} numberOfLines={1}>{todo.name}</Text>
-                <Text style={styles.monthTaskPriority}>P{priority}</Text>
-              </View>
-              {days.map((day) => {
-                const dateKey = formatDateKey(day);
-                const isBeforeStart = dateKey < startDateKey;
-                const isFuture = dateKey > todayKey;
-                const isDone = !isBeforeStart && !isFuture && isTodoCompleted(todo, dateKey);
+            <Fragment key={todo.id}>
+              {showCategoryHeader && (
+                <View style={styles.monthCategoryHeader}>
+                  <Text style={styles.monthCategoryHeaderText}>{categoryLabel}</Text>
+                </View>
+              )}
+              <View style={styles.monthDataRow}>
+                <View style={styles.monthTaskColumn}>
+                  <Text style={styles.monthTaskIcon}>{todo.icon}</Text>
+                  <Text style={styles.monthTaskName} numberOfLines={1}>
+                    {todo.name}
+                  </Text>
+                  <Text style={styles.monthTaskPriority}>P{priority}</Text>
+                </View>
+                {days.map((day) => {
+                  const dateKey = formatDateKey(day);
+                  const isFuture = dateKey > todayKey;
+                  const isBeforeStart = dateKey < startDateKey;
+                  const isEditable = isEditing && !isFuture;
+                  const showAsEmpty = !isEditable && (isBeforeStart || isFuture);
+                  const initialDone =
+                    !showAsEmpty && isTodoCompleted(todo, dateKey);
 
-                return (
-                  <View
-                    key={`${todo.id}-${dateKey}`}
-                    style={[
-                      styles.monthDayColumn,
-                      styles.monthStatusCell,
-                      dateKey === todayKey && styles.todayColumn,
-                    ]}
-                  >
-                    {isDone ? (
-                      <Check size={14} color="#059669" strokeWidth={3} />
-                    ) : isBeforeStart || isFuture ? (
-                      <Text style={styles.futureMark}>-</Text>
-                    ) : (
-                      <X size={13} color="#ef4444" strokeWidth={2.5} />
-                    )}
+                  return (
+                    <DayCell
+                      key={`${todo.id}-${dateKey}`}
+                      todoId={todo.id}
+                      todoName={todo.name}
+                      dateKey={dateKey}
+                      initialDone={initialDone}
+                      isEditable={isEditable}
+                      showAsEmpty={showAsEmpty}
+                      isToday={dateKey === todayKey}
+                      onToggle={onToggleCell}
+                      resetToken={resetToken}
+                    />
+                  );
+                })}
+                <View style={[styles.monthSummaryColumn, { backgroundColor: summaryTone.bg }]}>
+                  <Text style={[styles.monthSummaryText, { color: summaryTone.text }]}>
+                    {completedDays}/{trackedDays.length} ({completionPercentage}%)
+                  </Text>
+                  <View style={styles.summaryProgressTrack}>
+                    <View
+                      style={[
+                        styles.summaryProgressFill,
+                        {
+                          width: `${trackedDays.length > 0 ? completionPercentage : 0}%`,
+                          backgroundColor: summaryTone.fill,
+                        },
+                      ]}
+                    />
                   </View>
-                );
-              })}
-              <View style={styles.monthSummaryColumn}>
-                <Text style={styles.monthSummaryText}>
-                  {completedDays}/{trackedDays.length} ({completionPercentage}%)
-                </Text>
+                </View>
               </View>
-            </View>
-          </Fragment>
+            </Fragment>
           );
         })}
         <View style={styles.monthTotalsRow}>
@@ -198,30 +337,74 @@ function MonthlyTable({
               </View>
             );
           })}
-          <View style={styles.monthSummaryColumn}>
-            <Text style={styles.monthTotalsText}>
-              {monthlyCompletedTotal}/{monthlyTrackedTotal} ({monthlyPercentage}%)
-            </Text>
-          </View>
+          {(() => {
+            const totalsTone = getCompletionTone(monthlyPercentage, monthlyTrackedTotal > 0);
+            return (
+              <View style={[styles.monthSummaryColumn, { backgroundColor: totalsTone.bg }]}>
+                <Text style={[styles.monthTotalsText, { color: totalsTone.text }]}>
+                  {monthlyCompletedTotal}/{monthlyTrackedTotal} ({monthlyPercentage}%)
+                </Text>
+                <View style={styles.summaryProgressTrack}>
+                  <View
+                    style={[
+                      styles.summaryProgressFill,
+                      {
+                        width: `${monthlyTrackedTotal > 0 ? monthlyPercentage : 0}%`,
+                        backgroundColor: totalsTone.fill,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            );
+          })()}
         </View>
       </View>
     </ScrollView>
   );
 }
 
-export function MonthlyHabitView({ todos }: { todos: Todo[] }) {
+export function MonthlyHabitView({
+  todos,
+  readOnly = false,
+}: {
+  todos: Todo[];
+  readOnly?: boolean;
+}) {
+  const { applyCompletionEdits } = useTodos();
   const [sortBy, setSortBy] = useState<'completion' | 'priority'>('completion');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [groupByCategory, setGroupByCategory] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState(0);
+  const [resetToken, setResetToken] = useState(0);
+  const [frozenOrderIds, setFrozenOrderIds] = useState<string[] | null>(null);
   const [monthDate, setMonthDate] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
+  const draftRef = useRef<Record<string, boolean>>({});
 
+  const todayKey = formatDateKey(new Date());
+  const days = useMemo(() => getMonthDays(monthDate), [monthDate]);
   const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const isCurrentMonth = monthDate.getTime() >= currentMonth.getTime();
 
+  const liveSortedTodos = useMemo(
+    () => sortTodos(todos, days, todayKey, sortBy, sortDirection, groupByCategory),
+    [todos, days, todayKey, sortBy, sortDirection, groupByCategory]
+  );
+
+  const orderedTodos = useMemo(() => {
+    if (!isEditing || !frozenOrderIds) return liveSortedTodos;
+    const byId = new Map(todos.map((todo) => [todo.id, todo]));
+    return frozenOrderIds
+      .map((id) => byId.get(id))
+      .filter((todo): todo is Todo => !!todo);
+  }, [isEditing, frozenOrderIds, liveSortedTodos, todos]);
+
   const changeMonth = (offset: number) => {
+    if (isEditing) return;
     setMonthDate((previousMonth) => {
       const nextMonth = new Date(previousMonth);
       nextMonth.setMonth(nextMonth.getMonth() + offset);
@@ -229,84 +412,212 @@ export function MonthlyHabitView({ todos }: { todos: Todo[] }) {
     });
   };
 
+  const handleToggleCell = useCallback(
+    (todoId: string, dateKey: string, nextCompleted: boolean) => {
+      const key = draftKey(todoId, dateKey);
+      const original = todos.find((t) => t.id === todoId);
+      const originalDone = original ? isTodoCompleted(original, dateKey) : false;
+      const nextDraft = { ...draftRef.current };
+
+      if (nextCompleted === originalDone) {
+        delete nextDraft[key];
+      } else {
+        nextDraft[key] = nextCompleted;
+      }
+
+      draftRef.current = nextDraft;
+      setPendingChanges(Object.keys(nextDraft).length);
+    },
+    [todos]
+  );
+
+  const startEditing = () => {
+    draftRef.current = {};
+    setPendingChanges(0);
+    setFrozenOrderIds(liveSortedTodos.map((todo) => todo.id));
+    setResetToken((token) => token + 1);
+    setIsEditing(true);
+  };
+
+  const discardChanges = () => {
+    draftRef.current = {};
+    setPendingChanges(0);
+    setResetToken((token) => token + 1);
+    setFrozenOrderIds(null);
+    setIsEditing(false);
+  };
+
+  const saveChanges = () => {
+    const edits = Object.entries(draftRef.current).map(([composite, completed]) => {
+      const sep = composite.indexOf('::');
+      return {
+        id: composite.slice(0, sep),
+        dateKey: composite.slice(sep + 2),
+        completed,
+      };
+    });
+    applyCompletionEdits(edits);
+    draftRef.current = {};
+    setPendingChanges(0);
+    setFrozenOrderIds(null);
+    setIsEditing(false);
+  };
+
   return (
     <View style={styles.monthView}>
       <View style={styles.monthToolbar}>
         <TouchableOpacity
-          style={styles.monthArrow}
+          style={[styles.monthArrow, isEditing && styles.monthArrowDisabled]}
           onPress={() => changeMonth(-1)}
+          disabled={isEditing}
           accessibilityLabel="Previous month"
         >
-          <ChevronLeft size={20} color={TEXT} />
+          <ChevronLeft size={20} color={isEditing ? '#cbd5e1' : TEXT} />
         </TouchableOpacity>
         <Text style={styles.monthTitle}>
           {monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </Text>
         <TouchableOpacity
-          style={[styles.monthArrow, isCurrentMonth && styles.monthArrowDisabled]}
-          onPress={() => !isCurrentMonth && changeMonth(1)}
-          disabled={isCurrentMonth}
+          style={[styles.monthArrow, (isCurrentMonth || isEditing) && styles.monthArrowDisabled]}
+          onPress={() => changeMonth(1)}
+          disabled={isCurrentMonth || isEditing}
           accessibilityLabel="Next month"
         >
-          <ChevronRight size={20} color={isCurrentMonth ? '#cbd5e1' : TEXT} />
+          <ChevronRight size={20} color={isCurrentMonth || isEditing ? '#cbd5e1' : TEXT} />
         </TouchableOpacity>
       </View>
-      <View style={styles.sortRow}>
-        <View style={styles.sortCriteria}>
+
+      <View style={[styles.sortRow, isEditing && styles.sortRowDisabled]}>
+        <View style={[styles.sortCriteria, isEditing && styles.controlsDisabled]}>
           <TouchableOpacity
             style={[styles.sortOption, sortBy === 'completion' && styles.sortOptionActive]}
-            onPress={() => setSortBy('completion')}
+            onPress={() => !isEditing && setSortBy('completion')}
+            disabled={isEditing}
           >
-            <Text style={[styles.sortOptionText, sortBy === 'completion' && styles.sortOptionTextActive]}>
+            <Text
+              style={[
+                styles.sortOptionText,
+                sortBy === 'completion' && styles.sortOptionTextActive,
+                isEditing && styles.disabledText,
+              ]}
+            >
               Done %
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.sortOption, sortBy === 'priority' && styles.sortOptionActive]}
-            onPress={() => setSortBy('priority')}
+            onPress={() => !isEditing && setSortBy('priority')}
+            disabled={isEditing}
           >
-            <Text style={[styles.sortOptionText, sortBy === 'priority' && styles.sortOptionTextActive]}>
+            <Text
+              style={[
+                styles.sortOptionText,
+                sortBy === 'priority' && styles.sortOptionTextActive,
+                isEditing && styles.disabledText,
+              ]}
+            >
               Priority
             </Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity
-          style={styles.sortDirection}
-          onPress={() => setSortDirection((current) => current === 'desc' ? 'asc' : 'desc')}
+          style={[styles.sortDirection, isEditing && styles.controlsDisabled]}
+          onPress={() =>
+            !isEditing && setSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'))
+          }
+          disabled={isEditing}
           accessibilityLabel="Change sort direction"
         >
           {sortDirection === 'desc' ? (
-            <ChevronDown size={15} color={PURPLE} />
+            <ChevronDown size={15} color={isEditing ? '#94a3b8' : PURPLE} />
           ) : (
-            <ChevronUp size={15} color={PURPLE} />
+            <ChevronUp size={15} color={isEditing ? '#94a3b8' : PURPLE} />
           )}
-          <Text style={styles.sortDirectionText}>
+          <Text style={[styles.sortDirectionText, isEditing && styles.disabledText]}>
             {sortDirection === 'desc'
-              ? sortBy === 'completion' ? 'Highest % first' : 'Highest priority first'
-              : sortBy === 'completion' ? 'Lowest % first' : 'Lowest priority first'}
+              ? sortBy === 'completion'
+                ? 'Highest % first'
+                : 'Highest priority first'
+              : sortBy === 'completion'
+              ? 'Lowest % first'
+              : 'Lowest priority first'}
           </Text>
         </TouchableOpacity>
       </View>
       <TouchableOpacity
-        style={[styles.categoryToggle, groupByCategory && styles.categoryToggleActive]}
-        onPress={() => setGroupByCategory((current) => !current)}
+        style={[
+          styles.categoryToggle,
+          groupByCategory && styles.categoryToggleActive,
+          isEditing && styles.controlsDisabled,
+        ]}
+        onPress={() => !isEditing && setGroupByCategory((current) => !current)}
+        disabled={isEditing}
         accessibilityLabel="Toggle grouping by category"
       >
-        <Text style={[styles.categoryToggleText, groupByCategory && styles.categoryToggleTextActive]}>
+        <Text
+          style={[
+            styles.categoryToggleText,
+            groupByCategory && styles.categoryToggleTextActive,
+            isEditing && styles.disabledText,
+          ]}
+        >
           {groupByCategory ? 'Grouped by category' : 'Group by category'}
         </Text>
       </TouchableOpacity>
-      <View style={styles.legendRow}>
-        <Text style={styles.legendText}><Check size={13} color="#059669" /> Done</Text>
-        <Text style={styles.legendText}><X size={13} color="#cbd5e1" /> Not done</Text>
-      </View>
       <MonthlyTable
         todos={todos}
-        monthDate={monthDate}
-        sortBy={sortBy}
-        sortDirection={sortDirection}
+        orderedTodos={orderedTodos}
+        days={days}
+        todayKey={todayKey}
         groupByCategory={groupByCategory}
+        isEditing={isEditing && !readOnly}
+        onToggleCell={handleToggleCell}
+        resetToken={resetToken}
       />
+
+      {!readOnly ? (
+        <View style={styles.editRow}>
+          {!isEditing ? (
+            <TouchableOpacity
+              style={styles.editBtn}
+              onPress={startEditing}
+              activeOpacity={0.85}
+              accessibilityLabel="Enable monthly editing"
+            >
+              <Pencil size={14} color={PURPLE} />
+              <Text style={styles.editBtnText}>Enable editing</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={[styles.editBtn, styles.discardBtn]}
+                onPress={discardChanges}
+                activeOpacity={0.85}
+                accessibilityLabel="Discard monthly edits"
+              >
+                <RotateCcw size={14} color="#b91c1c" />
+                <Text style={styles.discardBtnText}>Discard</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.editBtn, styles.editBtnActive]}
+                onPress={saveChanges}
+                activeOpacity={0.85}
+                accessibilityLabel="Save monthly edits"
+              >
+                <Save size={14} color="#ffffff" />
+                <Text style={[styles.editBtnText, styles.editBtnTextActive]}>
+                  {pendingChanges > 0 ? `Save changes (${pendingChanges})` : 'Save changes'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {isEditing ? (
+            <Text style={styles.editHint}>
+              Sorting locked while editing. Tap cells, then save or discard.
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -346,12 +657,70 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
+  editRow: {
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 8,
+    gap: 6,
+  },
+  editActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  editBtn: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9,
+    backgroundColor: '#eef2ff',
+    borderWidth: 1,
+    borderColor: '#c7d2fe',
+  },
+  editBtnActive: {
+    backgroundColor: PURPLE,
+    borderColor: PURPLE,
+  },
+  discardBtn: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  editBtnText: {
+    color: PURPLE,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  editBtnTextActive: {
+    color: '#ffffff',
+  },
+  discardBtnText: {
+    color: '#b91c1c',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  editHint: {
+    color: SUBTEXT,
+    fontSize: 11,
+    fontWeight: '600',
+  },
   sortRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
     marginBottom: 12,
+  },
+  sortRowDisabled: {
+    opacity: 0.72,
+  },
+  controlsDisabled: {
+    opacity: 0.7,
+  },
+  disabledText: {
+    color: '#94a3b8',
   },
   sortCriteria: {
     flexDirection: 'row',
@@ -407,20 +776,6 @@ const styles = StyleSheet.create({
   },
   categoryToggleTextActive: {
     color: PURPLE,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    gap: 14,
-    paddingHorizontal: 14,
-    paddingBottom: 12,
-  },
-  legendText: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    color: SUBTEXT,
-    fontSize: 11,
-    fontWeight: '600',
   },
   monthTable: {
     borderTopWidth: 1,
@@ -481,13 +836,27 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   monthSummaryColumn: {
-    width: 72,
+    width: 78,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    gap: 4,
     borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#e2e8f0',
+  },
+  summaryProgressTrack: {
+    width: '88%',
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+    overflow: 'hidden',
+  },
+  summaryProgressFill: {
+    height: '100%',
+    borderRadius: 999,
   },
   todayColumn: {
     backgroundColor: '#fffbeb',
@@ -506,6 +875,12 @@ const styles = StyleSheet.create({
   },
   monthStatusCell: {
     minHeight: 46,
+  },
+  editableCell: {
+    backgroundColor: '#f8fafc',
+  },
+  editableCellDone: {
+    backgroundColor: '#ecfdf5',
   },
   monthTotalsCell: {
     minHeight: 46,
@@ -541,13 +916,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   monthSummaryText: {
-    color: PURPLE,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
+    textAlign: 'center',
   },
   monthTotalsText: {
     color: PURPLE,
     fontSize: 10,
     fontWeight: '800',
+    textAlign: 'center',
   },
 });

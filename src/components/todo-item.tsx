@@ -25,13 +25,13 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   hobbies: { bg: '#fce7f3', text: '#be185d' },
 };
 
-function getCategoryStyle(category?: string) {
+export function getCategoryStyle(category?: string) {
   if (!category) return { bg: '#eef2ff', text: '#6366f1' };
   const key = category.trim().toLowerCase();
   return CATEGORY_COLORS[key] || { bg: '#e0f2fe', text: '#0369a1' };
 }
 
-function getIconBg(name: string) {
+export function getIconBg(name: string) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash + name.charCodeAt(i) * (i + 1)) % 997;
   return ICON_PASTELS[hash % ICON_PASTELS.length];

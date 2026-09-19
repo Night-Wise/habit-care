@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Bell, Clock, Pencil, Trash2, Zap } from 'lucide-react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Animated,
   Modal,
@@ -14,10 +14,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MonthlyHabitView } from '@/components/monthly-habit-view';
+import { getCategoryStyle, getIconBg } from '@/components/todo-item';
 import { useTodos } from '@/context/todos-context';
 
 function TaskManageItem({
-  id,
   name,
   icon,
   category,
@@ -29,7 +29,6 @@ function TaskManageItem({
   onDelete,
   onToggleNotification,
 }: {
-  id: string;
   name: string;
   icon: string;
   category?: string;
@@ -44,10 +43,8 @@ function TaskManageItem({
   const prioLevel = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
   const [scaleAnim] = useState(() => new Animated.Value(1));
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-
-  const handleDelete = () => {
-    setIsDeleteConfirmOpen(true);
-  };
+  const categoryStyle = useMemo(() => getCategoryStyle(category), [category]);
+  const iconBg = useMemo(() => getIconBg(name || icon), [name, icon]);
 
   const confirmDelete = () => {
     setIsDeleteConfirmOpen(false);
@@ -64,16 +61,35 @@ function TaskManageItem({
   return (
     <Animated.View style={[styles.taskCard, { transform: [{ scale: scaleAnim }] }]}>
       <View style={styles.taskRow}>
-        {/* Icon + name + time */}
-        <View style={styles.taskLeft}>
+        <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
           <Text style={styles.taskIcon}>{icon}</Text>
-          <View style={styles.taskNameWrap}>
+        </View>
+
+        <View style={styles.taskInfoWrap}>
+          <View style={styles.taskMain}>
             <Text style={styles.taskName} numberOfLines={1}>
               {name}
             </Text>
-            {category ? <Text style={styles.taskCategory}>{category}</Text> : null}
-            <View style={styles.badgesRow}>
-              {/* Priority badge */}
+
+            <View style={styles.metaRow}>
+              {notificationTime ? (
+                <View style={styles.timingRow}>
+                  <Clock size={10} color="#6264FD" />
+                  <Text style={styles.timingSubtext}>{notificationTime}</Text>
+                </View>
+              ) : null}
+              {category ? (
+                <View style={[styles.categoryBadge, { backgroundColor: categoryStyle.bg }]}>
+                  <Text style={[styles.categoryText, { color: categoryStyle.text }]}>
+                    {category}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          <View style={styles.badgesCol}>
+            {prioLevel > 0 ? (
               <View
                 style={[
                   styles.priorityBadge,
@@ -85,11 +101,8 @@ function TaskManageItem({
                 ]}
               >
                 <Zap
-                  size={10}
-                  color={
-                    prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'
-                  }
-                  style={{ marginRight: 2 }}
+                  size={9}
+                  color={prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'}
                 />
                 <Text
                   style={[
@@ -104,29 +117,22 @@ function TaskManageItem({
                   P{prioLevel}
                 </Text>
               </View>
+            ) : null}
 
-              {notificationTime ? (
-                <Text style={styles.timingSubtext}>⏰ {notificationTime}</Text>
-              ) : null}
-              <View style={styles.timeBadge}>
-                <Clock size={11} color="#64748b" style={{ marginRight: 3 }} />
-                <Text style={styles.timeBadgeText}>{timeMinutes ?? 30}m</Text>
-              </View>
+            <View style={styles.timeBadge}>
+              <Clock size={10} color="#64748b" />
+              <Text style={styles.timeBadgeText}>{timeMinutes ?? 30}m</Text>
             </View>
           </View>
         </View>
 
-        {/* Actions */}
         <View style={styles.taskActions}>
           <TouchableOpacity
-            style={[
-              styles.bellBtn,
-              notificationEnabled && styles.bellBtnActive,
-            ]}
+            style={[styles.bellBtn, notificationEnabled && styles.bellBtnActive]}
             onPress={onToggleNotification}
             hitSlop={6}
           >
-            <Bell size={16} color={notificationEnabled ? '#6366f1' : '#94a3b8'} />
+            <Bell size={14} color={notificationEnabled ? '#6264FD' : '#94a3b8'} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -136,22 +142,25 @@ function TaskManageItem({
             onPressOut={handlePressOut}
             hitSlop={8}
           >
-            <Pencil size={16} color="#4f46e5" />
+            <Pencil size={14} color="#4f46e5" />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.deleteBtn}
-            onPress={handleDelete}
+            onPress={() => setIsDeleteConfirmOpen(true)}
             hitSlop={8}
           >
-            <Trash2 size={16} color="#ef4444" />
+            <Trash2 size={14} color="#ef4444" />
           </TouchableOpacity>
         </View>
       </View>
+
       <Modal visible={isDeleteConfirmOpen} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.confirmIcon}>🗑️</Text>
+            <View style={styles.confirmIconWrap}>
+              <Trash2 size={22} color="#dc2626" />
+            </View>
             <Text style={styles.confirmTitle}>Delete Task</Text>
             <Text style={styles.confirmSub}>
               Are you sure you want to delete &quot;{name}&quot;?
@@ -190,11 +199,11 @@ export default function TasksScreen() {
   const total = todos.length;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#6366f1" />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>Manage Tasks</Text>
         <Text style={styles.headerSub}>
           {total === 0 ? 'No tasks yet' : `${total} task${total !== 1 ? 's' : ''}`}
@@ -243,7 +252,6 @@ export default function TasksScreen() {
           todos.map((todo) => (
             <TaskManageItem
               key={todo.id}
-              id={todo.id}
               name={todo.name}
               icon={todo.icon}
               category={todo.category}
@@ -264,7 +272,7 @@ export default function TasksScreen() {
   );
 }
 
-const PURPLE = '#6366f1';
+const PURPLE = '#6264FD';
 const BG = '#f8f7ff';
 const CARD = '#ffffff';
 const TEXT = '#1e1b4b';
@@ -278,8 +286,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: PURPLE,
     paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 14,
   },
   headerTitle: {
     fontSize: 28,
@@ -353,55 +360,88 @@ const styles = StyleSheet.create({
   },
   taskCard: {
     backgroundColor: CARD,
-    borderRadius: 14,
-    shadowColor: '#000',
+    borderRadius: 16,
+    shadowColor: '#4c1d95',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(98,100,253,0.04)',
   },
   taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 13,
   },
-  taskLeft: {
-    flexDirection: 'row',
+  iconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
     marginRight: 8,
   },
   taskIcon: {
-    fontSize: 26,
-    marginRight: 12,
+    fontSize: 17,
   },
-  taskNameWrap: {
+  taskInfoWrap: {
     flex: 1,
-  },
-  taskName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: TEXT,
-  },
-  taskCategory: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: PURPLE,
-    marginTop: 3,
-  },
-  badgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginRight: 8,
+    minWidth: 0,
+  },
+  taskMain: {
+    flex: 1,
+    marginRight: 8,
+    minWidth: 0,
+  },
+  taskName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT,
+    letterSpacing: -0.2,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
     gap: 6,
-    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  categoryBadge: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  timingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  timingSubtext: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#6264FD',
+  },
+  badgesCol: {
+    alignItems: 'flex-end',
+    gap: 4,
+    flexShrink: 0,
   },
   priorityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 2,
     borderRadius: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
   },
   priorityBadgeNormal: {
@@ -414,7 +454,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fee2e2',
   },
   priorityBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   priorityBadgeTextNormal: {
@@ -426,54 +466,53 @@ const styles = StyleSheet.create({
   priorityBadgeTextHigh: {
     color: '#b91c1c',
   },
-  timingSubtext: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6366f1',
-  },
   timeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
+    gap: 3,
+    backgroundColor: '#f8fafc',
     borderRadius: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   timeBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#64748b',
   },
   taskActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    flexShrink: 0,
   },
   bellBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bellBtnActive: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#eef0ff',
     borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: '#c7c9fe',
   },
   editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: '#eef2ff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: '#fef2f2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -497,10 +536,15 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 12,
   },
-  confirmIcon: {
-    fontSize: 40,
-    textAlign: 'center',
-    marginBottom: 8,
+  confirmIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   confirmTitle: {
     fontSize: 20,

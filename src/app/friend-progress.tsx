@@ -49,9 +49,9 @@ export default function FriendProgressScreen() {
 
   if (error) {
     return (
-      <View style={[styles.root, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="light-content" backgroundColor="#6366f1" />
-        <View style={styles.header}>
+      <View style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
@@ -83,9 +83,9 @@ export default function FriendProgressScreen() {
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#6366f1" />
-      <View style={styles.header}>
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>‹ Back</Text>
         </TouchableOpacity>
@@ -107,7 +107,7 @@ export default function FriendProgressScreen() {
         ) : todos.length === 0 ? (
           <Text style={styles.loadingText}>No synced habits to show yet.</Text>
         ) : (
-          <MonthlyHabitView todos={todos} />
+          <MonthlyHabitView todos={todos} readOnly />
         )}
       </ScrollView>
     </View>
@@ -139,7 +139,7 @@ function ViewSwitcher({
   );
 }
 
-const PURPLE = '#6366f1';
+const PURPLE = '#6264FD';
 const BG = '#f8f7ff';
 const CARD = '#ffffff';
 
@@ -156,7 +156,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: PURPLE,
     paddingHorizontal: 20,
-    paddingTop: 12,
     paddingBottom: 20,
   },
   backBtn: {
