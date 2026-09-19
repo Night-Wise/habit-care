@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
-import { Home, ListTodo, Plus, Settings, Users } from 'lucide-react-native';
+import { Home, Plus, Settings, Sparkles, Users } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomNavProps {
-  activeTab?: 'home' | 'tasks' | 'friends' | 'settings';
+  activeTab?: 'home' | 'habits' | 'friends' | 'settings';
   state?: any;
   navigation?: any;
 }
@@ -18,12 +18,12 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
   if (state && state.routes && typeof state.index === 'number') {
     const routeName = state.routes[state.index]?.name;
     if (routeName === 'index') currentTab = 'home';
-    else if (routeName === 'tasks') currentTab = 'tasks';
+    else if (routeName === 'habits' || routeName === 'tasks') currentTab = 'habits';
     else if (routeName === 'friends') currentTab = 'friends';
     else if (routeName === 'settings') currentTab = 'settings';
   }
 
-  const navigateToTab = (tabName: 'index' | 'tasks' | 'friends' | 'settings') => {
+  const navigateToTab = (tabName: 'index' | 'habits' | 'friends' | 'settings') => {
     if (navigation) {
       navigation.navigate(tabName);
     } else {
@@ -54,18 +54,18 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
 
         <TouchableOpacity
           style={styles.navItem}
-          onPress={() => currentTab !== 'tasks' && navigateToTab('tasks')}
+          onPress={() => navigateToTab('habits')}
           activeOpacity={0.7}
         >
-          <View style={[styles.iconWrap, currentTab === 'tasks' && styles.iconWrapActive]}>
-            <ListTodo
+          <View style={[styles.iconWrap, currentTab === 'habits' && styles.iconWrapActive]}>
+            <Sparkles
               size={20}
-              color={currentTab === 'tasks' ? PRIMARY : INACTIVE_COLOR}
-              strokeWidth={currentTab === 'tasks' ? 2.5 : 2}
+              color={currentTab === 'habits' ? PRIMARY : INACTIVE_COLOR}
+              strokeWidth={currentTab === 'habits' ? 2.5 : 2}
             />
           </View>
-          <Text style={currentTab === 'tasks' ? styles.navLabelActive : styles.navLabel}>
-            Tasks
+          <Text style={currentTab === 'habits' ? styles.navLabelActive : styles.navLabel}>
+            Habits
           </Text>
         </TouchableOpacity>
 

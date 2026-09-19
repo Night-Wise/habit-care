@@ -1,33 +1,64 @@
-Next features to add: 
-----------------------
-
-- UI - Improvement 
-- Add option to add custom number value -> Eg: Walk -> 7000 steps, Exercise -> 30 mins, etc
-- Check how to publish app in Playstore
-- Remove P0 (default priority) only from home page - minor change
-- While changing (Timing & priority) save this prefernces in local storage as well (in Home page) along with 
-Done %, Priority and Higest % first (preference) which user selected in local storage as well. So, that when we close and reopen the app
-it won't go to default values
-- Monthly view - Option (Graph option - Monthly view), Github type view of todo daily tasks (check)
-- Notification -> Voice notification (ring or call - Custome - voice speak), recurring notification (reminder multiple times in a day)
-- When sign in with google -> After completed successfull it should directly -> click sync button after that. To ask user to merge, pull or push. 
-- Organise the structure of this project - pages and components of each page / along with common components
-- Keep the color of top info bar same as blue in all the pages just as home page. 
-
-Features which are done: 
-------------------------
-
-- Give enable editing in Monthy view mode -> Button for enable editing -> When check and uncheck done -> Click on same button to save changes. 
-- Make the icon for todo task -> Generic -> Means more icons option instead static x number of icons.
-- Generate .apk file and Install & Test it
-- Notification - with timing, also add test Notification in setting option - to check if Notification is working as expected
-- Add timing option for each to do iteam for reminder
-- Update icon & Name of the app & generate the .apk file
-- Write a make file -> To generate .apk file and paste into the build-apk folder (create the folder if not exists) 
-- In todo task items - in home page - add option to sort tasks based on priority or timings 
-- In todo task items - add one more field priority -> with number value (default 0 value) -> More the number more the prioriy
-- Add a tabular view of all the items to show task done or not done for one month
-- Tabular view all todo item - monthy view
-- add login with google option as well optional for user. If they add this option, they will get option to save the data to DB. 
-- Add option to login & signup to save data online 
-- Add option to add friend and see their todo daily tasks progress.
+Next features to add: 
+
+----------------------
+
+
+
+- UI - Improvement 
+
+- Add option to add custom number value -> Eg: Walk -> 7000 steps, Exercise -> 30 mins, etc
+
+- Check how to publish app in Playstore
+
+- Remove P0 (default priority) only from home page - minor change
+
+- While changing (Timing & priority) save this prefernces in local storage as well (in Home page) along with 
+
+Done %, Priority and Higest % first (preference) which user selected in local storage as well. So, that when we close and reopen the app
+
+it won't go to default values
+
+- Monthly view - Option (Graph option - Monthly view), Github type view of todo daily tasks (check)
+
+- Notification -> Voice notification (ring or call - Custome - voice speak), recurring notification (reminder multiple times in a day)
+
+- When sign in with google -> After completed successfull it should directly -> click sync button after that. To ask user to merge, pull or push. 
+
+- Organise the structure of this project - pages and components of each page / along with common components
+
+
+Features which are done: 
+
+------------------------
+
+
+
+- Give enable editing in Monthy view mode -> Button for enable editing -> When check and uncheck done -> Click on same button to save changes. 
+
+- Make the icon for todo task -> Generic -> Means more icons option instead static x number of icons.
+
+- Generate .apk file and Install & Test it
+
+- Notification - with timing, also add test Notification in setting option - to check if Notification is working as expected
+
+- Add timing option for each to do iteam for reminder
+
+- Update icon & Name of the app & generate the .apk file
+
+- Write a make file -> To generate .apk file and paste into the build-apk folder (create the folder if not exists) 
+
+- In todo task items - in home page - add option to sort tasks based on priority or timings 
+
+- In todo task items - add one more field priority -> with number value (default 0 value) -> More the number more the prioriy
+
+- Add a tabular view of all the items to show task done or not done for one month
+
+- Tabular view all todo item - monthy view
+
+- add login with google option as well optional for user. If they add this option, they will get option to save the data to DB. 
+
+- Add option to login & signup to save data online 
+
+- Add option to add friend and see their todo daily tasks progress.
+
+- Keep the color of top info bar same as blue in all the pages just as home page. 

@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, BarChart3, Bell, Cloud, Copy, Eye, FileDown, FileText, FolderOpen, LogIn, LogOut, Share2, Trash2, Upload } from 'lucide-react-native';
+import { AlertTriangle, BarChart3, Bell, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogIn, LogOut, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -337,7 +337,7 @@ export default function SettingsScreen() {
 
           {!user ? (
             <TouchableOpacity
-              style={[styles.btn, styles.btnPrimary, { backgroundColor: '#0284c7' }, !isConfigured && { opacity: 0.55 }]}
+              style={[styles.btn, styles.btnPrimary, !isConfigured && { opacity: 0.55 }]}
               onPress={signInWithGoogle}
               activeOpacity={0.8}
             >
@@ -346,11 +346,11 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           ) : (
             <View style={styles.btnRow}>
-              <TouchableOpacity style={[styles.btn, styles.btnPrimary, { backgroundColor: '#0284c7' }, isSyncing && { opacity: 0.55 }]} onPress={handleCloudSync} disabled={isSyncing} activeOpacity={0.8}>
+              <TouchableOpacity style={[styles.btn, styles.btnInRow, styles.btnPrimary, isSyncing && { opacity: 0.55 }]} onPress={handleCloudSync} disabled={isSyncing} activeOpacity={0.8}>
                 <Cloud size={16} color="#ffffff" style={{ marginRight: 6 }} />
                 <Text style={styles.btnPrimaryText}>{isSyncing ? 'Syncing...' : 'Sync Habits'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={signOut} activeOpacity={0.8}>
+              <TouchableOpacity style={[styles.btn, styles.btnInRow, styles.btnSecondary]} onPress={signOut} activeOpacity={0.8}>
                 <LogOut size={16} color="#334155" style={{ marginRight: 6 }} />
                 <Text style={styles.btnSecondaryText}>Sign Out</Text>
               </TouchableOpacity>
@@ -374,7 +374,7 @@ export default function SettingsScreen() {
 
           <View style={styles.btnRow}>
             <TouchableOpacity
-              style={[styles.btn, styles.btnPrimary]}
+              style={[styles.btn, styles.btnInRow, styles.btnPrimary]}
               onPress={handleExportFile}
               activeOpacity={0.8}
             >
@@ -383,7 +383,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.btn, styles.btnSecondary]}
+              style={[styles.btn, styles.btnInRow, styles.btnSecondary]}
               onPress={handleCopyClipboard}
               activeOpacity={0.8}
             >
@@ -416,7 +416,7 @@ export default function SettingsScreen() {
 
           <View style={styles.btnRow}>
             <TouchableOpacity
-              style={[styles.btn, styles.btnPrimary, { backgroundColor: '#0284c7' }]}
+              style={[styles.btn, styles.btnInRow, styles.btnPrimary]}
               onPress={handlePickFile}
               activeOpacity={0.8}
             >
@@ -425,7 +425,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.btn, styles.btnSecondary]}
+              style={[styles.btn, styles.btnInRow, styles.btnSecondary]}
               onPress={() => {
                 setPastedJsonText('');
                 setIsPasteJsonOpen(true);
@@ -562,7 +562,9 @@ export default function SettingsScreen() {
       <Modal visible={isConfirmImportOpen} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: 420 }]}>
-            <Text style={styles.confirmIcon}>📥</Text>
+            <View style={styles.confirmIconWrap}>
+              <Upload size={28} color={PURPLE} />
+            </View>
             <Text style={styles.confirmTitle}>Confirm JSON Import</Text>
             <Text style={styles.confirmSub}>
               Found <Text style={{ fontWeight: '700', color: PURPLE }}>{importSummaryCount}</Text>{' '}
@@ -575,7 +577,9 @@ export default function SettingsScreen() {
                 onPress={() => handleConfirmImport('merge')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.choiceBtnIcon}>🔀</Text>
+                <View style={styles.choiceBtnIconWrap}>
+                  <GitMerge size={20} color={PURPLE} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.choiceBtnTitle}>Merge Data (Recommended)</Text>
                   <Text style={styles.choiceBtnSub}>
@@ -589,7 +593,9 @@ export default function SettingsScreen() {
                 onPress={() => handleConfirmImport('replace')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.choiceBtnIcon}>🔄</Text>
+                <View style={[styles.choiceBtnIconWrap, styles.choiceBtnIconWrapDanger]}>
+                  <RefreshCw size={20} color="#dc2626" />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.choiceBtnTitle, { color: '#dc2626' }]}>
                     Replace All Data
@@ -615,7 +621,9 @@ export default function SettingsScreen() {
       <Modal visible={isSyncChoiceOpen} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: 500 }]}>
-            <Text style={styles.confirmIcon}>☁️</Text>
+            <View style={styles.confirmIconWrap}>
+              <Cloud size={28} color={PURPLE} />
+            </View>
             <Text style={styles.confirmTitle}>Choose cloud sync</Text>
             <Text style={styles.confirmSub}>
               What should happen to your local habits?
@@ -627,7 +635,9 @@ export default function SettingsScreen() {
                 onPress={() => chooseSyncMode('merge')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.choiceBtnIcon}>🔀</Text>
+                <View style={styles.choiceBtnIconWrap}>
+                  <GitMerge size={20} color={PURPLE} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.choiceBtnTitle}>Merge local + cloud</Text>
                   <Text style={styles.choiceBtnSub}>
@@ -641,7 +651,9 @@ export default function SettingsScreen() {
                 onPress={() => chooseSyncMode('replace')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.choiceBtnIcon}>⬆️</Text>
+                <View style={styles.choiceBtnIconWrap}>
+                  <CloudUpload size={20} color={PURPLE} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.choiceBtnTitle}>Replace cloud with local</Text>
                   <Text style={styles.choiceBtnSub}>
@@ -655,7 +667,9 @@ export default function SettingsScreen() {
                 onPress={() => chooseSyncMode('cloud')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.choiceBtnIcon}>⬇️</Text>
+                <View style={styles.choiceBtnIconWrap}>
+                  <CloudDownload size={20} color={PURPLE} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.choiceBtnTitle}>Use cloud only</Text>
                   <Text style={styles.choiceBtnSub}>
@@ -818,12 +832,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   btn: {
-    flex: 1,
+    minHeight: 44,
     height: 44,
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'stretch',
+    paddingHorizontal: 12,
+  },
+  btnInRow: {
+    flex: 1,
+    alignSelf: 'auto',
   },
   btnPrimary: {
     backgroundColor: PURPLE,
@@ -955,10 +975,15 @@ const styles = StyleSheet.create({
   },
 
   // Confirm Modal specific
-  confirmIcon: {
-    fontSize: 40,
-    textAlign: 'center',
-    marginBottom: 8,
+  confirmIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   confirmTitle: {
     fontSize: 20,
@@ -987,8 +1012,16 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: '#f8fafc',
   },
-  choiceBtnIcon: {
-    fontSize: 24,
+  choiceBtnIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  choiceBtnIconWrapDanger: {
+    backgroundColor: '#fef2f2',
   },
   choiceBtnTitle: {
     fontSize: 14,
