@@ -78,7 +78,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
             onPress={() => router.push('/add-todo')}
           >
             <View style={styles.addButton}>
-              <Plus size={28} color="#ffffff" strokeWidth={2.8} />
+              <Plus size={24} color="#ffffff" strokeWidth={2.8} />
             </View>
           </Pressable>
         </View>
@@ -175,9 +175,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   addButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: PRIMARY,

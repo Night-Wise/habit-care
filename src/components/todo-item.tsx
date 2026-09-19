@@ -107,6 +107,12 @@ export function TodoItem({
             </Text>
 
             <View style={styles.metaRow}>
+              {notificationTime ? (
+                <View style={styles.timingRow}>
+                  <Clock size={10} color="#6264FD" />
+                  <Text style={styles.timingSubtext}>{notificationTime}</Text>
+                </View>
+              ) : null}
               {category ? (
                 <View style={[styles.categoryBadge, { backgroundColor: categoryStyle.bg }]}>
                   <Text style={[styles.categoryText, { color: categoryStyle.text }]}>
@@ -115,43 +121,38 @@ export function TodoItem({
                 </View>
               ) : null}
             </View>
-
-            {notificationTime ? (
-              <View style={styles.timingRow}>
-                <Clock size={11} color="#6366f1" />
-                <Text style={styles.timingSubtext}>{notificationTime}</Text>
-              </View>
-            ) : null}
           </View>
 
           <View style={styles.badgesCol}>
-            <View
-              style={[
-                styles.priorityBadge,
-                prioLevel >= 3
-                  ? styles.priorityBadgeHigh
-                  : prioLevel >= 1
-                  ? styles.priorityBadgeMed
-                  : styles.priorityBadgeNormal,
-              ]}
-            >
-              <Zap
-                size={10}
-                color={prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'}
-              />
-              <Text
+            {prioLevel > 0 ? (
+              <View
                 style={[
-                  styles.priorityBadgeText,
+                  styles.priorityBadge,
                   prioLevel >= 3
-                    ? styles.priorityBadgeTextHigh
+                    ? styles.priorityBadgeHigh
                     : prioLevel >= 1
-                    ? styles.priorityBadgeTextMed
-                    : styles.priorityBadgeTextNormal,
+                    ? styles.priorityBadgeMed
+                    : styles.priorityBadgeNormal,
                 ]}
               >
-                P{prioLevel}
-              </Text>
-            </View>
+                <Zap
+                  size={9}
+                  color={prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'}
+                />
+                <Text
+                  style={[
+                    styles.priorityBadgeText,
+                    prioLevel >= 3
+                      ? styles.priorityBadgeTextHigh
+                      : prioLevel >= 1
+                      ? styles.priorityBadgeTextMed
+                      : styles.priorityBadgeTextNormal,
+                  ]}
+                >
+                  P{prioLevel}
+                </Text>
+              </View>
+            ) : null}
 
             <View
               style={[
@@ -171,7 +172,7 @@ export function TodoItem({
                 onPress={onToggleNotification}
                 hitSlop={6}
               >
-                <Bell size={12} color={notificationEnabled ? '#7c3aed' : '#94a3b8'} />
+                <Bell size={11} color={notificationEnabled ? '#6264FD' : '#94a3b8'} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -189,14 +190,14 @@ const GREEN = '#10b981';
 const styles = StyleSheet.create({
   todoCard: {
     backgroundColor: CARD,
-    borderRadius: 22,
+    borderRadius: 16,
     shadowColor: '#4c1d95',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.04)',
+    borderColor: 'rgba(98,100,253,0.04)',
   },
   todoCardDisabled: {
     opacity: 0.65,
@@ -204,16 +205,16 @@ const styles = StyleSheet.create({
   todoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 16,
+    paddingHorizontal: 17,
+    paddingVertical: 13,
   },
   checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: '#d1d5db',
-    marginRight: 12,
+    marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -227,19 +228,19 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
   },
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 8,
   },
   todoIcon: {
-    fontSize: 22,
+    fontSize: 17,
   },
   todoIconDisabled: {
     opacity: 0.5,
@@ -253,9 +254,10 @@ const styles = StyleSheet.create({
   todoMain: {
     flex: 1,
     marginRight: 8,
+    minWidth: 0,
   },
   todoName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: TEXT,
     letterSpacing: -0.2,
@@ -270,40 +272,41 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 5,
+    marginTop: 3,
     gap: 6,
+    flexWrap: 'wrap',
   },
   categoryBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
   },
   categoryText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   timingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 5,
+    gap: 3,
   },
   timingSubtext: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#6264FD',
   },
   badgesCol: {
     alignItems: 'flex-end',
-    gap: 6,
+    gap: 4,
+    flexShrink: 0,
   },
   priorityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
   },
   priorityBadgeNormal: {
     backgroundColor: '#f1f5f9',
@@ -315,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fee2e2',
   },
   priorityBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   priorityBadgeTextNormal: {
@@ -328,25 +331,25 @@ const styles = StyleSheet.create({
     color: '#b91c1c',
   },
   bellBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 6,
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bellBtnActive: {
-    backgroundColor: '#f3e8ff',
+    backgroundColor: '#eef0ff',
     borderWidth: 1,
-    borderColor: '#ddd6fe',
+    borderColor: '#c7c9fe',
   },
   timeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
@@ -357,7 +360,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   timeBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#64748b',
   },

@@ -44,7 +44,6 @@ type HeroPeriod = keyof typeof HERO_IMAGES;
 function getHeroPeriod(date: Date = new Date()): {
   period: HeroPeriod;
   greeting: string;
-  emoji: string;
   statusBarColor: string;
 } {
   const hour = date.getHours();
@@ -54,7 +53,6 @@ function getHeroPeriod(date: Date = new Date()): {
     return {
       period: 'morning',
       greeting: 'GOOD MORNING',
-      emoji: '🌅',
       statusBarColor: '#7c9fd4',
     };
   }
@@ -63,7 +61,6 @@ function getHeroPeriod(date: Date = new Date()): {
     return {
       period: 'afternoon',
       greeting: 'GOOD AFTERNOON',
-      emoji: '☀️',
       statusBarColor: '#3b82c4',
     };
   }
@@ -72,7 +69,6 @@ function getHeroPeriod(date: Date = new Date()): {
     return {
       period: 'evening',
       greeting: 'GOOD EVENING',
-      emoji: '🌇',
       statusBarColor: '#5b4bb5',
     };
   }
@@ -80,7 +76,6 @@ function getHeroPeriod(date: Date = new Date()): {
   return {
     period: 'night',
     greeting: 'GOOD NIGHT',
-    emoji: '🌙',
     statusBarColor: '#1a237e',
   };
 }
@@ -359,9 +354,7 @@ export function HomeScreen({
               </TouchableOpacity>
             ) : null}
             <View style={{ flex: 1 }}>
-              <Text style={styles.greeting}>
-                {hero.greeting} {hero.emoji}
-              </Text>
+              <Text style={styles.greeting}>{hero.greeting}</Text>
               <Text style={styles.headerTitle}>{headerTitle || 'Daily Tasks'}</Text>
               <Text style={styles.headerSubtitle}>
                 {headerSubtitle || '"Small steps make big progress."'}
@@ -443,7 +436,6 @@ export function HomeScreen({
                       <View style={styles.dayNumCircle}>
                         <Text style={styles.dayNumSelected}>{day.getDate()}</Text>
                       </View>
-                      <View style={styles.selectedDot} />
                     </View>
                   ) : (
                     <View style={[styles.dayPill, isToday && styles.dayPillToday]}>
@@ -566,7 +558,7 @@ export function HomeScreen({
           {isFutureDate && !readOnly && (
             <View style={styles.futureNoticeBanner}>
               <Text style={styles.futureNoticeText}>
-                🔒 Future date tasks cannot be checked off yet.
+              Future date tasks cannot be checked off yet.
               </Text>
             </View>
           )}
@@ -575,7 +567,6 @@ export function HomeScreen({
             <Text style={styles.emptyText}>Loading...</Text>
           ) : sortedTodos.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>📋</Text>
               <Text style={styles.emptyText}>No tasks yet</Text>
               <Text style={styles.emptySubtext}>
                 {emptySubtitle || 'Tap + to add your first task'}
@@ -608,7 +599,6 @@ export function HomeScreen({
 
           {/* Motivational banner */}
           <View style={styles.motivationBanner}>
-            <Text style={styles.motivationIcon}>🌱</Text>
             <View style={styles.motivationTextWrap}>
               <Text style={styles.motivationTitle}>A productive day</Text>
               <Text style={styles.motivationSubtitle}>is a happy day!</Text>
@@ -797,40 +787,40 @@ const styles = StyleSheet.create({
   },
   dateCard: {
     backgroundColor: CARD,
-    borderRadius: 24,
-    paddingHorizontal: 12,
-    paddingTop: 14,
-    paddingBottom: 12,
+    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 10,
     shadowColor: '#4c1d95',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.06)',
+    borderColor: 'rgba(98,100,253,0.06)',
   },
   weekNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 4,
+    marginBottom: 4,
+    paddingHorizontal: 2,
   },
   navArrowBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
   },
   navArrowPlaceholder: {
-    width: 32,
-    height: 32,
+    width: 26,
+    height: 26,
   },
   weekRangeText: {
     color: TEXT,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
@@ -846,63 +836,59 @@ const styles = StyleSheet.create({
   dayPill: {
     width: '92%',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: 18,
+    paddingTop: 3,
+    paddingBottom: 6,
+    borderRadius: 12,
   },
   dayPillToday: {
-    backgroundColor: PRIMARY_SOFT,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fdba74',
   },
   dayPillSelected: {
     width: '92%',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: 20,
-    minHeight: 72,
+    paddingTop: 3,
+    paddingBottom: 6,
+    borderRadius: 12,
     backgroundColor: PRIMARY,
   },
   dayName: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#94a3b8',
-    marginBottom: 8,
+    marginBottom: 3,
   },
   dayNameToday: {
-    color: PRIMARY,
+    color: '#ea580c',
     fontWeight: '700',
   },
   dayNameSelected: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
+    marginBottom: 3,
   },
   dayNum: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
     color: TEXT,
   },
   dayNumToday: {
-    color: PRIMARY,
+    color: '#ea580c',
   },
   dayNumCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayNumSelected: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: PRIMARY,
-  },
-  selectedDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#ffffff',
-    marginTop: 6,
   },
   searchBar: {
     flexDirection: 'row',
@@ -1052,10 +1038,6 @@ const styles = StyleSheet.create({
     paddingTop: 48,
     paddingBottom: 16,
   },
-  emptyEmoji: {
-    fontSize: 56,
-    marginBottom: 12,
-  },
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
@@ -1092,10 +1074,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 4,
     marginBottom: 8,
-  },
-  motivationIcon: {
-    fontSize: 28,
-    marginRight: 12,
   },
   motivationTextWrap: {
     flex: 1,
