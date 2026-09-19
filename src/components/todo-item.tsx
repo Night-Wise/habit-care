@@ -1,5 +1,5 @@
 import { Bell, Clock, Zap } from 'lucide-react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export interface TodoItemProps {
@@ -16,6 +16,27 @@ export interface TodoItemProps {
   onToggleNotification?: () => void;
 }
 
+const ICON_PASTELS = ['#fce7f3', '#e0f2fe', '#dcfce7', '#fef3c7', '#ede9fe', '#ffedd5'];
+const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
+  fitness: { bg: '#dbeafe', text: '#1d4ed8' },
+  health: { bg: '#dcfce7', text: '#15803d' },
+  work: { bg: '#ede9fe', text: '#6d28d9' },
+  home: { bg: '#ffedd5', text: '#c2410c' },
+  hobbies: { bg: '#fce7f3', text: '#be185d' },
+};
+
+function getCategoryStyle(category?: string) {
+  if (!category) return { bg: '#eef2ff', text: '#6366f1' };
+  const key = category.trim().toLowerCase();
+  return CATEGORY_COLORS[key] || { bg: '#e0f2fe', text: '#0369a1' };
+}
+
+function getIconBg(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash + name.charCodeAt(i) * (i + 1)) % 997;
+  return ICON_PASTELS[hash % ICON_PASTELS.length];
+}
+
 export function TodoItem({
   name,
   icon,
@@ -30,11 +51,13 @@ export function TodoItem({
   onToggleNotification,
 }: TodoItemProps) {
   const [scaleAnim] = useState(() => new Animated.Value(1));
+  const categoryStyle = useMemo(() => getCategoryStyle(category), [category]);
+  const iconBg = useMemo(() => getIconBg(name || icon), [name, icon]);
 
   const handleToggle = () => {
     if (disabled) return;
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.95, duration: 80, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.97, duration: 80, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
     ]).start();
     onToggle();
@@ -53,7 +76,7 @@ export function TodoItem({
       <TouchableOpacity
         style={styles.todoRow}
         onPress={handleToggle}
-        activeOpacity={disabled ? 1 : 0.8}
+        activeOpacity={disabled ? 1 : 0.85}
         disabled={disabled}
       >
         <View
@@ -65,9 +88,13 @@ export function TodoItem({
         >
           {completed && <Text style={styles.checkmark}>✓</Text>}
         </View>
-        <Text style={[styles.todoIcon, disabled && styles.todoIconDisabled]}>{icon}</Text>
+
+        <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
+          <Text style={[styles.todoIcon, disabled && styles.todoIconDisabled]}>{icon}</Text>
+        </View>
+
         <View style={styles.todoInfoWrap}>
-          <View style={{ flex: 1, marginRight: 8 }}>
+          <View style={styles.todoMain}>
             <Text
               style={[
                 styles.todoName,
@@ -78,16 +105,26 @@ export function TodoItem({
             >
               {name}
             </Text>
-            {category ? <Text style={styles.categoryText}>{category}</Text> : null}
+
+            <View style={styles.metaRow}>
+              {category ? (
+                <View style={[styles.categoryBadge, { backgroundColor: categoryStyle.bg }]}>
+                  <Text style={[styles.categoryText, { color: categoryStyle.text }]}>
+                    {category}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
             {notificationTime ? (
-              <Text style={styles.timingSubtext}>
-                ⏰ {notificationTime}
-              </Text>
+              <View style={styles.timingRow}>
+                <Clock size={11} color="#6366f1" />
+                <Text style={styles.timingSubtext}>{notificationTime}</Text>
+              </View>
             ) : null}
           </View>
 
-          <View style={styles.badgesRow}>
-            {/* Priority Badge */}
+          <View style={styles.badgesCol}>
             <View
               style={[
                 styles.priorityBadge,
@@ -100,10 +137,7 @@ export function TodoItem({
             >
               <Zap
                 size={10}
-                color={
-                  prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'
-                }
-                style={{ marginRight: 2 }}
+                color={prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'}
               />
               <Text
                 style={[
@@ -119,22 +153,6 @@ export function TodoItem({
               </Text>
             </View>
 
-            {onToggleNotification && (
-              <TouchableOpacity
-                style={[
-                  styles.bellBtn,
-                  notificationEnabled && styles.bellBtnActive,
-                ]}
-                onPress={onToggleNotification}
-                hitSlop={6}
-              >
-                <Bell
-                  size={12}
-                  color={notificationEnabled ? '#6366f1' : '#94a3b8'}
-                />
-              </TouchableOpacity>
-            )}
-
             <View
               style={[
                 styles.timeBadge,
@@ -142,11 +160,20 @@ export function TodoItem({
                 disabled && styles.timeBadgeDisabled,
               ]}
             >
-              <Clock size={11} color={disabled ? '#94a3b8' : '#64748b'} style={{ marginRight: 3 }} />
               <Text style={[styles.timeBadgeText, disabled && styles.timeBadgeTextDisabled]}>
-                {timeMinutes ?? 30}m
+                ◷ {timeMinutes ?? 30}m
               </Text>
             </View>
+
+            {onToggleNotification ? (
+              <TouchableOpacity
+                style={[styles.bellBtn, notificationEnabled && styles.bellBtnActive]}
+                onPress={onToggleNotification}
+                hitSlop={6}
+              >
+                <Bell size={12} color={notificationEnabled ? '#7c3aed' : '#94a3b8'} />
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
       </TouchableOpacity>
@@ -162,12 +189,14 @@ const GREEN = '#10b981';
 const styles = StyleSheet.create({
   todoCard: {
     backgroundColor: CARD,
-    borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: 22,
+    shadowColor: '#4c1d95',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(124,58,237,0.04)',
   },
   todoCardDisabled: {
     opacity: 0.65,
@@ -176,15 +205,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#d1d5db',
-    marginRight: 10,
+    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -201,9 +230,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   todoIcon: {
     fontSize: 22,
-    marginRight: 10,
   },
   todoIconDisabled: {
     opacity: 0.5,
@@ -214,10 +250,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  todoMain: {
+    flex: 1,
+    marginRight: 8,
+  },
   todoName: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: TEXT,
+    letterSpacing: -0.2,
   },
   todoNameDone: {
     textDecorationLine: 'line-through',
@@ -226,29 +267,43 @@ const styles = StyleSheet.create({
   todoNameDisabled: {
     color: '#64748b',
   },
-  timingSubtext: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6366f1',
-    marginTop: 2,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    gap: 6,
+  },
+  categoryBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   categoryText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6366f1',
-    marginTop: 2,
   },
-  badgesRow: {
+  timingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    marginTop: 5,
+  },
+  timingSubtext: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  badgesCol: {
+    alignItems: 'flex-end',
     gap: 6,
   },
   priorityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    gap: 2,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
   },
   priorityBadgeNormal: {
     backgroundColor: '#f1f5f9',
@@ -273,32 +328,32 @@ const styles = StyleSheet.create({
     color: '#b91c1c',
   },
   bellBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bellBtnActive: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#f3e8ff',
     borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: '#ddd6fe',
   },
   timeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 6,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   timeBadgeDone: {
-    backgroundColor: '#f8fafc',
     opacity: 0.6,
   },
   timeBadgeDisabled: {
-    backgroundColor: '#f8fafc',
     opacity: 0.7,
   },
   timeBadgeText: {

@@ -33,20 +33,8 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       <View style={styles.bottomNav}>
-        <View style={styles.navItem}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.addButton,
-              pressed && { transform: [{ scale: 0.92 }] },
-            ]}
-            onPress={() => router.push('/add-todo')}
-          >
-            <Plus size={22} color="#ffffff" strokeWidth={2.8} />
-          </Pressable>
-        </View>
-
         <TouchableOpacity
           style={styles.navItem}
           onPress={() => currentTab !== 'home' && navigateToTab('index')}
@@ -55,7 +43,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           <View style={[styles.iconWrap, currentTab === 'home' && styles.iconWrapActive]}>
             <Home
               size={20}
-              color={currentTab === 'home' ? PURPLE : INACTIVE_COLOR}
+              color={currentTab === 'home' ? PRIMARY : INACTIVE_COLOR}
               strokeWidth={currentTab === 'home' ? 2.5 : 2}
             />
           </View>
@@ -72,7 +60,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           <View style={[styles.iconWrap, currentTab === 'tasks' && styles.iconWrapActive]}>
             <ListTodo
               size={20}
-              color={currentTab === 'tasks' ? PURPLE : INACTIVE_COLOR}
+              color={currentTab === 'tasks' ? PRIMARY : INACTIVE_COLOR}
               strokeWidth={currentTab === 'tasks' ? 2.5 : 2}
             />
           </View>
@@ -80,6 +68,20 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
             Tasks
           </Text>
         </TouchableOpacity>
+
+        <View style={styles.navItem}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.addButtonWrap,
+              pressed && { transform: [{ scale: 0.94 }] },
+            ]}
+            onPress={() => router.push('/add-todo')}
+          >
+            <View style={styles.addButton}>
+              <Plus size={28} color="#ffffff" strokeWidth={2.8} />
+            </View>
+          </Pressable>
+        </View>
 
         <TouchableOpacity
           style={styles.navItem}
@@ -89,7 +91,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           <View style={[styles.iconWrap, currentTab === 'friends' && styles.iconWrapActive]}>
             <Users
               size={20}
-              color={currentTab === 'friends' ? PURPLE : INACTIVE_COLOR}
+              color={currentTab === 'friends' ? PRIMARY : INACTIVE_COLOR}
               strokeWidth={currentTab === 'friends' ? 2.5 : 2}
             />
           </View>
@@ -106,12 +108,12 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           <View style={[styles.iconWrap, currentTab === 'settings' && styles.iconWrapActive]}>
             <Settings
               size={20}
-              color={currentTab === 'settings' ? PURPLE : INACTIVE_COLOR}
+              color={currentTab === 'settings' ? PRIMARY : INACTIVE_COLOR}
               strokeWidth={currentTab === 'settings' ? 2.5 : 2}
             />
           </View>
           <Text style={currentTab === 'settings' ? styles.navLabelActive : styles.navLabel}>
-            Setting
+            Settings
           </Text>
         </TouchableOpacity>
       </View>
@@ -119,46 +121,47 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
   );
 }
 
-const PURPLE = '#6366f1';
-const PURPLE_DARK = '#4f46e5';
+const PRIMARY = '#6264FD';
+const PRIMARY_SOFT = '#eef0ff';
 const CARD = '#ffffff';
-const INACTIVE_COLOR = '#64748b';
+const INACTIVE_COLOR = '#94a3b8';
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: CARD,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 10,
   },
   bottomNav: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     paddingTop: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
   },
   navItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    minHeight: 52,
   },
   iconWrap: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
   },
   iconWrapActive: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: PRIMARY_SOFT,
   },
   navLabelActive: {
     fontSize: 10,
     fontWeight: '700',
-    color: PURPLE,
+    color: PRIMARY,
     marginTop: 3,
   },
   navLabel: {
@@ -167,17 +170,21 @@ const styles = StyleSheet.create({
     color: INACTIVE_COLOR,
     marginTop: 3,
   },
+  addButtonWrap: {
+    marginTop: -22,
+    marginBottom: 2,
+  },
   addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: PURPLE,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: PURPLE_DARK,
-    shadowOffset: { width: 0, height: 4 },
+    backgroundColor: PRIMARY,
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowRadius: 12,
+    elevation: 10,
   },
 });
