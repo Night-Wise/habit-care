@@ -2,9 +2,12 @@ import { Bell, Clock, Pencil, Trash2, Zap } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { getHabitTheme } from '@/components/habit-heatmap';
+import { HabitIcon } from '@/components/habit-icon';
 import { getCategoryStyle, getIconBg } from '@/components/todo-item';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/theme/colors';
+import { isHabitIconId } from '@/utils/habit-icons';
 
 export function TaskManageItem({
   name,
@@ -38,7 +41,11 @@ export function TaskManageItem({
   const [scaleAnim] = useState(() => new Animated.Value(1));
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const categoryStyle = useMemo(() => getCategoryStyle(category, colors), [category, colors]);
-  const iconBg = useMemo(() => getIconBg(name || icon), [name, icon]);
+  const habitTheme = useMemo(() => getHabitTheme(name || icon), [name, icon]);
+  const iconBg = useMemo(
+    () => (isHabitIconId(icon) ? habitTheme.soft : getIconBg(name || icon)),
+    [habitTheme.soft, icon, name]
+  );
 
   const confirmDelete = () => {
     setIsDeleteConfirmOpen(false);
@@ -56,7 +63,7 @@ export function TaskManageItem({
     <Animated.View style={[styles.taskCard, { transform: [{ scale: scaleAnim }] }]}>
       <View style={styles.taskRow}>
         <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-          <Text style={styles.taskIcon}>{icon}</Text>
+          <HabitIcon icon={icon} size={20} color={habitTheme.solid} strokeWidth={2.2} />
         </View>
 
         <View style={styles.taskInfoWrap}>

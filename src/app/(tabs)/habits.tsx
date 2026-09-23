@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import { RefreshCw } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ScrollView,
@@ -12,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getHabitTheme, HabitHeatmap } from '@/components/habit-heatmap';
+import { HabitIcon } from '@/components/habit-icon';
 import { MonthlyHabitView } from '@/components/monthly-habit-view';
 import { TaskManageItem } from '@/components/task-manage-item';
 import { useTheme } from '@/context/theme-context';
@@ -33,24 +33,20 @@ function HabitRow({ todo }: { todo: Todo }) {
   return (
     <View style={styles.row}>
       <View style={[styles.iconBox, { backgroundColor: theme.soft }]}>
-        <Text style={styles.iconEmoji}>{todo.icon}</Text>
+        <HabitIcon icon={todo.icon} size={20} color={theme.solid} strokeWidth={2.2} />
       </View>
 
       <View style={styles.info}>
         <Text style={styles.habitName} numberOfLines={1}>
           {todo.name}
         </Text>
-        <View style={styles.metaRow}>
-          {streak > 0 ? (
-            <View style={styles.streakWrap}>
-              <RefreshCw size={11} color={theme.solid} strokeWidth={2.5} />
-              <Text style={[styles.streakText, { color: theme.solid }]}>
-                {streak} {streak === 1 ? 'day' : 'days'}
-              </Text>
-            </View>
-          ) : null}
-          <Text style={styles.frequencyText}>Every day</Text>
-        </View>
+        {streak > 0 ? (
+          <View style={styles.streakWrap}>
+            <Text style={[styles.streakText, { color: theme.solid }]}>
+              🔥 {streak} {streak === 1 ? 'day' : 'days'}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       <HabitHeatmap todo={todo} color={theme.solid} />
@@ -331,6 +327,7 @@ function createStyles(
       flexDirection: 'row',
       alignItems: 'center',
       gap: 3,
+      marginTop: 3,
     },
     streakText: {
       fontSize: fs(12),

@@ -1,7 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  BarChart2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -28,7 +27,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
-import { InsightsModal } from '@/components/insights-modal';
 import { TodoItem } from '@/components/todo-item';
 import { useTheme } from '@/context/theme-context';
 import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
@@ -229,7 +227,6 @@ export function HomeScreen({
 
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [weekStartDate, setWeekStartDate] = useState<Date>(() => getMonday(new Date()));
-  const [isInsightsOpen, setIsInsightsOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'timing' | 'priority' | 'category'>('timing');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -397,13 +394,6 @@ export function HomeScreen({
               activeOpacity={0.8}
             >
               <Search size={18} color="#ffffff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconCircleBtn}
-              onPress={() => setIsInsightsOpen(true)}
-              activeOpacity={0.8}
-            >
-              <BarChart2 size={18} color="#ffffff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -628,12 +618,6 @@ export function HomeScreen({
           </View>
         </ScrollView>
       </View>
-
-      <InsightsModal
-        visible={isInsightsOpen}
-        onClose={() => setIsInsightsOpen(false)}
-        todos={todos}
-      />
 
       <Modal
         visible={isFilterOpen}

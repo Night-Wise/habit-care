@@ -26,11 +26,12 @@ import {
 import type { TextInput as TextInputType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EmojiPickerModal } from '@/components/emoji-picker-modal';
+import { HabitIcon } from '@/components/habit-icon';
+import { IconPickerModal } from '@/components/icon-picker-modal';
 import { useTheme } from '@/context/theme-context';
 import { useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
-import { POPULAR_EMOJIS } from '@/utils/emoji-data';
+import { DEFAULT_HABIT_ICON, POPULAR_HABIT_ICONS } from '@/utils/habit-icons';
 
 const TIME_PRESETS = [15, 30, 45, 60];
 const PRIORITY_PRESETS = [0, 1, 2, 3, 5];
@@ -42,7 +43,7 @@ const SCHEDULE_TIMING_PRESETS = [
   '06:00 PM',
   '10:30 PM',
 ];
-const DEFAULT_ICON = '✅';
+const DEFAULT_ICON = DEFAULT_HABIT_ICON;
 const CATEGORY_PRESETS = [
   'Health',
   'Fitness',
@@ -104,7 +105,7 @@ export default function AddOrEditTaskPage() {
   const [selectedIcon, setSelectedIcon] = useState<string | null>(todo?.icon ?? null);
   const [category, setCategory] = useState(initialCategory);
   const [isCustomCategory, setIsCustomCategory] = useState(initialIsCustomCategory);
-  const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
+  const [isIconModalOpen, setIsIconModalOpen] = useState(false);
   const [scheduleHour, setScheduleHour] = useState(initialSchedule.hour);
   const [scheduleMinute, setScheduleMinute] = useState(initialSchedule.minute);
   const [schedulePeriod, setSchedulePeriod] = useState<Meridiem>(initialSchedule.period);
@@ -140,7 +141,7 @@ export default function AddOrEditTaskPage() {
   );
 
   const quickIcons = useMemo(() => {
-    const defaultList = POPULAR_EMOJIS.slice(0, 10);
+    const defaultList = POPULAR_HABIT_ICONS.slice(0, 10);
     if (selectedIcon && !defaultList.includes(selectedIcon)) {
       return [selectedIcon, ...defaultList.slice(0, 9)];
     }
@@ -592,7 +593,7 @@ export default function AddOrEditTaskPage() {
             <Text style={[styles.cardLabel, { flex: 1 }]}>Pick an Icon</Text>
             <TouchableOpacity
               style={styles.searchIconsBtn}
-              onPress={() => setIsEmojiModalOpen(true)}
+              onPress={() => setIsIconModalOpen(true)}
               activeOpacity={0.75}
             >
               <Search size={13} color={colors.primary} />
@@ -613,11 +614,16 @@ export default function AddOrEditTaskPage() {
                   style={[styles.iconBtn, isSelected && styles.iconBtnSelected]}
                   onPress={() => setSelectedIcon(item)}
                 >
-                  <Text style={styles.iconEmoji}>{item}</Text>
+                  <HabitIcon
+                    icon={item}
+                    size={22}
+                    color={isSelected ? colors.primary : colors.text}
+                    strokeWidth={2}
+                  />
                 </Pressable>
               );
             })}
-            <Pressable style={styles.moreIconBtn} onPress={() => setIsEmojiModalOpen(true)}>
+            <Pressable style={styles.moreIconBtn} onPress={() => setIsIconModalOpen(true)}>
               <Text style={styles.moreIconText}>⋯</Text>
             </Pressable>
           </ScrollView>
@@ -636,11 +642,11 @@ export default function AddOrEditTaskPage() {
         </TouchableOpacity>
       </View>
 
-      <EmojiPickerModal
-        visible={isEmojiModalOpen}
-        onClose={() => setIsEmojiModalOpen(false)}
-        onSelectEmoji={(emoji) => setSelectedIcon(emoji)}
-        selectedEmoji={selectedIcon}
+      <IconPickerModal
+        visible={isIconModalOpen}
+        onClose={() => setIsIconModalOpen(false)}
+        onSelectIcon={(iconId) => setSelectedIcon(iconId)}
+        selectedIcon={selectedIcon}
       />
     </KeyboardAvoidingView>
   );

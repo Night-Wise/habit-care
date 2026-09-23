@@ -2,8 +2,11 @@ import { Bell, Clock, Zap } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { getHabitTheme } from '@/components/habit-heatmap';
+import { HabitIcon } from '@/components/habit-icon';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/theme/colors';
+import { isHabitIconId } from '@/utils/habit-icons';
 
 export interface TodoItemProps {
   name: string;
@@ -68,7 +71,12 @@ export function TodoItem({
   );
   const [scaleAnim] = useState(() => new Animated.Value(1));
   const categoryStyle = useMemo(() => getCategoryStyle(category, colors), [category, colors]);
-  const iconBg = useMemo(() => getIconBg(name || icon), [name, icon]);
+  const habitTheme = useMemo(() => getHabitTheme(name || icon), [name, icon]);
+  const iconBg = useMemo(
+    () => (isHabitIconId(icon) ? habitTheme.soft : getIconBg(name || icon)),
+    [habitTheme.soft, icon, name]
+  );
+  const iconColor = habitTheme.solid;
 
   const handleToggle = () => {
     if (disabled) return;
@@ -106,7 +114,13 @@ export function TodoItem({
         </View>
 
         <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-          <Text style={[styles.todoIcon, disabled && styles.todoIconDisabled]}>{icon}</Text>
+          <HabitIcon
+            icon={icon}
+            size={20}
+            color={iconColor}
+            strokeWidth={2.2}
+            style={disabled ? styles.todoIconDisabled : undefined}
+          />
         </View>
 
         <View style={styles.todoInfoWrap}>

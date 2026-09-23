@@ -45,16 +45,19 @@ grow on based on number of days we have done that task
 
 - Change placeholder of Task Name
 
+- Add widgets to add on screen for each task (Small, medium and large) (calender view, github view), etc
+
 - Add a pet / animal -> Initally sad and when some task is done, it's get happier. 
 
 - Insted of emojis as icon add a custom icon which have as many as 100 or 200 icon which can be searched to pick. 
-- 
 
 
 Features which are done: 
 
 ------------------------
 
+
+- Instead of emojis as icon add searchable Lucide custom icons (~150) with habit theme tinting
 
 - Create a global config for font size, font family, them color control and add option to add light, dark theme or system theme option. 
 Add option to control overall fontsize of the app from setting for user who prefer larger text size. 

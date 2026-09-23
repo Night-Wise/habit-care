@@ -12,6 +12,8 @@ import {
 import { Fragment, createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { getHabitTheme } from '@/components/habit-heatmap';
+import { HabitIcon } from '@/components/habit-icon';
 import { useTheme } from '@/context/theme-context';
 import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
@@ -269,7 +271,12 @@ function MonthlyTable({
               )}
               <View style={styles.monthDataRow}>
                 <View style={styles.monthTaskColumn}>
-                  <Text style={styles.monthTaskIcon}>{todo.icon}</Text>
+                  <HabitIcon
+                    icon={todo.icon}
+                    size={14}
+                    color={getHabitTheme(todo.name || todo.icon || todo.id).solid}
+                    strokeWidth={2.2}
+                  />
                   <Text style={styles.monthTaskName} numberOfLines={1}>
                     {todo.name}
                   </Text>

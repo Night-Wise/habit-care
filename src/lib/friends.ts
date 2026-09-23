@@ -36,7 +36,7 @@ function sanitizeTodos(raw: unknown): Todo[] {
       {
         id: todo.id ? String(todo.id) : `friend_${index}`,
         name: String(todo.name).trim(),
-        icon: todo.icon ? String(todo.icon) : '📝',
+        icon: todo.icon ? String(todo.icon) : 'circle-check',
         category: typeof todo.category === 'string' ? todo.category : '',
         timeMinutes: typeof todo.timeMinutes === 'number' && todo.timeMinutes > 0 ? todo.timeMinutes : 30,
         priority: typeof todo.priority === 'number' && !Number.isNaN(todo.priority) ? todo.priority : 0,

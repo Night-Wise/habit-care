@@ -554,7 +554,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         validImportedTodos.push({
           id: item.id ? String(item.id) : `${Date.now()}_${i}`,
           name: String(item.name).trim(),
-          icon: item.icon ? String(item.icon) : '📝',
+          icon: item.icon ? String(item.icon) : 'circle-check',
           category: typeof item.category === 'string' ? item.category.trim() : '',
           timeMinutes,
           priority,
