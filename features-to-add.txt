@@ -26,6 +26,24 @@ it won't go to default values
 
 - Organise the structure of this project - pages and components of each page / along with common components
 
+- Add smooth slider, hand gesture support slider. (Paytm like slider - the more the hand movement the more the slide)
+
+- Font size -> Larger -> or option to change the font size
+
+- Animation - Add animation -> Piggy like - Fincare (gourav app reference)
+
+- Add dragable slider option -> Todo items. 
+
+- Pick the name for this Habit App 
+
+- Create trees (3d) which represent a habit, a person (3d) which can view those tree, and tree can
+grow on based on number of days we have done that task 
+
+- Add a animal (Sad to Happy to Happiest -> Based on number of task we have done)
+
+- Quote of the day -> Keep a list of 365 quotes in a json format or txt format change everyday. 
+
+- Change placeholder of Task Name
 
 Features which are done: 
 

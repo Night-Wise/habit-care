@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ChevronRight, ListTodo, RefreshCw } from 'lucide-react-native';
+import { RefreshCw } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActionSheetIOS,
@@ -17,15 +17,17 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getHabitTheme, HabitHeatmap } from '@/components/habit-heatmap';
+import { MonthlyHabitView } from '@/components/monthly-habit-view';
+import { TaskManageItem } from '@/components/task-manage-item';
 import { getTodoInsights, Todo, useTodos } from '@/context/todos-context';
+
+type HabitsTab = 'heatmap' | 'monthly' | 'edit';
 
 function HabitRow({
   todo,
-  onPress,
   onLongPress,
 }: {
   todo: Todo;
-  onPress: () => void;
   onLongPress: () => void;
 }) {
   const theme = useMemo(() => getHabitTheme(todo.name || todo.icon || todo.id), [todo]);
@@ -34,7 +36,6 @@ function HabitRow({
 
   return (
     <Pressable
-      onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -61,16 +62,55 @@ function HabitRow({
       </View>
 
       <HabitHeatmap todo={todo} color={theme.solid} />
-
-      <ChevronRight size={16} color="#c4c4c4" strokeWidth={2.2} style={styles.chevron} />
     </Pressable>
   );
 }
 
+function HabitsTabSwitcher({
+  activeTab,
+  onChange,
+}: {
+  activeTab: HabitsTab;
+  onChange: (tab: HabitsTab) => void;
+}) {
+  return (
+    <View style={styles.tabSwitcher}>
+      <TouchableOpacity
+        style={[styles.tabOption, activeTab === 'heatmap' && styles.tabOptionActive]}
+        onPress={() => onChange('heatmap')}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.tabOptionText, activeTab === 'heatmap' && styles.tabOptionTextActive]}>
+          Heat Map View
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tabOption, activeTab === 'monthly' && styles.tabOptionActive]}
+        onPress={() => onChange('monthly')}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.tabOptionText, activeTab === 'monthly' && styles.tabOptionTextActive]}>
+          Monthly View
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tabOption, activeTab === 'edit' && styles.tabOptionActive]}
+        onPress={() => onChange('edit')}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.tabOptionText, activeTab === 'edit' && styles.tabOptionTextActive]}>
+          Edit
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function HabitsScreen() {
-  const { todos, isLoaded, deleteTodo } = useTodos();
+  const { todos, isLoaded, deleteTodo, toggleTodoNotification } = useTodos();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<HabitsTab>('heatmap');
   const [actionTodo, setActionTodo] = useState<Todo | null>(null);
 
   const activeCount = todos.length;
@@ -118,40 +158,40 @@ export default function HabitsScreen() {
     [confirmDelete, openEdit]
   );
 
+  const subtitle =
+    activeTab === 'heatmap'
+      ? activeCount === 0
+        ? 'No active habits'
+        : `${activeCount} active habit${activeCount === 1 ? '' : 's'}`
+      : activeTab === 'monthly'
+        ? 'Month-by-month completion'
+        : 'Edit reminders, priority & more';
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={BG} />
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Habits</Text>
-          <TouchableOpacity
-            style={styles.manageBtn}
-            onPress={() => router.push('/(tabs)/tasks' as any)}
-            activeOpacity={0.7}
-            hitSlop={8}
-          >
-            <ListTodo size={16} color={SUBTEXT} />
-            <Text style={styles.manageBtnText}>Manage</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.title}>Habits</Text>
         <View style={styles.subRow}>
-          <Text style={styles.subText}>
-            {activeCount === 0
-              ? 'No active habits'
-              : `${activeCount} active habit${activeCount === 1 ? '' : 's'}`}
-          </Text>
-          {activeCount > 0 ? <Text style={styles.subText}>Hold for actions</Text> : null}
+          <Text style={styles.subText}>{subtitle}</Text>
+          {activeTab === 'heatmap' && activeCount > 0 ? (
+            <Text style={styles.subText}>Hold for actions</Text>
+          ) : null}
         </View>
       </View>
+
+      <HabitsTabSwitcher activeTab={activeTab} onChange={setActiveTab} />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
+          activeTab === 'edit' && styles.editScrollContent,
           { paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
       >
         {!isLoaded ? (
           <Text style={styles.emptyText}>Loading...</Text>
@@ -161,6 +201,24 @@ export default function HabitsScreen() {
             <Text style={styles.emptyTitle}>No habits yet</Text>
             <Text style={styles.emptySub}>Tap + to add your first habit</Text>
           </View>
+        ) : activeTab === 'monthly' ? (
+          <MonthlyHabitView todos={todos} />
+        ) : activeTab === 'edit' ? (
+          todos.map((todo) => (
+            <TaskManageItem
+              key={todo.id}
+              name={todo.name}
+              icon={todo.icon}
+              category={todo.category}
+              timeMinutes={todo.timeMinutes}
+              priority={todo.priority}
+              notificationTime={todo.notificationTime}
+              notificationEnabled={todo.notificationEnabled}
+              onEdit={() => openEdit(todo)}
+              onDelete={() => deleteTodo(todo.id)}
+              onToggleNotification={() => toggleTodoNotification(todo.id)}
+            />
+          ))
         ) : (
           <View style={styles.listCard}>
             {todos.map((todo, index) => (
@@ -168,7 +226,6 @@ export default function HabitsScreen() {
                 {index > 0 ? <View style={styles.divider} /> : null}
                 <HabitRow
                   todo={todo}
-                  onPress={() => openEdit(todo)}
                   onLongPress={() => showActions(todo)}
                 />
               </View>
@@ -225,6 +282,7 @@ const BG = '#ffffff';
 const CARD = '#f4f4f5';
 const TEXT = '#111111';
 const SUBTEXT = '#9ca3af';
+const ACCENT = '#2563eb';
 
 const styles = StyleSheet.create({
   root: {
@@ -236,30 +294,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     backgroundColor: BG,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   title: {
     fontSize: 34,
     fontWeight: '800',
     color: TEXT,
     letterSpacing: -0.8,
-  },
-  manageBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: CARD,
-  },
-  manageBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: SUBTEXT,
   },
   subRow: {
     flexDirection: 'row',
@@ -272,12 +311,49 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: SUBTEXT,
   },
+  tabSwitcher: {
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 3,
+    borderRadius: 12,
+  },
+  tabOption: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+  },
+  tabOptionActive: {
+    backgroundColor: BG,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  tabOptionText: {
+    color: SUBTEXT,
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  tabOptionTextActive: {
+    color: TEXT,
+    fontWeight: '700',
+  },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 6,
+  },
+  editScrollContent: {
+    gap: 10,
   },
   listCard: {
     backgroundColor: CARD,
@@ -341,9 +417,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: SUBTEXT,
   },
-  chevron: {
-    marginLeft: 6,
-  },
   emptyState: {
     alignItems: 'center',
     paddingTop: 80,
@@ -398,7 +471,7 @@ const styles = StyleSheet.create({
   sheetBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2563eb',
+    color: ACCENT,
   },
   sheetBtnDanger: {
     color: '#dc2626',
