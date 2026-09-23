@@ -31,6 +31,7 @@ import { TodoItem } from '@/components/todo-item';
 import { useTheme } from '@/context/theme-context';
 import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
+import { getDailyQuote } from '@/utils/daily-quote';
 
 const HERO_IMAGES = {
   morning: require('../../assets/home-page-hero/morning.png'),
@@ -342,6 +343,8 @@ export function HomeScreen({
       ? 'Nice work!'
       : 'Keep going!';
 
+  const dailyQuote = useMemo(() => getDailyQuote(new Date()), []);
+
   const hero = getHeroPeriod();
 
   return (
@@ -374,9 +377,11 @@ export function HomeScreen({
             <View style={{ flex: 1 }}>
               <Text style={styles.greeting}>{hero.greeting}</Text>
               <Text style={styles.headerTitle}>{headerTitle || 'Daily Tasks'}</Text>
-              <Text style={styles.headerSubtitle}>
-                {headerSubtitle || '"Small steps make big progress."'}
-              </Text>
+              {headerSubtitle ? (
+                <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
+              ) : (
+                <Text style={styles.headerSubtitle}>"{dailyQuote.text}"</Text>
+              )}
               <View style={styles.todayChipSlot}>
                 {!isViewingToday ? (
                   <TouchableOpacity style={styles.todayChip} onPress={goToToday} activeOpacity={0.85}>
@@ -607,15 +612,6 @@ export function HomeScreen({
               );
             })
           )}
-
-          {/* Motivational banner */}
-          <View style={styles.motivationBanner}>
-            <View style={styles.motivationTextWrap}>
-              <Text style={styles.motivationTitle}>A productive day</Text>
-              <Text style={styles.motivationSubtitle}>is a happy day!</Text>
-            </View>
-            <View style={styles.motivationWave} />
-          </View>
         </ScrollView>
       </View>
 
@@ -751,7 +747,7 @@ function createStyles(
     color: 'rgba(255,255,255,0.82)',
     marginTop: 4,
     fontWeight: '500',
-    fontStyle: 'italic',
+    lineHeight: 18,
   },
   headerButtonsRow: {
     flexDirection: 'row',
@@ -842,7 +838,7 @@ function createStyles(
     alignItems: 'center',
     paddingTop: 3,
     paddingBottom: 6,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   dayPillToday: {
     backgroundColor: '#fff7ed',
@@ -854,7 +850,7 @@ function createStyles(
     alignItems: 'center',
     paddingTop: 3,
     paddingBottom: 6,
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: colors.primary,
   },
   dayName: {
@@ -1076,41 +1072,6 @@ function createStyles(
     fontSize: 12,
     fontWeight: '600',
     color: '#1e40af',
-  },
-  motivationBanner: {
-    backgroundColor: colors.successSoft,
-    borderRadius: 22,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    overflow: 'hidden',
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  motivationTextWrap: {
-    flex: 1,
-    zIndex: 1,
-  },
-  motivationTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#065f46',
-  },
-  motivationSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#047857',
-    marginTop: 2,
-  },
-  motivationWave: {
-    position: 'absolute',
-    right: -20,
-    top: -10,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(167,243,208,0.55)',
   },
   filterOverlay: {
     flex: 1,

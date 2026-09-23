@@ -1,0 +1,1832 @@
+[
+  {
+    "id": 1,
+    "text": "The secret of getting ahead is getting started.",
+    "author": "Mark Twain"
+  },
+  {
+    "id": 2,
+    "text": "It always seems impossible until it's done.",
+    "author": "Nelson Mandela"
+  },
+  {
+    "id": 3,
+    "text": "Don't watch the clock; do what it does. Keep going.",
+    "author": "Sam Levenson"
+  },
+  {
+    "id": 4,
+    "text": "Success is the sum of small efforts repeated day in and day out.",
+    "author": "Robert Collier"
+  },
+  {
+    "id": 5,
+    "text": "The only way to do great work is to love what you do.",
+    "author": "Steve Jobs"
+  },
+  {
+    "id": 6,
+    "text": "Believe you can and you're halfway there.",
+    "author": "Theodore Roosevelt"
+  },
+  {
+    "id": 7,
+    "text": "Your future is created by what you do today, not tomorrow.",
+    "author": "Robert Kiyosaki"
+  },
+  {
+    "id": 8,
+    "text": "Discipline is choosing between what you want now and what you want most.",
+    "author": "Abraham Lincoln"
+  },
+  {
+    "id": 9,
+    "text": "Motivation gets you started. Habit keeps you going.",
+    "author": "Jim Ryun"
+  },
+  {
+    "id": 10,
+    "text": "You don't have to be great to start, but you have to start to be great.",
+    "author": "Zig Ziglar"
+  },
+  {
+    "id": 11,
+    "text": "The best time to plant a tree was 20 years ago. The second best time is now.",
+    "author": "Chinese Proverb"
+  },
+  {
+    "id": 12,
+    "text": "Fall seven times, stand up eight.",
+    "author": "Japanese Proverb"
+  },
+  {
+    "id": 13,
+    "text": "A year from now you will wish you had started today.",
+    "author": "Karen Lamb"
+  },
+  {
+    "id": 14,
+    "text": "Focus on being productive instead of busy.",
+    "author": "Tim Ferriss"
+  },
+  {
+    "id": 15,
+    "text": "What you do every day matters more than what you do once in a while.",
+    "author": "Gretchen Rubin"
+  },
+  {
+    "id": 16,
+    "text": "The journey of a thousand miles begins with a single step.",
+    "author": "Lao Tzu"
+  },
+  {
+    "id": 17,
+    "text": "Dream big. Start small. Act now.",
+    "author": "Robin Sharma"
+  },
+  {
+    "id": 18,
+    "text": "Make each day your masterpiece.",
+    "author": "John Wooden"
+  },
+  {
+    "id": 19,
+    "text": "Done is better than perfect.",
+    "author": "Sheryl Sandberg"
+  },
+  {
+    "id": 20,
+    "text": "Action is the foundational key to all success.",
+    "author": "Pablo Picasso"
+  },
+  {
+    "id": 21,
+    "text": "Little by little, one travels far.",
+    "author": "J.R.R. Tolkien"
+  },
+  {
+    "id": 22,
+    "text": "Be so good they can't ignore you.",
+    "author": "Steve Martin"
+  },
+  {
+    "id": 23,
+    "text": "Either you run the day or the day runs you.",
+    "author": "Jim Rohn"
+  },
+  {
+    "id": 24,
+    "text": "The only limit to our realization of tomorrow is our doubts of today.",
+    "author": "Franklin D. Roosevelt"
+  },
+  {
+    "id": 25,
+    "text": "Start where you are. Use what you have. Do what you can.",
+    "author": "Arthur Ashe"
+  },
+  {
+    "id": 26,
+    "text": "Quality is not an act, it is a habit.",
+    "author": "Aristotle"
+  },
+  {
+    "id": 27,
+    "text": "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+    "author": "Will Durant"
+  },
+  {
+    "id": 28,
+    "text": "Habits are the compound interest of self-improvement.",
+    "author": "James Clear"
+  },
+  {
+    "id": 29,
+    "text": "You do not rise to the level of your goals. You fall to the level of your systems.",
+    "author": "James Clear"
+  },
+  {
+    "id": 30,
+    "text": "Every action you take is a vote for the type of person you wish to become.",
+    "author": "James Clear"
+  },
+  {
+    "id": 31,
+    "text": "Never miss twice.",
+    "author": "James Clear"
+  },
+  {
+    "id": 32,
+    "text": "The most effective way to do it, is to do it.",
+    "author": "Amelia Earhart"
+  },
+  {
+    "id": 33,
+    "text": "You miss 100% of the shots you don't take.",
+    "author": "Wayne Gretzky"
+  },
+  {
+    "id": 34,
+    "text": "Whether you think you can or you think you can't, you're right.",
+    "author": "Henry Ford"
+  },
+  {
+    "id": 35,
+    "text": "Don't let yesterday take up too much of today.",
+    "author": "Will Rogers"
+  },
+  {
+    "id": 36,
+    "text": "It's not whether you get knocked down, it's whether you get up.",
+    "author": "Vince Lombardi"
+  },
+  {
+    "id": 37,
+    "text": "Hard work beats talent when talent doesn't work hard.",
+    "author": "Tim Notke"
+  },
+  {
+    "id": 38,
+    "text": "If you can dream it, you can do it.",
+    "author": "Walt Disney"
+  },
+  {
+    "id": 39,
+    "text": "The way to get started is to quit talking and begin doing.",
+    "author": "Walt Disney"
+  },
+  {
+    "id": 40,
+    "text": "All our dreams can come true if we have the courage to pursue them.",
+    "author": "Walt Disney"
+  },
+  {
+    "id": 41,
+    "text": "Do what you can, with what you have, where you are.",
+    "author": "Theodore Roosevelt"
+  },
+  {
+    "id": 42,
+    "text": "Nothing is impossible. The word itself says I'm possible.",
+    "author": "Audrey Hepburn"
+  },
+  {
+    "id": 43,
+    "text": "You must do the things you think you cannot do.",
+    "author": "Eleanor Roosevelt"
+  },
+  {
+    "id": 44,
+    "text": "The future belongs to those who believe in the beauty of their dreams.",
+    "author": "Eleanor Roosevelt"
+  },
+  {
+    "id": 45,
+    "text": "Life is 10% what happens to you and 90% how you react to it.",
+    "author": "Charles R. Swindoll"
+  },
+  {
+    "id": 46,
+    "text": "Act as if what you do makes a difference. It does.",
+    "author": "William James"
+  },
+  {
+    "id": 47,
+    "text": "The only person you are destined to become is the person you decide to be.",
+    "author": "Ralph Waldo Emerson"
+  },
+  {
+    "id": 48,
+    "text": "Go confidently in the direction of your dreams.",
+    "author": "Henry David Thoreau"
+  },
+  {
+    "id": 49,
+    "text": "Happiness is not something ready-made. It comes from your own actions.",
+    "author": "Dalai Lama"
+  },
+  {
+    "id": 50,
+    "text": "In the middle of every difficulty lies opportunity.",
+    "author": "Albert Einstein"
+  },
+  {
+    "id": 51,
+    "text": "Strive not to be a success, but rather to be of value.",
+    "author": "Albert Einstein"
+  },
+  {
+    "id": 52,
+    "text": "Life is like riding a bicycle. To keep your balance, you must keep moving.",
+    "author": "Albert Einstein"
+  },
+  {
+    "id": 53,
+    "text": "Creativity is intelligence having fun.",
+    "author": "Albert Einstein"
+  },
+  {
+    "id": 54,
+    "text": "Stay hungry. Stay foolish.",
+    "author": "Steve Jobs"
+  },
+  {
+    "id": 55,
+    "text": "Your time is limited, so don't waste it living someone else's life.",
+    "author": "Steve Jobs"
+  },
+  {
+    "id": 56,
+    "text": "If you're going through hell, keep going.",
+    "author": "Winston Churchill"
+  },
+  {
+    "id": 57,
+    "text": "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+    "author": "Winston Churchill"
+  },
+  {
+    "id": 58,
+    "text": "Attitude is a little thing that makes a big difference.",
+    "author": "Winston Churchill"
+  },
+  {
+    "id": 59,
+    "text": "Never, never, never give up.",
+    "author": "Winston Churchill"
+  },
+  {
+    "id": 60,
+    "text": "Nothing will work unless you do.",
+    "author": "Maya Angelou"
+  },
+  {
+    "id": 61,
+    "text": "Do the best you can until you know better. Then when you know better, do better.",
+    "author": "Maya Angelou"
+  },
+  {
+    "id": 62,
+    "text": "Don't count the days, make the days count.",
+    "author": "Muhammad Ali"
+  },
+  {
+    "id": 63,
+    "text": "The man who moves a mountain begins by carrying away small stones.",
+    "author": "Confucius"
+  },
+  {
+    "id": 64,
+    "text": "It does not matter how slowly you go as long as you do not stop.",
+    "author": "Confucius"
+  },
+  {
+    "id": 65,
+    "text": "Our greatest glory is not in never falling, but in rising every time we fall.",
+    "author": "Confucius"
+  },
+  {
+    "id": 66,
+    "text": "Everything you've ever wanted is on the other side of fear.",
+    "author": "George Addair"
+  },
+  {
+    "id": 67,
+    "text": "The mind is everything. What you think you become.",
+    "author": "Buddha"
+  },
+  {
+    "id": 68,
+    "text": "Do not dwell in the past, do not dream of the future, concentrate the mind on the present moment.",
+    "author": "Buddha"
+  },
+  {
+    "id": 69,
+    "text": "Be yourself; everyone else is already taken.",
+    "author": "Oscar Wilde"
+  },
+  {
+    "id": 70,
+    "text": "Knowing yourself is the beginning of all wisdom.",
+    "author": "Aristotle"
+  },
+  {
+    "id": 71,
+    "text": "Fortune favors the bold.",
+    "author": "Latin Proverb"
+  },
+  {
+    "id": 72,
+    "text": "A smooth sea never made a skilled sailor.",
+    "author": "Franklin D. Roosevelt"
+  },
+  {
+    "id": 73,
+    "text": "Energy and persistence conquer all things.",
+    "author": "Benjamin Franklin"
+  },
+  {
+    "id": 74,
+    "text": "Well done is better than well said.",
+    "author": "Benjamin Franklin"
+  },
+  {
+    "id": 75,
+    "text": "By failing to prepare, you are preparing to fail.",
+    "author": "Benjamin Franklin"
+  },
+  {
+    "id": 76,
+    "text": "An investment in knowledge pays the best interest.",
+    "author": "Benjamin Franklin"
+  },
+  {
+    "id": 77,
+    "text": "Never leave that till tomorrow which you can do today.",
+    "author": "Benjamin Franklin"
+  },
+  {
+    "id": 78,
+    "text": "Whatever you are, be a good one.",
+    "author": "Abraham Lincoln"
+  },
+  {
+    "id": 79,
+    "text": "I am a slow walker, but I never walk back.",
+    "author": "Abraham Lincoln"
+  },
+  {
+    "id": 80,
+    "text": "Be the change that you wish to see in the world.",
+    "author": "Mahatma Gandhi"
+  },
+  {
+    "id": 81,
+    "text": "Live as if you were to die tomorrow. Learn as if you were to live forever.",
+    "author": "Mahatma Gandhi"
+  },
+  {
+    "id": 82,
+    "text": "The future depends on what you do today.",
+    "author": "Mahatma Gandhi"
+  },
+  {
+    "id": 83,
+    "text": "In a gentle way, you can shake the world.",
+    "author": "Mahatma Gandhi"
+  },
+  {
+    "id": 84,
+    "text": "I have not failed. I've just found 10,000 ways that won't work.",
+    "author": "Thomas Edison"
+  },
+  {
+    "id": 85,
+    "text": "Genius is one percent inspiration and ninety-nine percent perspiration.",
+    "author": "Thomas Edison"
+  },
+  {
+    "id": 86,
+    "text": "There is no substitute for hard work.",
+    "author": "Thomas Edison"
+  },
+  {
+    "id": 87,
+    "text": "Learning never exhausts the mind.",
+    "author": "Leonardo da Vinci"
+  },
+  {
+    "id": 88,
+    "text": "Simplicity is the ultimate sophistication.",
+    "author": "Leonardo da Vinci"
+  },
+  {
+    "id": 89,
+    "text": "Knowing is not enough; we must apply. Willing is not enough; we must do.",
+    "author": "Johann Wolfgang von Goethe"
+  },
+  {
+    "id": 90,
+    "text": "Doubt can only be removed by action.",
+    "author": "Johann Wolfgang von Goethe"
+  },
+  {
+    "id": 91,
+    "text": "Discipline equals freedom.",
+    "author": "Jocko Willink"
+  },
+  {
+    "id": 92,
+    "text": "If you want to change the world, start off by making your bed.",
+    "author": "William H. McRaven"
+  },
+  {
+    "id": 93,
+    "text": "Less but better.",
+    "author": "Greg McKeown"
+  },
+  {
+    "id": 94,
+    "text": "What is important is seldom urgent, and what is urgent is seldom important.",
+    "author": "Dwight D. Eisenhower"
+  },
+  {
+    "id": 95,
+    "text": "We first make our habits, and then our habits make us.",
+    "author": "John Dryden"
+  },
+  {
+    "id": 96,
+    "text": "Successful people are simply those with successful habits.",
+    "author": "Brian Tracy"
+  },
+  {
+    "id": 97,
+    "text": "Eat that frog! Do the hardest thing first.",
+    "author": "Brian Tracy"
+  },
+  {
+    "id": 98,
+    "text": "You can edit a bad page. You can't edit a blank one.",
+    "author": "Jodi Picoult"
+  },
+  {
+    "id": 99,
+    "text": "Feel the fear and do it anyway.",
+    "author": "Susan Jeffers"
+  },
+  {
+    "id": 100,
+    "text": "Discipline is the bridge between goals and accomplishment.",
+    "author": "Jim Rohn"
+  },
+  {
+    "id": 101,
+    "text": "Don't wish it were easier. Wish you were better.",
+    "author": "Jim Rohn"
+  },
+  {
+    "id": 102,
+    "text": "Success is nothing more than a few simple disciplines, practiced every day.",
+    "author": "Jim Rohn"
+  },
+  {
+    "id": 103,
+    "text": "Deep work creates rare and valuable results.",
+    "author": "Cal Newport"
+  },
+  {
+    "id": 104,
+    "text": "What gets measured gets managed.",
+    "author": "Peter Drucker"
+  },
+  {
+    "id": 105,
+    "text": "Efficiency is doing things right; effectiveness is doing the right things.",
+    "author": "Peter Drucker"
+  },
+  {
+    "id": 106,
+    "text": "You are never too old to set another goal or to dream a new dream.",
+    "author": "C.S. Lewis"
+  },
+  {
+    "id": 107,
+    "text": "Hardships often prepare ordinary people for an extraordinary destiny.",
+    "author": "C.S. Lewis"
+  },
+  {
+    "id": 108,
+    "text": "Do not let what you cannot do interfere with what you can do.",
+    "author": "John Wooden"
+  },
+  {
+    "id": 109,
+    "text": "Never mistake activity for achievement.",
+    "author": "John Wooden"
+  },
+  {
+    "id": 110,
+    "text": "Put first things first.",
+    "author": "Stephen Covey"
+  },
+  {
+    "id": 111,
+    "text": "Begin with the end in mind.",
+    "author": "Stephen Covey"
+  },
+  {
+    "id": 112,
+    "text": "I am not a product of my circumstances. I am a product of my decisions.",
+    "author": "Stephen Covey"
+  },
+  {
+    "id": 113,
+    "text": "Between stimulus and response there is a space. In that space is our power to choose.",
+    "author": "Viktor Frankl"
+  },
+  {
+    "id": 114,
+    "text": "When we are no longer able to change a situation, we are challenged to change ourselves.",
+    "author": "Viktor Frankl"
+  },
+  {
+    "id": 115,
+    "text": "Those who have a 'why' to live can bear with almost any 'how'.",
+    "author": "Viktor Frankl"
+  },
+  {
+    "id": 116,
+    "text": "Pain is inevitable. Suffering is optional.",
+    "author": "Haruki Murakami"
+  },
+  {
+    "id": 117,
+    "text": "Growth and comfort cannot coexist.",
+    "author": "Ginni Rometty"
+  },
+  {
+    "id": 118,
+    "text": "The obstacle is the way.",
+    "author": "Ryan Holiday"
+  },
+  {
+    "id": 119,
+    "text": "What stands in the way becomes the way.",
+    "author": "Marcus Aurelius"
+  },
+  {
+    "id": 120,
+    "text": "You have power over your mind — not outside events. Realize this, and you will find strength.",
+    "author": "Marcus Aurelius"
+  },
+  {
+    "id": 121,
+    "text": "The happiness of your life depends upon the quality of your thoughts.",
+    "author": "Marcus Aurelius"
+  },
+  {
+    "id": 122,
+    "text": "Waste no more time arguing about what a good man should be. Be one.",
+    "author": "Marcus Aurelius"
+  },
+  {
+    "id": 123,
+    "text": "We suffer more often in imagination than in reality.",
+    "author": "Seneca"
+  },
+  {
+    "id": 124,
+    "text": "Luck is what happens when preparation meets opportunity.",
+    "author": "Seneca"
+  },
+  {
+    "id": 125,
+    "text": "It is not that we have a short time to live, but that we waste a lot of it.",
+    "author": "Seneca"
+  },
+  {
+    "id": 126,
+    "text": "Begin at once to live, and count each separate day as a separate life.",
+    "author": "Seneca"
+  },
+  {
+    "id": 127,
+    "text": "If a man knows not to which port he sails, no wind is favorable.",
+    "author": "Seneca"
+  },
+  {
+    "id": 128,
+    "text": "It's not what happens to you, but how you react to it that matters.",
+    "author": "Epictetus"
+  },
+  {
+    "id": 129,
+    "text": "First say to yourself what you would be; and then do what you have to do.",
+    "author": "Epictetus"
+  },
+  {
+    "id": 130,
+    "text": "Don't explain your philosophy. Embody it.",
+    "author": "Epictetus"
+  },
+  {
+    "id": 131,
+    "text": "No great thing is created suddenly.",
+    "author": "Epictetus"
+  },
+  {
+    "id": 132,
+    "text": "Talk to yourself like someone you are responsible for helping.",
+    "author": "Jordan Peterson"
+  },
+  {
+    "id": 133,
+    "text": "Compare yourself to who you were yesterday, not to who someone else is today.",
+    "author": "Jordan Peterson"
+  },
+  {
+    "id": 134,
+    "text": "Inspiration exists, but it has to find you working.",
+    "author": "Pablo Picasso"
+  },
+  {
+    "id": 135,
+    "text": "Setting goals is the first step in turning the invisible into the visible.",
+    "author": "Tony Robbins"
+  },
+  {
+    "id": 136,
+    "text": "The only impossible journey is the one you never begin.",
+    "author": "Tony Robbins"
+  },
+  {
+    "id": 137,
+    "text": "Small steps every day lead to big results.",
+    "author": null
+  },
+  {
+    "id": 138,
+    "text": "Do something today that your future self will thank you for.",
+    "author": null
+  },
+  {
+    "id": 139,
+    "text": "Progress, not perfection.",
+    "author": null
+  },
+  {
+    "id": 140,
+    "text": "Consistency beats intensity.",
+    "author": null
+  },
+  {
+    "id": 141,
+    "text": "Don't wait for opportunity. Create it.",
+    "author": null
+  },
+  {
+    "id": 142,
+    "text": "Push yourself, because no one else is going to do it for you.",
+    "author": null
+  },
+  {
+    "id": 143,
+    "text": "Great things never come from comfort zones.",
+    "author": null
+  },
+  {
+    "id": 144,
+    "text": "Wake up with determination. Go to bed with satisfaction.",
+    "author": null
+  },
+  {
+    "id": 145,
+    "text": "Show up even when you don't feel like it.",
+    "author": null
+  },
+  {
+    "id": 146,
+    "text": "Your only competition is who you were yesterday.",
+    "author": null
+  },
+  {
+    "id": 147,
+    "text": "Make today count.",
+    "author": null
+  },
+  {
+    "id": 148,
+    "text": "One day or day one. You decide.",
+    "author": null
+  },
+  {
+    "id": 149,
+    "text": "Don't expect to be motivated every day. Expect to be disciplined.",
+    "author": null
+  },
+  {
+    "id": 150,
+    "text": "Protect your energy. Guard your focus.",
+    "author": null
+  },
+  {
+    "id": 151,
+    "text": "Finish what you start.",
+    "author": null
+  },
+  {
+    "id": 152,
+    "text": "Be patient with yourself. Growth takes time.",
+    "author": null
+  },
+  {
+    "id": 153,
+    "text": "Rest is part of the process, not a reward for finishing it.",
+    "author": null
+  },
+  {
+    "id": 154,
+    "text": "You don't need more time. You need more focus.",
+    "author": null
+  },
+  {
+    "id": 155,
+    "text": "Stop waiting for the perfect moment.",
+    "author": null
+  },
+  {
+    "id": 156,
+    "text": "A little progress each day adds up to big results.",
+    "author": null
+  },
+  {
+    "id": 157,
+    "text": "Be stubborn about your goals and flexible about your methods.",
+    "author": null
+  },
+  {
+    "id": 158,
+    "text": "Win the morning, win the day.",
+    "author": null
+  },
+  {
+    "id": 159,
+    "text": "How you do anything is how you do everything.",
+    "author": null
+  },
+  {
+    "id": 160,
+    "text": "Simplify. Then simplify again.",
+    "author": null
+  },
+  {
+    "id": 161,
+    "text": "Stay focused and keep shipping.",
+    "author": null
+  },
+  {
+    "id": 162,
+    "text": "Ship it. Then improve it.",
+    "author": null
+  },
+  {
+    "id": 163,
+    "text": "Done today beats perfect someday.",
+    "author": null
+  },
+  {
+    "id": 164,
+    "text": "Start before you're ready.",
+    "author": null
+  },
+  {
+    "id": 165,
+    "text": "Fear is a compass pointing to what matters.",
+    "author": null
+  },
+  {
+    "id": 166,
+    "text": "Courage is fear walking.",
+    "author": null
+  },
+  {
+    "id": 167,
+    "text": "Do it scared.",
+    "author": null
+  },
+  {
+    "id": 168,
+    "text": "Breathe. Begin. Become.",
+    "author": null
+  },
+  {
+    "id": 169,
+    "text": "Systems over goals.",
+    "author": null
+  },
+  {
+    "id": 170,
+    "text": "Environment design beats willpower.",
+    "author": null
+  },
+  {
+    "id": 171,
+    "text": "Make the right thing the easy thing.",
+    "author": null
+  },
+  {
+    "id": 172,
+    "text": "Identity-based habits stick. Ask: who do I want to become?",
+    "author": null
+  },
+  {
+    "id": 173,
+    "text": "Single-tasking is a superpower.",
+    "author": null
+  },
+  {
+    "id": 174,
+    "text": "Protect your mornings like they matter — because they do.",
+    "author": null
+  },
+  {
+    "id": 175,
+    "text": "Evening rituals set up morning victories.",
+    "author": null
+  },
+  {
+    "id": 176,
+    "text": "Sleep is a performance enhancer.",
+    "author": null
+  },
+  {
+    "id": 177,
+    "text": "Movement is medicine.",
+    "author": null
+  },
+  {
+    "id": 178,
+    "text": "A short walk can untangle a long problem.",
+    "author": null
+  },
+  {
+    "id": 179,
+    "text": "Write it down. Clarity loves paper.",
+    "author": null
+  },
+  {
+    "id": 180,
+    "text": "Gratitude turns what we have into enough.",
+    "author": null
+  },
+  {
+    "id": 181,
+    "text": "Celebrate small wins. They compound.",
+    "author": null
+  },
+  {
+    "id": 182,
+    "text": "Track what you want to improve.",
+    "author": null
+  },
+  {
+    "id": 183,
+    "text": "Learn continuously. The world won't wait.",
+    "author": null
+  },
+  {
+    "id": 184,
+    "text": "Read a little every day.",
+    "author": null
+  },
+  {
+    "id": 185,
+    "text": "Stay a student forever.",
+    "author": null
+  },
+  {
+    "id": 186,
+    "text": "Listen more than you speak.",
+    "author": null
+  },
+  {
+    "id": 187,
+    "text": "Kindness is never wasted.",
+    "author": null
+  },
+  {
+    "id": 188,
+    "text": "Routine creates freedom.",
+    "author": null
+  },
+  {
+    "id": 189,
+    "text": "Boring is underrated. Boring works.",
+    "author": null
+  },
+  {
+    "id": 190,
+    "text": "Show up for the unglamorous reps.",
+    "author": null
+  },
+  {
+    "id": 191,
+    "text": "Trust the process when the results are invisible.",
+    "author": null
+  },
+  {
+    "id": 192,
+    "text": "Invisible progress is still progress.",
+    "author": null
+  },
+  {
+    "id": 193,
+    "text": "Keep going. You're closer than you think.",
+    "author": null
+  },
+  {
+    "id": 194,
+    "text": "When motivation fades, systems carry you.",
+    "author": null
+  },
+  {
+    "id": 195,
+    "text": "Your calendar reveals your priorities.",
+    "author": null
+  },
+  {
+    "id": 196,
+    "text": "Schedule what matters or watch it disappear.",
+    "author": null
+  },
+  {
+    "id": 197,
+    "text": "Get comfortable being uncomfortable.",
+    "author": null
+  },
+  {
+    "id": 198,
+    "text": "Lean into the hard thing.",
+    "author": null
+  },
+  {
+    "id": 199,
+    "text": "Today, be a little braver than yesterday.",
+    "author": null
+  },
+  {
+    "id": 200,
+    "text": "Today, be a little kinder than yesterday.",
+    "author": null
+  },
+  {
+    "id": 201,
+    "text": "One good habit can change the direction of your whole day.",
+    "author": null
+  },
+  {
+    "id": 202,
+    "text": "Check one box. Then another. Momentum loves motion.",
+    "author": null
+  },
+  {
+    "id": 203,
+    "text": "Missed a day? Restart without drama.",
+    "author": null
+  },
+  {
+    "id": 204,
+    "text": "Self-compassion fuels consistency better than self-criticism.",
+    "author": null
+  },
+  {
+    "id": 205,
+    "text": "Say no to protect your yes.",
+    "author": null
+  },
+  {
+    "id": 206,
+    "text": "Boundaries are a form of self-respect.",
+    "author": null
+  },
+  {
+    "id": 207,
+    "text": "Energy management beats time management.",
+    "author": null
+  },
+  {
+    "id": 208,
+    "text": "One focused hour beats three distracted ones.",
+    "author": null
+  },
+  {
+    "id": 209,
+    "text": "Create before you consume.",
+    "author": null
+  },
+  {
+    "id": 210,
+    "text": "Output first. Input second.",
+    "author": null
+  },
+  {
+    "id": 211,
+    "text": "Make something small every day.",
+    "author": null
+  },
+  {
+    "id": 212,
+    "text": "First drafts are allowed to be terrible.",
+    "author": null
+  },
+  {
+    "id": 213,
+    "text": "You are not your streak. You are the person who returns.",
+    "author": null
+  },
+  {
+    "id": 214,
+    "text": "Returning is the habit that matters most.",
+    "author": null
+  },
+  {
+    "id": 215,
+    "text": "Today is a fresh page. Write something worth reading.",
+    "author": null
+  },
+  {
+    "id": 216,
+    "text": "Let this day be proof that you showed up.",
+    "author": null
+  },
+  {
+    "id": 217,
+    "text": "Tiny wins stack into unstoppable momentum.",
+    "author": null
+  },
+  {
+    "id": 218,
+    "text": "Be loyal to your future self.",
+    "author": null
+  },
+  {
+    "id": 219,
+    "text": "Effort compounds quietly until it becomes obvious.",
+    "author": null
+  },
+  {
+    "id": 220,
+    "text": "Let consistency be your unfair advantage.",
+    "author": null
+  },
+  {
+    "id": 221,
+    "text": "Your standards become your destiny.",
+    "author": null
+  },
+  {
+    "id": 222,
+    "text": "Calm focus beats frantic hustle.",
+    "author": null
+  },
+  {
+    "id": 223,
+    "text": "Slow is smooth. Smooth is fast.",
+    "author": null
+  },
+  {
+    "id": 224,
+    "text": "Clear space. Clear mind. Clear day.",
+    "author": null
+  },
+  {
+    "id": 225,
+    "text": "Ordinary days done well create extraordinary lives.",
+    "author": null
+  },
+  {
+    "id": 226,
+    "text": "Keep promises to yourself — especially the small ones.",
+    "author": null
+  },
+  {
+    "id": 227,
+    "text": "Self-trust is built one kept commitment at a time.",
+    "author": null
+  },
+  {
+    "id": 228,
+    "text": "Hard days still count. Especially hard days.",
+    "author": null
+  },
+  {
+    "id": 229,
+    "text": "Steady beats spectacular.",
+    "author": null
+  },
+  {
+    "id": 230,
+    "text": "A restart is still progress.",
+    "author": null
+  },
+  {
+    "id": 231,
+    "text": "Forgive the slip. Keep the system.",
+    "author": null
+  },
+  {
+    "id": 232,
+    "text": "Make starting ridiculously easy.",
+    "author": null
+  },
+  {
+    "id": 233,
+    "text": "Two minutes is enough to begin.",
+    "author": null
+  },
+  {
+    "id": 234,
+    "text": "Action creates motivation more often than the reverse.",
+    "author": null
+  },
+  {
+    "id": 235,
+    "text": "Do the first tiny step and let momentum take over.",
+    "author": null
+  },
+  {
+    "id": 236,
+    "text": "You are allowed to begin again at any hour.",
+    "author": null
+  },
+  {
+    "id": 237,
+    "text": "Don't wait for January. Start on an ordinary Tuesday.",
+    "author": null
+  },
+  {
+    "id": 238,
+    "text": "Prepare in silence. Let results make the noise.",
+    "author": null
+  },
+  {
+    "id": 239,
+    "text": "Quiet work. Loud results.",
+    "author": null
+  },
+  {
+    "id": 240,
+    "text": "Close the day with something completed.",
+    "author": null
+  },
+  {
+    "id": 241,
+    "text": "End the day better than you began it.",
+    "author": null
+  },
+  {
+    "id": 242,
+    "text": "Make future you proud in one small way today.",
+    "author": null
+  },
+  {
+    "id": 243,
+    "text": "Enough for today is still enough.",
+    "author": null
+  },
+  {
+    "id": 244,
+    "text": "Perfectionism is procrastination in a fancy coat.",
+    "author": null
+  },
+  {
+    "id": 245,
+    "text": "Ship imperfect. Improve endlessly.",
+    "author": null
+  },
+  {
+    "id": 246,
+    "text": "Get moving, then get better.",
+    "author": null
+  },
+  {
+    "id": 247,
+    "text": "Direction first. Speed second.",
+    "author": null
+  },
+  {
+    "id": 248,
+    "text": "Be fierce with your goals and gentle with yourself.",
+    "author": null
+  },
+  {
+    "id": 249,
+    "text": "Hold the standard. Soften the self-talk.",
+    "author": null
+  },
+  {
+    "id": 250,
+    "text": "Speak to yourself like a good coach would.",
+    "author": null
+  },
+  {
+    "id": 251,
+    "text": "Stay five minutes longer than the urge to quit.",
+    "author": null
+  },
+  {
+    "id": 252,
+    "text": "Boredom is the gateway to mastery.",
+    "author": null
+  },
+  {
+    "id": 253,
+    "text": "Mastery loves repetition.",
+    "author": null
+  },
+  {
+    "id": 254,
+    "text": "Love the process and results become a side effect.",
+    "author": null
+  },
+  {
+    "id": 255,
+    "text": "The prize is who you become while practicing.",
+    "author": null
+  },
+  {
+    "id": 256,
+    "text": "Character is built in the moments no one applauds.",
+    "author": null
+  },
+  {
+    "id": 257,
+    "text": "Unseen effort still shapes you.",
+    "author": null
+  },
+  {
+    "id": 258,
+    "text": "Private excellence precedes public success.",
+    "author": null
+  },
+  {
+    "id": 259,
+    "text": "A productive day is a happy day.",
+    "author": null
+  },
+  {
+    "id": 260,
+    "text": "Start messy. Finish proud.",
+    "author": null
+  },
+  {
+    "id": 261,
+    "text": "Your attention is your most valuable asset.",
+    "author": null
+  },
+  {
+    "id": 262,
+    "text": "Guard the first hour of your day.",
+    "author": null
+  },
+  {
+    "id": 263,
+    "text": "Tie new habits to old anchors.",
+    "author": null
+  },
+  {
+    "id": 264,
+    "text": "Design your desk for focus, not distraction.",
+    "author": null
+  },
+  {
+    "id": 265,
+    "text": "Leave tomorrow's start already begun.",
+    "author": null
+  },
+  {
+    "id": 266,
+    "text": "Reduce decisions so you can increase action.",
+    "author": null
+  },
+  {
+    "id": 267,
+    "text": "Rituals turn intention into action.",
+    "author": null
+  },
+  {
+    "id": 268,
+    "text": "Connect each habit to a deeper why.",
+    "author": null
+  },
+  {
+    "id": 269,
+    "text": "Choose your hard — growth is hard, regret is harder.",
+    "author": null
+  },
+  {
+    "id": 270,
+    "text": "Do the work your future self will celebrate.",
+    "author": null
+  },
+  {
+    "id": 271,
+    "text": "Balance drive with rest.",
+    "author": null
+  },
+  {
+    "id": 272,
+    "text": "Rest is a skill. Practice it.",
+    "author": null
+  },
+  {
+    "id": 273,
+    "text": "Recovery is part of high performance.",
+    "author": null
+  },
+  {
+    "id": 274,
+    "text": "Lift as you climb.",
+    "author": null
+  },
+  {
+    "id": 275,
+    "text": "Leave yourself better than yesterday.",
+    "author": null
+  },
+  {
+    "id": 276,
+    "text": "Better is a direction, not a destination.",
+    "author": null
+  },
+  {
+    "id": 277,
+    "text": "Sustainable beats heroic.",
+    "author": null
+  },
+  {
+    "id": 278,
+    "text": "Build a system you can keep on your worst day.",
+    "author": null
+  },
+  {
+    "id": 279,
+    "text": "Design for your lowest-energy self.",
+    "author": null
+  },
+  {
+    "id": 280,
+    "text": "Start tiny. Grow steadily.",
+    "author": null
+  },
+  {
+    "id": 281,
+    "text": "Consistency first. Intensity later.",
+    "author": null
+  },
+  {
+    "id": 282,
+    "text": "See clearly. Act simply. Repeat daily.",
+    "author": null
+  },
+  {
+    "id": 283,
+    "text": "Simple actions, repeated, remake a life.",
+    "author": null
+  },
+  {
+    "id": 284,
+    "text": "Raise what you pursue. Lower what you tolerate.",
+    "author": null
+  },
+  {
+    "id": 285,
+    "text": "Read more than you scroll.",
+    "author": null
+  },
+  {
+    "id": 286,
+    "text": "Create more than you compare.",
+    "author": null
+  },
+  {
+    "id": 287,
+    "text": "Run your own race at your own pace.",
+    "author": null
+  },
+  {
+    "id": 288,
+    "text": "Your timeline is not late — it is yours.",
+    "author": null
+  },
+  {
+    "id": 289,
+    "text": "Roots before fruits.",
+    "author": null
+  },
+  {
+    "id": 290,
+    "text": "Depth before display.",
+    "author": null
+  },
+  {
+    "id": 291,
+    "text": "One bad week does not erase a good year.",
+    "author": null
+  },
+  {
+    "id": 292,
+    "text": "Zoom out when you feel stuck.",
+    "author": null
+  },
+  {
+    "id": 293,
+    "text": "Zoom in when you feel overwhelmed.",
+    "author": null
+  },
+  {
+    "id": 294,
+    "text": "The next right step is enough.",
+    "author": null
+  },
+  {
+    "id": 295,
+    "text": "Right now is the only time you can act.",
+    "author": null
+  },
+  {
+    "id": 296,
+    "text": "Align intention and action today.",
+    "author": null
+  },
+  {
+    "id": 297,
+    "text": "Presence beats perfection every time.",
+    "author": null
+  },
+  {
+    "id": 298,
+    "text": "Be so present that yesterday and tomorrow fade for a while.",
+    "author": null
+  },
+  {
+    "id": 299,
+    "text": "Open the app. Do the thing. Close the loop.",
+    "author": null
+  },
+  {
+    "id": 300,
+    "text": "Your streak is a story you're writing one day at a time.",
+    "author": null
+  },
+  {
+    "id": 301,
+    "text": "Protect your peace like it's productive — because it is.",
+    "author": null
+  },
+  {
+    "id": 302,
+    "text": "Put your phone in another room and watch your focus return.",
+    "author": null
+  },
+  {
+    "id": 303,
+    "text": "Notifications are optional. Attention is not.",
+    "author": null
+  },
+  {
+    "id": 304,
+    "text": "Revision is where good work happens.",
+    "author": null
+  },
+  {
+    "id": 305,
+    "text": "Ship the draft. Learn from the feedback.",
+    "author": null
+  },
+  {
+    "id": 306,
+    "text": "Come back to the work. Come back to yourself.",
+    "author": null
+  },
+  {
+    "id": 307,
+    "text": "A quiet morning of focus can change the whole week.",
+    "author": null
+  },
+  {
+    "id": 308,
+    "text": "Your next checkmark is waiting.",
+    "author": null
+  },
+  {
+    "id": 309,
+    "text": "Build the day you want with the habits you keep.",
+    "author": null
+  },
+  {
+    "id": 310,
+    "text": "Choose the harder right over the easier wrong.",
+    "author": null
+  },
+  {
+    "id": 311,
+    "text": "The day you plant the seed is not the day you eat the fruit.",
+    "author": null
+  },
+  {
+    "id": 312,
+    "text": "Stay with the boring reps that build the extraordinary.",
+    "author": null
+  },
+  {
+    "id": 313,
+    "text": "Raise your standards and watch your life follow.",
+    "author": null
+  },
+  {
+    "id": 314,
+    "text": "Do what needs doing before it becomes urgent.",
+    "author": null
+  },
+  {
+    "id": 315,
+    "text": "Preparation turns pressure into performance.",
+    "author": null
+  },
+  {
+    "id": 316,
+    "text": "Finish the open loops that drain your mind.",
+    "author": null
+  },
+  {
+    "id": 317,
+    "text": "Organize your environment and your habits will follow.",
+    "author": null
+  },
+  {
+    "id": 318,
+    "text": "Design a life that makes good choices automatic.",
+    "author": null
+  },
+  {
+    "id": 319,
+    "text": "The person you become is built in ordinary hours.",
+    "author": null
+  },
+  {
+    "id": 320,
+    "text": "Practice gratitude and notice how persistence feels lighter.",
+    "author": null
+  },
+  {
+    "id": 321,
+    "text": "Be proud of showing up on the hard days.",
+    "author": null
+  },
+  {
+    "id": 322,
+    "text": "Your pace can be slow as long as it is steady.",
+    "author": null
+  },
+  {
+    "id": 323,
+    "text": "Don't break the chain if you can help it — and repair it if you must.",
+    "author": null
+  },
+  {
+    "id": 324,
+    "text": "Your goals need a schedule more than they need a pep talk.",
+    "author": null
+  },
+  {
+    "id": 325,
+    "text": "Inspiration is nice. A calendar block is better.",
+    "author": null
+  },
+  {
+    "id": 326,
+    "text": "Put the important thing where your eyes can't miss it.",
+    "author": null
+  },
+  {
+    "id": 327,
+    "text": "Begin before motivation arrives.",
+    "author": null
+  },
+  {
+    "id": 328,
+    "text": "Motion creates emotion.",
+    "author": null
+  },
+  {
+    "id": 329,
+    "text": "The hardest part is often just opening the door.",
+    "author": null
+  },
+  {
+    "id": 330,
+    "text": "Walk through the door. The rest gets easier.",
+    "author": null
+  },
+  {
+    "id": 331,
+    "text": "Midnight resets nothing — your next choice does.",
+    "author": null
+  },
+  {
+    "id": 332,
+    "text": "Every hour is a chance to course-correct.",
+    "author": null
+  },
+  {
+    "id": 333,
+    "text": "Course-correct early and often.",
+    "author": null
+  },
+  {
+    "id": 334,
+    "text": "Ordinary Tuesdays build legendary years.",
+    "author": null
+  },
+  {
+    "id": 335,
+    "text": "Be the kind of consistent that looks lucky from the outside.",
+    "author": null
+  },
+  {
+    "id": 336,
+    "text": "Luck is often preparation wearing a disguise.",
+    "author": null
+  },
+  {
+    "id": 337,
+    "text": "Do it for the feeling of finishing.",
+    "author": null
+  },
+  {
+    "id": 338,
+    "text": "Finishing teaches a confidence starting never can.",
+    "author": null
+  },
+  {
+    "id": 339,
+    "text": "Leave tomorrow a cleaner slate.",
+    "author": null
+  },
+  {
+    "id": 340,
+    "text": "Future you is watching what you do with this hour.",
+    "author": null
+  },
+  {
+    "id": 341,
+    "text": "One honest effort is enough for today.",
+    "author": null
+  },
+  {
+    "id": 342,
+    "text": "Progress prefers persistence over perfection.",
+    "author": null
+  },
+  {
+    "id": 343,
+    "text": "Version one unlocks version two.",
+    "author": null
+  },
+  {
+    "id": 344,
+    "text": "You can't steer a parked car.",
+    "author": null
+  },
+  {
+    "id": 345,
+    "text": "Aim, then iterate.",
+    "author": null
+  },
+  {
+    "id": 346,
+    "text": "Feedback is fuel if you refuse to take it personally.",
+    "author": null
+  },
+  {
+    "id": 347,
+    "text": "Thick skin. Soft heart. Strong habits.",
+    "author": null
+  },
+  {
+    "id": 348,
+    "text": "Gentle with yourself is not the same as soft on standards.",
+    "author": null
+  },
+  {
+    "id": 349,
+    "text": "A good coach corrects without crushing.",
+    "author": null
+  },
+  {
+    "id": 350,
+    "text": "Coach yourself through the dip.",
+    "author": null
+  },
+  {
+    "id": 351,
+    "text": "The dip is where quitters leave and builders stay.",
+    "author": null
+  },
+  {
+    "id": 352,
+    "text": "Five more minutes can change the story of your day.",
+    "author": null
+  },
+  {
+    "id": 353,
+    "text": "Often the breakthrough is just past the boredom.",
+    "author": null
+  },
+  {
+    "id": 354,
+    "text": "Repetition is not boring when you care about the craft.",
+    "author": null
+  },
+  {
+    "id": 355,
+    "text": "Care about the craft and the days take care of themselves.",
+    "author": null
+  },
+  {
+    "id": 356,
+    "text": "Fall in love with the practice, not just the prize.",
+    "author": null
+  },
+  {
+    "id": 357,
+    "text": "Become someone who does what they said they would do.",
+    "author": null
+  },
+  {
+    "id": 358,
+    "text": "What you do in private becomes who you are in public.",
+    "author": null
+  },
+  {
+    "id": 359,
+    "text": "Win the private battles and the public ones get easier.",
+    "author": null
+  },
+  {
+    "id": 360,
+    "text": "Today's quote is a reminder: begin again, bravely.",
+    "author": null
+  },
+  {
+    "id": 361,
+    "text": "Invest attention where you want growth.",
+    "author": null
+  },
+  {
+    "id": 362,
+    "text": "The first win of the day sets the tone.",
+    "author": null
+  },
+  {
+    "id": 363,
+    "text": "Stack habits onto moments that already exist.",
+    "author": null
+  },
+  {
+    "id": 364,
+    "text": "After coffee, stretch. After stretch, begin.",
+    "author": null
+  },
+  {
+    "id": 365,
+    "text": "Make good habits obvious, attractive, easy, and satisfying.",
+    "author": null
+  },
+  {
+    "id": 366,
+    "text": "Make bad habits invisible, unattractive, difficult, and unsatisfying.",
+    "author": null
+  }
+]

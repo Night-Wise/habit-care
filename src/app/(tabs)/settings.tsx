@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, BarChart3, Bell, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogIn, LogOut, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
+import { AlertTriangle, BarChart3, Bell, ChevronDown, ChevronUp, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogIn, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -62,6 +62,7 @@ export default function SettingsScreen() {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [appearanceExpanded, setAppearanceExpanded] = useState(false);
   const authWasInitialized = useRef(false);
   const previousUserId = useRef<string | null>(null);
 
@@ -359,9 +360,12 @@ export default function SettingsScreen() {
 
         {/* Appearance */}
         <View style={styles.card}>
-          <Text style={styles.sectionHeading}>Appearance</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <Palette size={18} color={colors.primary} style={{ marginRight: 6 }} />
+            <Text style={[styles.sectionHeading, { marginBottom: 0 }]}>Appearance</Text>
+          </View>
 
-          <Text style={styles.appearanceLabel}>Theme mode</Text>
+          <Text style={[styles.appearanceLabel, { marginTop: 0 }]}>Theme mode</Text>
           <View style={styles.chipRow}>
             {THEME_MODES.map((mode) => (
               <TouchableOpacity
@@ -382,64 +386,84 @@ export default function SettingsScreen() {
             ))}
           </View>
 
-          <Text style={styles.appearanceLabel}>Accent</Text>
-          <View style={styles.accentRow}>
-            {ACCENT_OPTIONS.map((accentOption) => {
-              const swatchColor = buildThemeColors(accentOption, resolvedScheme).primary;
-              const isSelected = accent === accentOption;
-              return (
-                <TouchableOpacity
-                  key={accentOption}
-                  style={styles.accentOption}
-                  onPress={() => setAccent(accentOption)}
-                  activeOpacity={0.8}
-                >
-                  <View
-                    style={[
-                      styles.accentSwatch,
-                      { backgroundColor: swatchColor },
-                      isSelected && styles.accentSwatchSelected,
-                    ]}
-                  />
-                  <Text
-                    style={[styles.accentOptionText, isSelected && styles.accentOptionTextActive]}
+          {appearanceExpanded ? (
+            <>
+              <Text style={styles.appearanceLabel}>Accent</Text>
+              <View style={styles.accentRow}>
+                {ACCENT_OPTIONS.map((accentOption) => {
+                  const swatchColor = buildThemeColors(accentOption, resolvedScheme).primary;
+                  const isSelected = accent === accentOption;
+                  return (
+                    <TouchableOpacity
+                      key={accentOption}
+                      style={styles.accentOption}
+                      onPress={() => setAccent(accentOption)}
+                      activeOpacity={0.8}
+                    >
+                      <View
+                        style={[
+                          styles.accentSwatch,
+                          { backgroundColor: swatchColor },
+                          isSelected && styles.accentSwatchSelected,
+                        ]}
+                      />
+                      <Text
+                        style={[styles.accentOptionText, isSelected && styles.accentOptionTextActive]}
+                      >
+                        {ACCENT_LABELS[accentOption]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.appearanceLabel}>Font size</Text>
+              <View style={styles.chipRow}>
+                {FONT_SCALES.map((scale) => (
+                  <TouchableOpacity
+                    key={scale}
+                    style={[styles.appearanceChip, fontScale === scale && styles.appearanceChipActive]}
+                    onPress={() => setFontScale(scale)}
+                    activeOpacity={0.8}
                   >
-                    {ACCENT_LABELS[accentOption]}
+                    <Text
+                      style={[
+                        styles.appearanceChipText,
+                        fontScale === scale && styles.appearanceChipTextActive,
+                      ]}
+                    >
+                      {FONT_SCALE_LABELS[scale]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.appearanceLabel}>Font family</Text>
+              <View style={styles.chipRow}>
+                <View style={[styles.appearanceChip, styles.appearanceChipActive]}>
+                  <Text style={[styles.appearanceChipText, styles.appearanceChipTextActive]}>
+                    {FONT_FAMILY_LABELS[fontFamily]}
                   </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                </View>
+              </View>
+            </>
+          ) : null}
 
-          <Text style={styles.appearanceLabel}>Font size</Text>
-          <View style={styles.chipRow}>
-            {FONT_SCALES.map((scale) => (
-              <TouchableOpacity
-                key={scale}
-                style={[styles.appearanceChip, fontScale === scale && styles.appearanceChipActive]}
-                onPress={() => setFontScale(scale)}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.appearanceChipText,
-                    fontScale === scale && styles.appearanceChipTextActive,
-                  ]}
-                >
-                  {FONT_SCALE_LABELS[scale]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={styles.appearanceLabel}>Font family</Text>
-          <View style={styles.chipRow}>
-            <View style={[styles.appearanceChip, styles.appearanceChipActive]}>
-              <Text style={[styles.appearanceChipText, styles.appearanceChipTextActive]}>
-                {FONT_FAMILY_LABELS[fontFamily]}
-              </Text>
-            </View>
-          </View>
+          <TouchableOpacity
+            style={styles.appearanceMoreBtn}
+            onPress={() => setAppearanceExpanded((open) => !open)}
+            activeOpacity={0.75}
+            accessibilityLabel={appearanceExpanded ? 'Hide more appearance settings' : 'Show more appearance settings'}
+          >
+            <Text style={styles.appearanceMoreBtnText}>
+              {appearanceExpanded ? 'Less settings' : 'More settings'}
+            </Text>
+            {appearanceExpanded ? (
+              <ChevronUp size={16} color={colors.primary} />
+            ) : (
+              <ChevronDown size={16} color={colors.primary} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Account Section */}
@@ -870,11 +894,8 @@ function createStyles(
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   sectionHeading: {
     fontSize: 16,
@@ -889,6 +910,20 @@ function createStyles(
     color: colors.textSecondary,
     marginTop: 14,
     marginBottom: 8,
+    fontFamily,
+  },
+  appearanceMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 14,
+    paddingVertical: 8,
+  },
+  appearanceMoreBtnText: {
+    color: colors.primary,
+    fontSize: fs(13),
+    fontWeight: '700',
     fontFamily,
   },
   chipRow: {
@@ -973,11 +1008,8 @@ function createStyles(
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   cardHeader: {
     flexDirection: 'row',

@@ -11,12 +11,44 @@ import {
 } from 'lucide-react-native';
 import { Fragment, createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { getHabitTheme } from '@/components/habit-heatmap';
 import { HabitIcon } from '@/components/habit-icon';
 import { useTheme } from '@/context/theme-context';
 import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
+
+const MONTHLY_VIEW_PREFS_KEY = '@habit-app/monthly-view-prefs';
+
+type MonthlySortBy = 'completion' | 'priority';
+type MonthlySortDirection = 'asc' | 'desc';
+
+type MonthlyViewPrefs = {
+  sortBy: MonthlySortBy;
+  sortDirection: MonthlySortDirection;
+  groupByCategory: boolean;
+};
+
+const DEFAULT_MONTHLY_VIEW_PREFS: MonthlyViewPrefs = {
+  sortBy: 'completion',
+  sortDirection: 'desc',
+  groupByCategory: false,
+};
+
+function parseMonthlyViewPrefs(raw: string | null): MonthlyViewPrefs {
+  if (!raw) return DEFAULT_MONTHLY_VIEW_PREFS;
+  try {
+    const parsed = JSON.parse(raw) as Partial<MonthlyViewPrefs>;
+    return {
+      sortBy: parsed.sortBy === 'priority' ? 'priority' : 'completion',
+      sortDirection: parsed.sortDirection === 'asc' ? 'asc' : 'desc',
+      groupByCategory: parsed.groupByCategory === true,
+    };
+  } catch {
+    return DEFAULT_MONTHLY_VIEW_PREFS;
+  }
+}
 
 type MonthlyViewStyles = ReturnType<typeof createStyles>;
 const MonthlyViewStylesContext = createContext<MonthlyViewStyles | null>(null);
@@ -98,6 +130,19 @@ function getCompletionTone(percentage: number, hasTracked: boolean) {
   return { bg: '#fecaca', text: '#991b1b', fill: '#dc2626' };
 }
 
+function getPriorityTone(priority: number) {
+  if (priority >= 5) {
+    return { bg: '#dc2626', text: '#ffffff' }; // dark-red
+  }
+  if (priority >= 3) {
+    return { bg: '#fee2e2', text: '#b91c1c' }; // red
+  }
+  if (priority >= 2) {
+    return { bg: '#ffedd5', text: '#c2410c' }; // orange
+  }
+  return { bg: '#fef9c3', text: '#a16207' }; // yellow
+}
+
 function sortTodos(
   todos: Todo[],
   days: Date[],
@@ -165,11 +210,17 @@ const DayCell = memo(function DayCell({
       ]}
     >
       {done && !showAsEmpty ? (
-        <Check size={14} color="#059669" strokeWidth={3} />
+        <View style={[styles.statusMarkCircle, styles.statusMarkDone]}>
+          <Check size={12} color="#059669" strokeWidth={3} />
+        </View>
       ) : showAsEmpty ? (
-        <Text style={styles.futureMark}>-</Text>
+        <View style={[styles.statusMarkCircle, styles.statusMarkEmpty]}>
+          <Text style={styles.futureMark}>-</Text>
+        </View>
       ) : (
-        <X size={13} color="#ef4444" strokeWidth={2.5} />
+        <View style={[styles.statusMarkCircle, styles.statusMarkMissed]}>
+          <X size={11} color="#ef4444" strokeWidth={2.5} />
+        </View>
       )}
     </View>
   );
@@ -256,6 +307,7 @@ function MonthlyTable({
             getMonthlyCompletionStats(todo, days, todayKey);
           const priority =
             typeof todo.priority === 'number' && !isNaN(todo.priority) ? todo.priority : 0;
+          const priorityTone = priority > 0 ? getPriorityTone(priority) : null;
           const categoryLabel = getCategoryLabel(todo);
           const previousCategory =
             index > 0 ? getCategoryLabel(orderedTodos[index - 1]) : null;
@@ -271,16 +323,30 @@ function MonthlyTable({
               )}
               <View style={styles.monthDataRow}>
                 <View style={styles.monthTaskColumn}>
-                  <HabitIcon
-                    icon={todo.icon}
-                    size={14}
-                    color={getHabitTheme(todo.name || todo.icon || todo.id).solid}
-                    strokeWidth={2.2}
-                  />
+                  <View style={styles.monthTaskIcon}>
+                    <HabitIcon
+                      icon={todo.icon}
+                      size={14}
+                      color={getHabitTheme(todo.name || todo.icon || todo.id).solid}
+                      strokeWidth={2.2}
+                    />
+                  </View>
                   <Text style={styles.monthTaskName} numberOfLines={1}>
                     {todo.name}
                   </Text>
-                  <Text style={styles.monthTaskPriority}>P{priority}</Text>
+                  {priorityTone ? (
+                    <Text
+                      style={[
+                        styles.monthTaskPriority,
+                        {
+                          color: priorityTone.text,
+                          backgroundColor: priorityTone.bg,
+                        },
+                      ]}
+                    >
+                      P{priority}
+                    </Text>
+                  ) : null}
                 </View>
                 {days.map((day) => {
                   const dateKey = formatDateKey(day);
@@ -399,9 +465,14 @@ export function MonthlyHabitView({
     () => createStyles(colors, fs, fontFamilyValue),
     [colors, fs, fontFamilyValue]
   );
-  const [sortBy, setSortBy] = useState<'completion' | 'priority'>('completion');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [groupByCategory, setGroupByCategory] = useState(false);
+  const [sortBy, setSortBy] = useState<MonthlySortBy>(DEFAULT_MONTHLY_VIEW_PREFS.sortBy);
+  const [sortDirection, setSortDirection] = useState<MonthlySortDirection>(
+    DEFAULT_MONTHLY_VIEW_PREFS.sortDirection
+  );
+  const [groupByCategory, setGroupByCategory] = useState(
+    DEFAULT_MONTHLY_VIEW_PREFS.groupByCategory
+  );
+  const [prefsReady, setPrefsReady] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(0);
   const [resetToken, setResetToken] = useState(0);
@@ -411,6 +482,33 @@ export function MonthlyHabitView({
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
   const draftRef = useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(MONTHLY_VIEW_PREFS_KEY);
+        if (cancelled) return;
+        const prefs = parseMonthlyViewPrefs(raw);
+        setSortBy(prefs.sortBy);
+        setSortDirection(prefs.sortDirection);
+        setGroupByCategory(prefs.groupByCategory);
+      } catch {
+        // keep defaults
+      } finally {
+        if (!cancelled) setPrefsReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!prefsReady) return;
+    const prefs: MonthlyViewPrefs = { sortBy, sortDirection, groupByCategory };
+    void AsyncStorage.setItem(MONTHLY_VIEW_PREFS_KEY, JSON.stringify(prefs)).catch(() => {});
+  }, [prefsReady, sortBy, sortDirection, groupByCategory]);
 
   const todayKey = formatDateKey(new Date());
   const days = useMemo(() => getMonthDays(monthDate), [monthDate]);
@@ -914,6 +1012,22 @@ function createStyles(
   monthStatusCell: {
     minHeight: 46,
   },
+  statusMarkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusMarkDone: {
+    backgroundColor: '#d1fae5',
+  },
+  statusMarkMissed: {
+    backgroundColor: '#fee2e2',
+  },
+  statusMarkEmpty: {
+    backgroundColor: '#f1f5f9',
+  },
   editableCell: {
     backgroundColor: colors.surface,
   },
@@ -924,8 +1038,7 @@ function createStyles(
     minHeight: 46,
   },
   monthTaskIcon: {
-    fontSize: 18,
-    marginRight: 6,
+    marginRight: 4,
   },
   monthTaskName: {
     flex: 1,
@@ -941,19 +1054,19 @@ function createStyles(
     fontWeight: '800',
   },
   monthTaskPriority: {
-    color: '#b45309',
-    backgroundColor: '#fef3c7',
     borderRadius: 5,
     paddingHorizontal: 4,
     paddingVertical: 2,
     fontSize: 9,
     fontWeight: '800',
     marginLeft: 4,
+    overflow: 'hidden',
   },
   futureMark: {
-    color: '#cbd5e1',
-    fontSize: 14,
+    color: '#94a3b8',
+    fontSize: 12,
     fontWeight: '700',
+    lineHeight: 14,
   },
   monthSummaryText: {
     fontSize: 10,
