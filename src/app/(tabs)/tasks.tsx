@@ -75,7 +75,7 @@ export default function TasksScreen() {
               notificationTime={todo.notificationTime}
               notificationEnabled={todo.notificationEnabled}
               onEdit={() =>
-                router.push({ pathname: '/edit-todo', params: { id: todo.id } })
+                router.push({ pathname: '/add-or-edit-task', params: { id: todo.id } })
               }
               onDelete={() => deleteTodo(todo.id)}
               onToggleNotification={() => toggleTodoNotification(todo.id)}

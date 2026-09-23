@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowRight,
   Bell,
@@ -10,7 +10,7 @@ import {
   Tag,
   Zap,
 } from 'lucide-react-native';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -77,22 +77,55 @@ function parseScheduleParts(value: string): { hour: string; minute: string; peri
   };
 }
 
-export default function AddTodoScreen() {
+export default function AddOrEditTaskPage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { addTodo } = useTodos();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const todoId = typeof id === 'string' ? id : undefined;
+  const { todos, isLoaded, addTodo, editTodo } = useTodos();
+  const isEdit = Boolean(todoId);
+  const todo = isEdit ? todos.find((item) => item.id === todoId) : undefined;
 
-  const [name, setName] = useState('');
-  const [time, setTime] = useState('30');
-  const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
-  const [category, setCategory] = useState('');
-  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const initialSchedule = parseScheduleParts(todo?.notificationTime ?? '08:00 AM');
+  const initialCategory = todo?.category ?? '';
+  const initialIsCustomCategory =
+    initialCategory.length > 0 &&
+    !CATEGORY_PRESETS.some((preset) => preset.toLowerCase() === initialCategory.toLowerCase());
+
+  const [name, setName] = useState(todo?.name ?? '');
+  const [time, setTime] = useState(String(todo?.timeMinutes ?? 30));
+  const [selectedIcon, setSelectedIcon] = useState<string | null>(todo?.icon ?? null);
+  const [category, setCategory] = useState(initialCategory);
+  const [isCustomCategory, setIsCustomCategory] = useState(initialIsCustomCategory);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
-  const [scheduleHour, setScheduleHour] = useState('08');
-  const [scheduleMinute, setScheduleMinute] = useState('00');
-  const [schedulePeriod, setSchedulePeriod] = useState<Meridiem>('AM');
-  const [notificationEnabled, setNotificationEnabled] = useState(true);
-  const [priority, setPriority] = useState('0');
+  const [scheduleHour, setScheduleHour] = useState(initialSchedule.hour);
+  const [scheduleMinute, setScheduleMinute] = useState(initialSchedule.minute);
+  const [schedulePeriod, setSchedulePeriod] = useState<Meridiem>(initialSchedule.period);
+  const [notificationEnabled, setNotificationEnabled] = useState(
+    todo?.notificationEnabled ?? true
+  );
+  const [priority, setPriority] = useState(String(todo?.priority ?? 0));
+  const [hasHydratedEdit, setHasHydratedEdit] = useState(!isEdit);
+
+  useEffect(() => {
+    if (!isEdit || !todo || hasHydratedEdit) return;
+    const schedule = parseScheduleParts(todo.notificationTime ?? '08:00 AM');
+    const nextCategory = todo.category ?? '';
+    setName(todo.name);
+    setTime(String(todo.timeMinutes ?? 30));
+    setSelectedIcon(todo.icon ?? null);
+    setCategory(nextCategory);
+    setIsCustomCategory(
+      nextCategory.length > 0 &&
+        !CATEGORY_PRESETS.some((preset) => preset.toLowerCase() === nextCategory.toLowerCase())
+    );
+    setScheduleHour(schedule.hour);
+    setScheduleMinute(schedule.minute);
+    setSchedulePeriod(schedule.period);
+    setNotificationEnabled(todo.notificationEnabled ?? true);
+    setPriority(String(todo.priority ?? 0));
+    setHasHydratedEdit(true);
+  }, [isEdit, todo, hasHydratedEdit]);
 
   const scheduledTime = useMemo(
     () => formatScheduleTime(scheduleHour, scheduleMinute, schedulePeriod),
@@ -107,7 +140,7 @@ export default function AddTodoScreen() {
     return defaultList;
   }, [selectedIcon]);
 
-  const canAdd = name.trim().length > 0;
+  const canSubmit = name.trim().length > 0;
   const displayIcon = selectedIcon ?? DEFAULT_ICON;
 
   const applySchedulePreset = (preset: string) => {
@@ -158,21 +191,35 @@ export default function AddTodoScreen() {
   const isCustomDuration = !TIME_PRESETS.some((preset) => time.trim() === String(preset));
   const isCustomPriority = !PRIORITY_PRESETS.some((preset) => priority.trim() === String(preset));
 
-  const handleAdd = async () => {
-    if (!canAdd) return;
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
     const parsed = parseInt(time.trim(), 10);
     const minutes = !isNaN(parsed) && parsed > 0 ? parsed : 30;
     const parsedPriority = parseInt(priority.trim(), 10);
     const prioVal = !isNaN(parsedPriority) ? parsedPriority : 0;
-    await addTodo(
-      name.trim(),
-      displayIcon,
-      minutes,
-      scheduledTime,
-      notificationEnabled,
-      prioVal,
-      category.trim()
-    );
+
+    if (isEdit && todoId) {
+      await editTodo(
+        todoId,
+        name.trim(),
+        displayIcon,
+        minutes,
+        scheduledTime,
+        notificationEnabled,
+        prioVal,
+        category.trim()
+      );
+    } else {
+      await addTodo(
+        name.trim(),
+        displayIcon,
+        minutes,
+        scheduledTime,
+        notificationEnabled,
+        prioVal,
+        category.trim()
+      );
+    }
     router.back();
   };
 
@@ -188,6 +235,33 @@ export default function AddTodoScreen() {
     }
   };
 
+  if (isEdit && !isLoaded) {
+    return (
+      <View style={[styles.root, styles.center]}>
+        <Text style={styles.notFound}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (isEdit && !todo) {
+    return (
+      <View style={[styles.root, styles.center]}>
+        <Text style={styles.notFound}>Task not found.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backFallback}>
+          <Text style={styles.backFallbackText}>Go back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (isEdit && !hasHydratedEdit) {
+    return (
+      <View style={[styles.root, styles.center]}>
+        <Text style={styles.notFound}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -199,8 +273,10 @@ export default function AddTodoScreen() {
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>New Task</Text>
-          <Text style={styles.headerSub}>Build better habits, one task at a time</Text>
+          <Text style={styles.headerTitle}>{isEdit ? 'Edit Task' : 'New Task'}</Text>
+          <Text style={styles.headerSub}>
+            {isEdit ? 'Update this habit and keep going' : 'Build better habits, one task at a time'}
+          </Text>
         </View>
 
         <View style={styles.headerSpacer} />
@@ -230,7 +306,7 @@ export default function AddTodoScreen() {
             onChangeText={setName}
             returnKeyType="done"
             maxLength={60}
-            autoFocus
+            autoFocus={!isEdit}
           />
         </View>
 
@@ -543,13 +619,13 @@ export default function AddTodoScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
         <TouchableOpacity
-          style={[styles.addBtn, !canAdd && styles.addBtnDisabled]}
-          onPress={handleAdd}
+          style={[styles.addBtn, !canSubmit && styles.addBtnDisabled]}
+          onPress={handleSubmit}
           activeOpacity={0.85}
-          disabled={!canAdd}
+          disabled={!canSubmit}
         >
-          <Text style={styles.addBtnText}>Add Task</Text>
-          <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} />
+          <Text style={styles.addBtnText}>{isEdit ? 'Save Changes' : 'Add Task'}</Text>
+          {!isEdit ? <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} /> : null}
         </TouchableOpacity>
       </View>
 
@@ -970,5 +1046,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  notFound: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: TEXT,
+    marginBottom: 16,
+  },
+  backFallback: {
+    backgroundColor: PURPLE,
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  backFallbackText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

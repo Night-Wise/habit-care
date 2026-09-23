@@ -75,7 +75,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
               styles.addButtonWrap,
               pressed && { transform: [{ scale: 0.94 }] },
             ]}
-            onPress={() => router.push('/add-todo')}
+            onPress={() => router.push('/add-or-edit-task')}
           >
             <View style={styles.addButton}>
               <Plus size={24} color="#ffffff" strokeWidth={2.8} />

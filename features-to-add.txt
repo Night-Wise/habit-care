@@ -45,6 +45,8 @@ grow on based on number of days we have done that task
 
 - Change placeholder of Task Name
 
+- Add a pet / animal -> Initally sad and when some task is done, it's get happier. 
+
 Features which are done: 
 
 ------------------------

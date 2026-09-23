@@ -117,7 +117,7 @@ export default function HabitsScreen() {
 
   const openEdit = useCallback(
     (todo: Todo) => {
-      router.push({ pathname: '/edit-todo', params: { id: todo.id } });
+      router.push({ pathname: '/add-or-edit-task', params: { id: todo.id } });
     },
     [router]
   );
