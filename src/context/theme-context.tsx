@@ -45,7 +45,7 @@ interface ThemeContextValue extends AppearancePrefs {
 
 const DEFAULT_PREFS: AppearancePrefs = {
   themeMode: 'system',
-  accent: 'purple',
+  accent: 'blue',
   fontScale: 'default',
   fontFamily: 'system',
 };
@@ -65,9 +65,13 @@ function parsePrefs(raw: string | null): AppearancePrefs {
         ? parsed.accent
         : DEFAULT_PREFS.accent;
     const fontScale =
-      parsed.fontScale === 'default' || parsed.fontScale === 'large' || parsed.fontScale === 'xlarge'
+      parsed.fontScale === 'small' ||
+      parsed.fontScale === 'default' ||
+      parsed.fontScale === 'large'
         ? parsed.fontScale
-        : DEFAULT_PREFS.fontScale;
+        : parsed.fontScale === 'xlarge'
+          ? 'large'
+          : DEFAULT_PREFS.fontScale;
     const fontFamily = parsed.fontFamily === 'system' ? 'system' : DEFAULT_PREFS.fontFamily;
     return { themeMode, accent, fontScale, fontFamily };
   } catch {

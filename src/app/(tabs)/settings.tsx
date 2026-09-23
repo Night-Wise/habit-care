@@ -36,8 +36,8 @@ import type { ThemeColors } from '@/theme/colors';
 import { requestNotificationPermissions, sendTestNotification } from '@/utils/notifications';
 
 const THEME_MODES: ThemeMode[] = ['light', 'dark', 'system'];
-const ACCENT_OPTIONS: AccentColor[] = ['purple', 'blue', 'green'];
-const FONT_SCALES: FontScaleId[] = ['default', 'large', 'xlarge'];
+const ACCENT_OPTIONS: AccentColor[] = ['blue', 'purple', 'green'];
+const FONT_SCALES: FontScaleId[] = ['small', 'default', 'large'];
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();

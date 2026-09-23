@@ -1,6 +1,6 @@
 export type AccentColor = 'purple' | 'blue' | 'green';
 export type ThemeMode = 'light' | 'dark' | 'system';
-export type FontScaleId = 'default' | 'large' | 'xlarge';
+export type FontScaleId = 'small' | 'default' | 'large';
 export type FontFamilyId = 'system';
 
 export interface ThemeColors {
@@ -33,17 +33,17 @@ export interface ThemeColors {
 
 const ACCENT_LIGHT: Record<AccentColor, Pick<ThemeColors, 'primary' | 'primarySoft' | 'primaryMuted'>> = {
   purple: {
-    primary: '#6264FD',
+    primary: '#7246F6',
     primarySoft: '#eef0ff',
     primaryMuted: '#ede9fe',
   },
   blue: {
-    primary: '#2563eb',
+    primary: '#3F5CF5',
     primarySoft: '#dbeafe',
     primaryMuted: '#bfdbfe',
   },
   green: {
-    primary: '#059669',
+    primary: '#1DB162',
     primarySoft: '#d1fae5',
     primaryMuted: '#a7f3d0',
   },
@@ -51,17 +51,17 @@ const ACCENT_LIGHT: Record<AccentColor, Pick<ThemeColors, 'primary' | 'primarySo
 
 const ACCENT_DARK: Record<AccentColor, Pick<ThemeColors, 'primary' | 'primarySoft' | 'primaryMuted'>> = {
   purple: {
-    primary: '#8183ff',
+    primary: '#8B5CF6',
     primarySoft: '#12121f',
     primaryMuted: '#1a1a2e',
   },
   blue: {
-    primary: '#60a5fa',
+    primary: '#4F6FE8',
     primarySoft: '#0a1220',
     primaryMuted: '#0f1c2e',
   },
   green: {
-    primary: '#34d399',
+    primary: '#34D399',
     primarySoft: '#06140f',
     primaryMuted: '#0a1f16',
   },
@@ -126,15 +126,15 @@ export function buildThemeColors(accent: AccentColor, scheme: 'light' | 'dark'):
 }
 
 export const FONT_SCALE_VALUES: Record<FontScaleId, number> = {
+  small: 0.9,
   default: 1,
   large: 1.15,
-  xlarge: 1.3,
 };
 
 export const FONT_SCALE_LABELS: Record<FontScaleId, string> = {
+  small: 'Small',
   default: 'Default',
   large: 'Large',
-  xlarge: 'Extra large',
 };
 
 export const ACCENT_LABELS: Record<AccentColor, string> = {

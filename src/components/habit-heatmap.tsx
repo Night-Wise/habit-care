@@ -103,7 +103,7 @@ function createStyles(scheme: 'light' | 'dark') {
     },
     // Distinct from page bg so unmarked days stay visible (GitHub-style).
     cellEmpty: {
-      backgroundColor: scheme === 'dark' ? '#2e2e2e' : '#e2e8f0',
+      backgroundColor: scheme === 'dark' ? '#3a3a3a' : '#f1f5f9',
     },
   });
 }
