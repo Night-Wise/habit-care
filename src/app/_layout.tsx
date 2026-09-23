@@ -4,6 +4,10 @@ import { TodosProvider } from '@/context/todos-context';
 import '@/utils/notifications';
 import { Stack } from 'expo-router';
 
+export const unstable_settings = {
+  anchor: '(tabs)',
+};
+
 export default function RootLayout() {
   return (
     <ThemeProvider>

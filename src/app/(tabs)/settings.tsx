@@ -2,14 +2,13 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, BarChart3, Bell, ChevronDown, ChevronUp, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogIn, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
+import { AlertTriangle, BarChart3, Bell, ChevronDown, ChevronUp, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -21,6 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
 import { useTodos } from '@/context/todos-context';
+import { GoogleLogo } from '@/components/google-logo';
+import { ScreenHeader } from '@/components/screen-header';
 import {
   ACCENT_LABELS,
   AccentColor,
@@ -316,13 +317,10 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.headerTitle}>Setting</Text>
-        <Text style={styles.headerSub}>Export, Import & Manage your Habit Data</Text>
-      </View>
+      <ScreenHeader
+        title="Setting"
+        subtitle="Export, Import & Manage your Habit Data"
+      />
 
       {/* Toast Notification */}
       {toastMessage && (
@@ -360,9 +358,30 @@ export default function SettingsScreen() {
 
         {/* Appearance */}
         <View style={styles.card}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Palette size={18} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={[styles.sectionHeading, { marginBottom: 0 }]}>Appearance</Text>
+          <View style={styles.appearanceHeader}>
+            <View style={styles.appearanceHeaderLeft}>
+              <Palette size={18} color={colors.primary} style={{ marginRight: 6 }} />
+              <Text style={styles.sectionHeading}>Appearance</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.appearanceMoreBtn}
+              onPress={() => setAppearanceExpanded((open) => !open)}
+              activeOpacity={0.75}
+              accessibilityLabel={
+                appearanceExpanded
+                  ? 'Hide more appearance settings'
+                  : 'Show more appearance settings'
+              }
+            >
+              <Text style={styles.appearanceMoreBtnText}>
+                {appearanceExpanded ? 'Less settings' : 'More settings'}
+              </Text>
+              {appearanceExpanded ? (
+                <ChevronUp size={16} color={colors.primary} />
+              ) : (
+                <ChevronDown size={16} color={colors.primary} />
+              )}
+            </TouchableOpacity>
           </View>
 
           <Text style={[styles.appearanceLabel, { marginTop: 0 }]}>Theme mode</Text>
@@ -448,22 +467,6 @@ export default function SettingsScreen() {
               </View>
             </>
           ) : null}
-
-          <TouchableOpacity
-            style={styles.appearanceMoreBtn}
-            onPress={() => setAppearanceExpanded((open) => !open)}
-            activeOpacity={0.75}
-            accessibilityLabel={appearanceExpanded ? 'Hide more appearance settings' : 'Show more appearance settings'}
-          >
-            <Text style={styles.appearanceMoreBtnText}>
-              {appearanceExpanded ? 'Less settings' : 'More settings'}
-            </Text>
-            {appearanceExpanded ? (
-              <ChevronUp size={16} color={colors.primary} />
-            ) : (
-              <ChevronDown size={16} color={colors.primary} />
-            )}
-          </TouchableOpacity>
         </View>
 
         {/* Account Section */}
@@ -484,7 +487,7 @@ export default function SettingsScreen() {
               onPress={signInWithGoogle}
               activeOpacity={0.8}
             >
-              <LogIn size={16} color="#ffffff" style={{ marginRight: 6 }} />
+              <GoogleLogo size={16} />
               <Text style={styles.btnPrimaryText}>Continue with Google</Text>
             </TouchableOpacity>
           ) : (
@@ -643,7 +646,8 @@ export default function SettingsScreen() {
 
             <View style={styles.modalFooter}>
               <TouchableOpacity style={styles.modalBtn} onPress={handleCopyClipboard}>
-                <Text style={styles.modalBtnText}>📋 Copy to Clipboard</Text>
+                <Copy size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.modalBtnText}>Copy to Clipboard</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: colors.surfaceMuted }]}
@@ -845,22 +849,6 @@ function createStyles(
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    backgroundColor: colors.headerBg,
-    paddingHorizontal: 24,
-    paddingBottom: 14,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: -0.5,
-  },
-  headerSub: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 4,
-  },
   toast: {
     position: 'absolute',
     top: 90,
@@ -888,7 +876,7 @@ function createStyles(
   },
   content: {
     padding: 16,
-    gap: 16,
+    gap: 8,
   },
   statsCard: {
     backgroundColor: colors.card,
@@ -902,7 +890,7 @@ function createStyles(
     fontWeight: '700',
     color: colors.text,
     fontFamily,
-    marginBottom: 12,
+    lineHeight: 20,
   },
   appearanceLabel: {
     fontSize: fs(13),
@@ -915,16 +903,25 @@ function createStyles(
   appearanceMoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 4,
-    marginTop: 14,
-    paddingVertical: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
   },
   appearanceMoreBtnText: {
     color: colors.primary,
     fontSize: fs(13),
     fontWeight: '700',
     fontFamily,
+  },
+  appearanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  appearanceHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   chipRow: {
     flexDirection: 'row',
@@ -1186,6 +1183,7 @@ function createStyles(
     height: 44,
     backgroundColor: colors.primary,
     borderRadius: 10,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },

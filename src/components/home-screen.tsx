@@ -377,17 +377,20 @@ export function HomeScreen({
             <View style={{ flex: 1 }}>
               <Text style={styles.greeting}>{hero.greeting}</Text>
               <Text style={styles.headerTitle}>{headerTitle || 'Daily Tasks'}</Text>
-              {headerSubtitle ? (
-                <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
-              ) : (
-                <Text style={styles.headerSubtitle}>"{dailyQuote.text}"</Text>
-              )}
-              <View style={styles.todayChipSlot}>
-                {!isViewingToday ? (
+              <View style={styles.subtitleSlot}>
+                {headerSubtitle ? (
+                  <Text style={styles.headerSubtitle} numberOfLines={1}>
+                    {headerSubtitle}
+                  </Text>
+                ) : isViewingToday ? (
+                  <Text style={styles.headerSubtitle} numberOfLines={1}>
+                    "{dailyQuote.text}"
+                  </Text>
+                ) : (
                   <TouchableOpacity style={styles.todayChip} onPress={goToToday} activeOpacity={0.85}>
                     <Text style={styles.todayChipText}>Jump to Today</Text>
                   </TouchableOpacity>
-                ) : null}
+                )}
               </View>
             </View>
           </View>
@@ -442,27 +445,36 @@ export function HomeScreen({
               return (
                 <TouchableOpacity
                   key={dayKey}
-                  style={styles.dayCol}
+                  style={styles.dayColTouch}
                   onPress={() => handleSelectDay(day)}
                   activeOpacity={0.85}
                 >
-                  {isSelected ? (
-                    <View style={styles.dayPillSelected}>
-                      <Text style={styles.dayNameSelected}>{DAY_LABELS[index]}</Text>
+                  <View
+                    style={[
+                      styles.dayCol,
+                      isSelected && styles.dayPillSelected,
+                      !isSelected && isToday && styles.dayPillToday,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dayName,
+                        isToday && !isSelected && styles.dayNameToday,
+                        isSelected && styles.dayNameSelected,
+                      ]}
+                    >
+                      {DAY_LABELS[index]}
+                    </Text>
+                    {isSelected ? (
                       <View style={styles.dayNumCircle}>
                         <Text style={styles.dayNumSelected}>{day.getDate()}</Text>
                       </View>
-                    </View>
-                  ) : (
-                    <View style={[styles.dayPill, isToday && styles.dayPillToday]}>
-                      <Text style={[styles.dayName, isToday && styles.dayNameToday]}>
-                        {DAY_LABELS[index]}
-                      </Text>
+                    ) : (
                       <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>
                         {day.getDate()}
                       </Text>
-                    </View>
-                  )}
+                    )}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -506,48 +518,30 @@ export function HomeScreen({
 
         {/* Sort / filter controls */}
         <View style={styles.sortBar}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.sortPillsRow}
-          >
-            <TouchableOpacity
-              style={[styles.sortPill, sortBy === 'timing' && styles.sortPillActive]}
-              onPress={() => setSortBy('timing')}
-              activeOpacity={0.85}
-            >
-              <Clock size={13} color={sortBy === 'timing' ? colors.white : colors.textMuted} />
-              <Text style={[styles.sortPillText, sortBy === 'timing' && styles.sortPillTextActive]}>
-                Timing
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.sortPill, sortBy === 'priority' && styles.sortPillActive]}
-              onPress={() => setSortBy('priority')}
-              activeOpacity={0.85}
-            >
-              <Zap size={13} color={sortBy === 'priority' ? colors.white : colors.textMuted} />
-              <Text
-                style={[styles.sortPillText, sortBy === 'priority' && styles.sortPillTextActive]}
-              >
-                Priority
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.sortPill, sortBy === 'category' && styles.sortPillActive]}
-              onPress={() => setSortBy('category')}
-              activeOpacity={0.85}
-            >
-              <LayoutGrid size={13} color={sortBy === 'category' ? colors.white : colors.textMuted} />
-              <Text
-                style={[styles.sortPillText, sortBy === 'category' && styles.sortPillTextActive]}
-              >
-                Category
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+          <View style={styles.sortTabs}>
+            {(
+              [
+                { key: 'timing' as const, label: 'Timing', Icon: Clock },
+                { key: 'priority' as const, label: 'Priority', Icon: Zap },
+                { key: 'category' as const, label: 'Category', Icon: LayoutGrid },
+              ] as const
+            ).map(({ key, label, Icon }) => {
+              const isActive = sortBy === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.sortTab, isActive && styles.sortTabActive]}
+                  onPress={() => setSortBy(key)}
+                  activeOpacity={0.85}
+                >
+                  <Icon size={13} color={isActive ? colors.primary : colors.textMuted} />
+                  <Text style={[styles.sortTabText, isActive && styles.sortTabTextActive]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           <TouchableOpacity
             style={styles.allFilterBtn}
@@ -690,9 +684,7 @@ function createStyles(
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 36,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingBottom: 12,
     overflow: 'hidden',
     backgroundColor: colors.primary,
   },
@@ -704,7 +696,7 @@ function createStyles(
   },
   body: {
     flex: 1,
-    marginTop: -24,
+    marginTop: 12,
     paddingHorizontal: 16,
     gap: 12,
   },
@@ -745,9 +737,13 @@ function createStyles(
   headerSubtitle: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.82)',
-    marginTop: 4,
     fontWeight: '500',
     lineHeight: 18,
+  },
+  subtitleSlot: {
+    marginTop: 4,
+    height: 28,
+    justifyContent: 'flex-start',
   },
   headerButtonsRow: {
     flexDirection: 'row',
@@ -764,11 +760,6 @@ function createStyles(
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.28)',
-  },
-  todayChipSlot: {
-    marginTop: 8,
-    minHeight: 28,
-    justifyContent: 'center',
   },
   todayChip: {
     alignSelf: 'flex-start',
@@ -787,6 +778,7 @@ function createStyles(
   dateCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
+    overflow: 'hidden',
     paddingHorizontal: 8,
     paddingTop: 6,
     paddingBottom: 10,
@@ -809,6 +801,7 @@ function createStyles(
     width: 26,
     height: 26,
     borderRadius: 13,
+    overflow: 'hidden',
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -829,16 +822,20 @@ function createStyles(
     justifyContent: 'space-between',
     alignItems: 'stretch',
   },
-  dayCol: {
+  dayColTouch: {
     flex: 1,
-    alignItems: 'center',
+    marginHorizontal: 2,
   },
-  dayPill: {
-    width: '92%',
+  dayCol: {
     alignItems: 'center',
     paddingTop: 3,
     paddingBottom: 6,
     borderRadius: 16,
+    // Android drops Text inside overflow:'hidden' views that have no background.
+    // Keep a transparent bg so labels stay visible when a day is unselected.
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   dayPillToday: {
     backgroundColor: '#fff7ed',
@@ -846,12 +843,9 @@ function createStyles(
     borderColor: '#fdba74',
   },
   dayPillSelected: {
-    width: '92%',
-    alignItems: 'center',
-    paddingTop: 3,
-    paddingBottom: 6,
-    borderRadius: 16,
     backgroundColor: colors.primary,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   dayName: {
     fontSize: 10,
@@ -864,10 +858,8 @@ function createStyles(
     fontWeight: '700',
   },
   dayNameSelected: {
-    fontSize: 10,
+    color: '#ffffff',
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 3,
   },
   dayNum: {
     fontSize: 13,
@@ -990,35 +982,34 @@ function createStyles(
     alignItems: 'center',
     gap: 8,
   },
-  sortPillsRow: {
+  sortTabs: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingRight: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  sortPill: {
+  sortTab: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 9,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    marginBottom: -1,
   },
-  sortPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  sortTabActive: {
+    borderBottomColor: colors.primary,
   },
-  sortPillText: {
+  sortTabText: {
     fontSize: 12,
     fontWeight: '600',
     color: colors.textMuted,
     fontFamily,
   },
-  sortPillTextActive: {
-    color: '#ffffff',
+  sortTabTextActive: {
+    color: colors.primary,
     fontWeight: '700',
   },
   allFilterBtn: {

@@ -48,14 +48,13 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           onPress={() => currentTab !== 'home' && navigateToTab('index')}
           activeOpacity={0.7}
         >
-          <View style={[styles.iconWrap, currentTab === 'home' && styles.iconWrapActive]}>
-            <Home
-              size={20}
-              color={currentTab === 'home' ? colors.primary : colors.inactive}
-              strokeWidth={currentTab === 'home' ? 2.5 : 2}
-            />
-          </View>
+          <Home
+            size={20}
+            color={currentTab === 'home' ? colors.primary : colors.inactive}
+            strokeWidth={currentTab === 'home' ? 2.5 : 2}
+          />
           <Text style={currentTab === 'home' ? styles.navLabelActive : styles.navLabel}>Home</Text>
+          <View style={[styles.navUnderline, currentTab === 'home' && styles.navUnderlineActive]} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -63,16 +62,17 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           onPress={() => navigateToTab('habits')}
           activeOpacity={0.7}
         >
-          <View style={[styles.iconWrap, currentTab === 'habits' && styles.iconWrapActive]}>
-            <Sparkles
-              size={20}
-              color={currentTab === 'habits' ? colors.primary : colors.inactive}
-              strokeWidth={currentTab === 'habits' ? 2.5 : 2}
-            />
-          </View>
+          <Sparkles
+            size={20}
+            color={currentTab === 'habits' ? colors.primary : colors.inactive}
+            strokeWidth={currentTab === 'habits' ? 2.5 : 2}
+          />
           <Text style={currentTab === 'habits' ? styles.navLabelActive : styles.navLabel}>
             Habits
           </Text>
+          <View
+            style={[styles.navUnderline, currentTab === 'habits' && styles.navUnderlineActive]}
+          />
         </TouchableOpacity>
 
         <View style={styles.navItem}>
@@ -94,16 +94,17 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           onPress={() => currentTab !== 'friends' && navigateToTab('friends')}
           activeOpacity={0.7}
         >
-          <View style={[styles.iconWrap, currentTab === 'friends' && styles.iconWrapActive]}>
-            <Users
-              size={20}
-              color={currentTab === 'friends' ? colors.primary : colors.inactive}
-              strokeWidth={currentTab === 'friends' ? 2.5 : 2}
-            />
-          </View>
+          <Users
+            size={20}
+            color={currentTab === 'friends' ? colors.primary : colors.inactive}
+            strokeWidth={currentTab === 'friends' ? 2.5 : 2}
+          />
           <Text style={currentTab === 'friends' ? styles.navLabelActive : styles.navLabel}>
             Friends
           </Text>
+          <View
+            style={[styles.navUnderline, currentTab === 'friends' && styles.navUnderlineActive]}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -111,16 +112,17 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           onPress={() => currentTab !== 'settings' && navigateToTab('settings')}
           activeOpacity={0.7}
         >
-          <View style={[styles.iconWrap, currentTab === 'settings' && styles.iconWrapActive]}>
-            <Settings
-              size={20}
-              color={currentTab === 'settings' ? colors.primary : colors.inactive}
-              strokeWidth={currentTab === 'settings' ? 2.5 : 2}
-            />
-          </View>
+          <Settings
+            size={20}
+            color={currentTab === 'settings' ? colors.primary : colors.inactive}
+            strokeWidth={currentTab === 'settings' ? 2.5 : 2}
+          />
           <Text style={currentTab === 'settings' ? styles.navLabelActive : styles.navLabel}>
             Settings
           </Text>
+          <View
+            style={[styles.navUnderline, currentTab === 'settings' && styles.navUnderlineActive]}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -156,14 +158,6 @@ function createStyles(
       justifyContent: 'flex-end',
       minHeight: 52,
     },
-    iconWrap: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 14,
-    },
-    iconWrapActive: {
-      backgroundColor: colors.primarySoft,
-    },
     navLabelActive: {
       fontSize: fs(10),
       fontWeight: '700',
@@ -177,6 +171,16 @@ function createStyles(
       color: colors.inactive,
       marginTop: 3,
       fontFamily,
+    },
+    navUnderline: {
+      marginTop: 4,
+      width: 28,
+      height: 2,
+      borderRadius: 1,
+      backgroundColor: 'transparent',
+    },
+    navUnderlineActive: {
+      backgroundColor: colors.primary,
     },
     addButtonWrap: {
       marginTop: -22,

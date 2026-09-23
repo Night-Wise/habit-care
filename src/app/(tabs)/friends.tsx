@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 
-import { Check, LogIn, MailPlus, Trash2, Users, X } from 'lucide-react-native';
+import { Check, MailPlus, Trash2, Users, X } from 'lucide-react-native';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -11,8 +11,6 @@ import {
   Alert,
 
   ScrollView,
-
-  StatusBar,
 
   StyleSheet,
 
@@ -31,23 +29,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 import { useAuth } from '@/context/auth-context';
-
 import { useTheme } from '@/context/theme-context';
-
+import { GoogleLogo } from '@/components/google-logo';
+import { ScreenHeader } from '@/components/screen-header';
 import {
-
   FriendListItem,
-
   listFriendships,
-
   removeFriendship,
-
   respondToFriendRequest,
-
   sendFriendRequest,
-
 } from '@/lib/friends';
-
 import type { ThemeColors } from '@/theme/colors';
 
 
@@ -216,16 +207,10 @@ export default function FriendsScreen() {
 
     <View style={styles.root}>
 
-      <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
-
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-
-        <Text style={styles.headerTitle}>Friends</Text>
-
-        <Text style={styles.headerSub}>Add friends by email and see their daily progress</Text>
-
-      </View>
-
+      <ScreenHeader
+        title="Friends"
+        subtitle="Add friends by email and see their daily progress"
+      />
 
 
       {!user ? (
@@ -254,7 +239,7 @@ export default function FriendsScreen() {
 
           >
 
-            <LogIn size={16} color={colors.white} style={{ marginRight: 6 }} />
+            <GoogleLogo size={16} />
 
             <Text style={styles.signInBtnText}>
 
@@ -501,42 +486,6 @@ function createStyles(
       flex: 1,
 
       backgroundColor: colors.background,
-
-    },
-
-    header: {
-
-      backgroundColor: colors.headerBg,
-
-      paddingHorizontal: 24,
-
-      paddingBottom: 14,
-
-    },
-
-    headerTitle: {
-
-      fontSize: fs(28),
-
-      fontWeight: '800',
-
-      color: colors.headerText,
-
-      letterSpacing: -0.5,
-
-      fontFamily,
-
-    },
-
-    headerSub: {
-
-      fontSize: fs(14),
-
-      color: 'rgba(255,255,255,0.75)',
-
-      marginTop: 4,
-
-      fontFamily,
 
     },
 

@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getHabitTheme, HabitHeatmap } from '@/components/habit-heatmap';
 import { HabitIcon } from '@/components/habit-icon';
 import { MonthlyHabitView } from '@/components/monthly-habit-view';
+import { ScreenHeader } from '@/components/screen-header';
 import { TaskManageItem } from '@/components/task-manage-item';
 import { useTheme } from '@/context/theme-context';
 import { getTodoInsights, Todo, useTodos } from '@/context/todos-context';
@@ -132,17 +132,7 @@ export default function HabitsScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar
-        barStyle={resolvedScheme === 'dark' ? 'light-content' : 'dark-content'}
-        backgroundColor={pageBg}
-      />
-
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.title}>Habits</Text>
-        <View style={styles.subRow}>
-          <Text style={styles.subText}>{subtitle}</Text>
-        </View>
-      </View>
+      <ScreenHeader title="Habits" subtitle={subtitle} />
 
       <HabitsTabSwitcher activeTab={activeTab} onChange={setActiveTab} />
 
@@ -201,41 +191,19 @@ function createStyles(
   colors: ThemeColors,
   fs: (size: number) => number,
   fontFamily: string | undefined,
-  pageBg: string
+  pageBg?: string
 ) {
+  const bg = pageBg ?? colors.background;
   return StyleSheet.create({
     root: {
       flex: 1,
-      backgroundColor: pageBg,
-    },
-    header: {
-      paddingHorizontal: 20,
-      paddingBottom: 10,
-      backgroundColor: pageBg,
-    },
-    title: {
-      fontSize: fs(34),
-      fontWeight: '800',
-      color: colors.text,
-      letterSpacing: -0.8,
-      fontFamily,
-    },
-    subRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 10,
-    },
-    subText: {
-      fontSize: fs(14),
-      fontWeight: '500',
-      color: colors.textMuted,
-      fontFamily,
+      backgroundColor: bg,
     },
     tabSwitcher: {
       flexDirection: 'row',
       backgroundColor: colors.surfaceMuted,
       marginHorizontal: 16,
+      marginTop: 12,
       marginBottom: 8,
       padding: 3,
       borderRadius: 12,
@@ -278,7 +246,7 @@ function createStyles(
       gap: 10,
     },
     listCard: {
-      backgroundColor: pageBg,
+      backgroundColor: bg,
       borderRadius: 22,
       overflow: 'hidden',
     },

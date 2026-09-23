@@ -27,6 +27,14 @@ export default function FriendProgressScreen() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const dismissScreen = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/friends');
+    }
+  };
+
   useEffect(() => {
     if (!userId) {
       setError('Missing friend account.');
@@ -59,7 +67,7 @@ export default function FriendProgressScreen() {
       <View style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={dismissScreen} style={styles.backBtn}>
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{email}</Text>
@@ -78,7 +86,7 @@ export default function FriendProgressScreen() {
           readOnly
           headerTitle={email}
           headerSubtitle="Read-only progress"
-          onBack={() => router.back()}
+          onBack={dismissScreen}
           emptySubtitle="They have no synced habits yet. Ask them to sync from Settings."
           listBottomPadding={insets.bottom + 88}
         />
@@ -93,7 +101,7 @@ export default function FriendProgressScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={dismissScreen} style={styles.backBtn}>
           <Text style={styles.backText}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{email}</Text>

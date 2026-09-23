@@ -94,6 +94,14 @@ export default function AddOrEditTaskPage() {
   const isEdit = Boolean(todoId);
   const todo = isEdit ? todos.find((item) => item.id === todoId) : undefined;
 
+  const dismissScreen = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  };
+
   const initialSchedule = parseScheduleParts(todo?.notificationTime ?? '08:00 AM');
   const initialCategory = todo?.category ?? '';
   const initialIsCustomCategory =
@@ -228,7 +236,7 @@ export default function AddOrEditTaskPage() {
         category.trim()
       );
     }
-    router.back();
+    dismissScreen();
   };
 
   const selectCategory = (preset: string) => {
@@ -255,7 +263,7 @@ export default function AddOrEditTaskPage() {
     return (
       <View style={[styles.root, styles.center]}>
         <Text style={styles.notFound}>Task not found.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backFallback}>
+        <TouchableOpacity onPress={dismissScreen} style={styles.backFallback}>
           <Text style={styles.backFallbackText}>Go back</Text>
         </TouchableOpacity>
       </View>
@@ -276,7 +284,7 @@ export default function AddOrEditTaskPage() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn} hitSlop={12}>
+        <TouchableOpacity onPress={dismissScreen} style={styles.closeBtn} hitSlop={12}>
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
 
