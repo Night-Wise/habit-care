@@ -27,7 +27,9 @@ import type { TextInput as TextInputType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmojiPickerModal } from '@/components/emoji-picker-modal';
+import { useTheme } from '@/context/theme-context';
 import { useTodos } from '@/context/todos-context';
+import type { ThemeColors } from '@/theme/colors';
 import { POPULAR_EMOJIS } from '@/utils/emoji-data';
 
 const TIME_PRESETS = [15, 30, 45, 60];
@@ -83,6 +85,11 @@ export default function AddOrEditTaskPage() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const todoId = typeof id === 'string' ? id : undefined;
   const { todos, isLoaded, addTodo, editTodo } = useTodos();
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
   const isEdit = Boolean(todoId);
   const todo = isEdit ? todos.find((item) => item.id === todoId) : undefined;
 
@@ -291,8 +298,8 @@ export default function AddOrEditTaskPage() {
         {/* Task Name */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: '#eef2ff' }]}>
-              <FilePen size={16} color={PURPLE} />
+            <View style={[styles.sectionIcon, { backgroundColor: colors.primarySoft }]}>
+              <FilePen size={16} color={colors.primary} />
             </View>
             <Text style={styles.cardLabel}>
               Task Name <Text style={styles.required}>*</Text>
@@ -459,8 +466,8 @@ export default function AddOrEditTaskPage() {
           <Switch
             value={notificationEnabled}
             onValueChange={setNotificationEnabled}
-            trackColor={{ false: '#cbd5e1', true: '#c7d2fe' }}
-            thumbColor={notificationEnabled ? PURPLE : '#f8fafc'}
+            trackColor={{ false: colors.borderStrong, true: colors.primaryMuted }}
+            thumbColor={notificationEnabled ? colors.primary : colors.surface}
           />
         </View>
 
@@ -579,8 +586,8 @@ export default function AddOrEditTaskPage() {
         {/* Pick an Icon */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: '#eef2ff' }]}>
-              <Palette size={15} color={PURPLE} />
+            <View style={[styles.sectionIcon, { backgroundColor: colors.primarySoft }]}>
+              <Palette size={15} color={colors.primary} />
             </View>
             <Text style={[styles.cardLabel, { flex: 1 }]}>Pick an Icon</Text>
             <TouchableOpacity
@@ -588,7 +595,7 @@ export default function AddOrEditTaskPage() {
               onPress={() => setIsEmojiModalOpen(true)}
               activeOpacity={0.75}
             >
-              <Search size={13} color={PURPLE} />
+              <Search size={13} color={colors.primary} />
               <Text style={styles.searchIconsBtnText}>Search Icons</Text>
             </TouchableOpacity>
           </View>
@@ -639,17 +646,15 @@ export default function AddOrEditTaskPage() {
   );
 }
 
-const PURPLE = '#6366f1';
-const BG = '#f3f4f6';
-const CARD = '#ffffff';
-const TEXT = '#1e1b4b';
-const SUBTEXT = '#6b7280';
-const BORDER = '#e5e7eb';
-
-const styles = StyleSheet.create({
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -657,7 +662,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 14,
-    backgroundColor: BG,
+    backgroundColor: colors.background,
     gap: 8,
   },
   headerCenter: {
@@ -666,14 +671,16 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: fs(20),
     fontWeight: '800',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
     letterSpacing: -0.3,
   },
   headerSub: {
-    fontSize: 11,
-    color: SUBTEXT,
+    fontSize: fs(11),
+    color: colors.textMuted,
+    fontFamily,
     marginTop: 3,
     textAlign: 'center',
   },
@@ -681,15 +688,16 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: colors.border,
   },
   closeBtnText: {
-    fontSize: 14,
-    color: SUBTEXT,
+    fontSize: fs(14),
+    color: colors.textMuted,
+    fontFamily,
     fontWeight: '600',
   },
   headerSpacer: {
@@ -704,7 +712,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
@@ -727,10 +735,11 @@ const styles = StyleSheet.create({
   cardLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
   },
   required: {
-    color: '#ef4444',
+    color: colors.danger,
   },
   cardHint: {
     marginLeft: 'auto',
@@ -740,7 +749,7 @@ const styles = StyleSheet.create({
   },
   fieldHint: {
     fontSize: 11,
-    color: PURPLE,
+    color: colors.primary,
     fontWeight: '600',
     flexShrink: 1,
     textAlign: 'right',
@@ -756,26 +765,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f9fafb',
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 48,
   },
   fieldInputWrapCustom: {
-    borderColor: PURPLE,
-    backgroundColor: '#eef2ff',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   fieldInput: {
     flex: 1,
     fontSize: 16,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
     paddingVertical: 0,
   },
   fieldInputSuffix: {
     fontSize: 13,
     fontWeight: '600',
-    color: SUBTEXT,
+    color: colors.textMuted,
     marginLeft: 4,
   },
   presetsRow: {
@@ -789,35 +798,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: colors.border,
   },
   presetChipSelected: {
-    backgroundColor: '#eef2ff',
-    borderColor: PURPLE,
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
   },
   presetChipText: {
     fontSize: 12,
     fontWeight: '700',
-    color: SUBTEXT,
+    color: colors.textMuted,
   },
   presetChipTextSelected: {
-    color: PURPLE,
+    color: colors.primary,
   },
   customValueNote: {
     marginTop: 8,
     fontSize: 12,
     fontWeight: '600',
-    color: PURPLE,
+    color: colors.primary,
   },
   input: {
     backgroundColor: '#f9fafb',
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: colors.border,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 15,
-    color: TEXT,
+    color: colors.text,
   },
   customCategoryInput: {
     marginTop: 10,
@@ -834,7 +843,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   categoryChipSelected: {
-    backgroundColor: PURPLE,
+    backgroundColor: colors.primary,
   },
   categoryChipText: {
     fontSize: 13,
@@ -855,17 +864,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   customChipActive: {
-    borderColor: PURPLE,
-    backgroundColor: '#eef2ff',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
     borderStyle: 'solid',
   },
   customChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: SUBTEXT,
+    color: colors.textMuted,
   },
   customChipTextActive: {
-    color: PURPLE,
+    color: colors.primary,
     fontWeight: '700',
   },
   scheduleRow: {
@@ -880,7 +889,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f9fafb',
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: colors.border,
     borderRadius: 14,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -890,13 +899,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
     paddingVertical: 10,
   },
   scheduleColon: {
     fontSize: 18,
     fontWeight: '800',
-    color: TEXT,
+    color: colors.text,
     marginHorizontal: 2,
   },
   periodToggle: {
@@ -912,12 +921,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   periodBtnSelected: {
-    backgroundColor: PURPLE,
+    backgroundColor: colors.primary,
   },
   periodBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: SUBTEXT,
+    color: colors.textMuted,
   },
   periodBtnTextSelected: {
     color: '#ffffff',
@@ -928,30 +937,30 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   outlineChip: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: colors.border,
   },
   outlineChipSelected: {
-    backgroundColor: '#eef2ff',
-    borderColor: PURPLE,
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
   },
   outlineChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: SUBTEXT,
+    color: colors.textMuted,
   },
   outlineChipTextSelected: {
-    color: PURPLE,
+    color: colors.primary,
     fontWeight: '700',
   },
   notificationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 18,
     padding: 14,
     gap: 10,
@@ -964,18 +973,18 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
   },
   notificationSub: {
     fontSize: 12,
-    color: SUBTEXT,
+    color: colors.textMuted,
     marginTop: 2,
   },
   searchIconsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
@@ -983,7 +992,7 @@ const styles = StyleSheet.create({
   searchIconsBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: PURPLE,
+    color: colors.primary,
   },
   iconRow: {
     flexDirection: 'row',
@@ -1001,8 +1010,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   iconBtnSelected: {
-    backgroundColor: '#eef2ff',
-    borderColor: PURPLE,
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
   },
   iconEmoji: {
     fontSize: 22,
@@ -1015,22 +1024,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#f3f4f6',
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: colors.border,
     borderStyle: 'dashed',
   },
   moreIconText: {
     fontSize: 20,
-    color: SUBTEXT,
+    color: colors.textMuted,
     fontWeight: '700',
     marginTop: -4,
   },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    backgroundColor: BG,
+    backgroundColor: colors.background,
   },
   addBtn: {
-    backgroundColor: PURPLE,
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -1055,18 +1064,20 @@ const styles = StyleSheet.create({
   notFound: {
     fontSize: 16,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
     marginBottom: 16,
   },
   backFallback: {
-    backgroundColor: PURPLE,
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
   backFallbackText: {
-    color: '#ffffff',
+    color: colors.white,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: fs(14),
+    fontFamily,
   },
-});
+  });
+}

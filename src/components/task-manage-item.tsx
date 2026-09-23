@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react';
 import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { getCategoryStyle, getIconBg } from '@/components/todo-item';
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/theme/colors';
 
 export function TaskManageItem({
   name,
@@ -27,10 +29,15 @@ export function TaskManageItem({
   onDelete: () => void;
   onToggleNotification: () => void;
 }) {
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
   const prioLevel = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
   const [scaleAnim] = useState(() => new Animated.Value(1));
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const categoryStyle = useMemo(() => getCategoryStyle(category), [category]);
+  const categoryStyle = useMemo(() => getCategoryStyle(category, colors), [category, colors]);
   const iconBg = useMemo(() => getIconBg(name || icon), [name, icon]);
 
   const confirmDelete = () => {
@@ -61,7 +68,7 @@ export function TaskManageItem({
             <View style={styles.metaRow}>
               {notificationTime ? (
                 <View style={styles.timingRow}>
-                  <Clock size={10} color="#6264FD" />
+                  <Clock size={10} color={colors.primary} />
                   <Text style={styles.timingSubtext}>{notificationTime}</Text>
                 </View>
               ) : null}
@@ -89,7 +96,7 @@ export function TaskManageItem({
               >
                 <Zap
                   size={9}
-                  color={prioLevel >= 3 ? '#dc2626' : prioLevel >= 1 ? '#d97706' : '#64748b'}
+                  color={prioLevel >= 3 ? colors.danger : prioLevel >= 1 ? '#d97706' : colors.textMuted}
                 />
                 <Text
                   style={[
@@ -107,7 +114,7 @@ export function TaskManageItem({
             ) : null}
 
             <View style={styles.timeBadge}>
-              <Clock size={10} color="#64748b" />
+              <Clock size={10} color={colors.textMuted} />
               <Text style={styles.timeBadgeText}>{timeMinutes ?? 30}m</Text>
             </View>
           </View>
@@ -119,7 +126,7 @@ export function TaskManageItem({
             onPress={onToggleNotification}
             hitSlop={6}
           >
-            <Bell size={14} color={notificationEnabled ? '#6264FD' : '#94a3b8'} />
+            <Bell size={14} color={notificationEnabled ? colors.primary : colors.inactive} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -129,7 +136,7 @@ export function TaskManageItem({
             onPressOut={handlePressOut}
             hitSlop={8}
           >
-            <Pencil size={14} color="#4f46e5" />
+            <Pencil size={14} color={colors.primary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -137,7 +144,7 @@ export function TaskManageItem({
             onPress={() => setIsDeleteConfirmOpen(true)}
             hitSlop={8}
           >
-            <Trash2 size={14} color="#ef4444" />
+            <Trash2 size={14} color={colors.danger} />
           </TouchableOpacity>
         </View>
       </View>
@@ -146,7 +153,7 @@ export function TaskManageItem({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.confirmIconWrap}>
-              <Trash2 size={22} color="#dc2626" />
+              <Trash2 size={22} color={colors.danger} />
             </View>
             <Text style={styles.confirmTitle}>Delete Task</Text>
             <Text style={styles.confirmSub}>
@@ -166,7 +173,7 @@ export function TaskManageItem({
                 onPress={confirmDelete}
                 activeOpacity={0.8}
               >
-                <Trash2 size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Trash2 size={16} color={colors.white} style={{ marginRight: 6 }} />
                 <Text style={styles.deleteConfirmText}>Delete</Text>
               </TouchableOpacity>
             </View>
@@ -177,242 +184,248 @@ export function TaskManageItem({
   );
 }
 
-const CARD = '#ffffff';
-const TEXT = '#1e1b4b';
-const SUBTEXT = '#6b7280';
-
-const styles = StyleSheet.create({
-  taskCard: {
-    backgroundColor: CARD,
-    borderRadius: 16,
-    shadowColor: '#4c1d95',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(98,100,253,0.04)',
-  },
-  taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-  },
-  iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  taskIcon: {
-    fontSize: 17,
-  },
-  taskInfoWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginRight: 8,
-    minWidth: 0,
-  },
-  taskMain: {
-    flex: 1,
-    marginRight: 8,
-    minWidth: 0,
-  },
-  taskName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: TEXT,
-    letterSpacing: -0.2,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 3,
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  categoryBadge: {
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  timingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  timingSubtext: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#6264FD',
-  },
-  badgesCol: {
-    alignItems: 'flex-end',
-    gap: 4,
-    flexShrink: 0,
-  },
-  priorityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  priorityBadgeNormal: {
-    backgroundColor: '#f1f5f9',
-  },
-  priorityBadgeMed: {
-    backgroundColor: '#fef3c7',
-  },
-  priorityBadgeHigh: {
-    backgroundColor: '#fee2e2',
-  },
-  priorityBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  priorityBadgeTextNormal: {
-    color: '#64748b',
-  },
-  priorityBadgeTextMed: {
-    color: '#b45309',
-  },
-  priorityBadgeTextHigh: {
-    color: '#b91c1c',
-  },
-  timeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#f8fafc',
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  timeBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  taskActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexShrink: 0,
-  },
-  bellBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bellBtnActive: {
-    backgroundColor: '#eef0ff',
-    borderWidth: 1,
-    borderColor: '#c7c9fe',
-  },
-  editBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#eef2ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#fef2f2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: CARD,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  confirmIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#fee2e2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  confirmTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: TEXT,
-    textAlign: 'center',
-  },
-  confirmSub: {
-    fontSize: 13,
-    color: SUBTEXT,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  deleteChoiceRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  cancelChoiceBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelChoiceText: {
-    color: '#334155',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  deleteConfirmBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#dc2626',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteConfirmText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-});
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
+    taskCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    taskRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+    },
+    iconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+    },
+    taskIcon: {
+      fontSize: 17,
+    },
+    taskInfoWrap: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginRight: 8,
+      minWidth: 0,
+    },
+    taskMain: {
+      flex: 1,
+      marginRight: 8,
+      minWidth: 0,
+    },
+    taskName: {
+      fontSize: fs(14),
+      fontWeight: '700',
+      color: colors.text,
+      letterSpacing: -0.2,
+      fontFamily,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 3,
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    categoryBadge: {
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+    },
+    categoryText: {
+      fontSize: fs(10),
+      fontWeight: '700',
+      fontFamily,
+    },
+    timingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    timingSubtext: {
+      fontSize: fs(10),
+      fontWeight: '600',
+      color: colors.primary,
+      fontFamily,
+    },
+    badgesCol: {
+      alignItems: 'flex-end',
+      gap: 4,
+      flexShrink: 0,
+    },
+    priorityBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      borderRadius: 6,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+    },
+    priorityBadgeNormal: {
+      backgroundColor: colors.surfaceMuted,
+    },
+    priorityBadgeMed: {
+      backgroundColor: colors.warningSoft,
+    },
+    priorityBadgeHigh: {
+      backgroundColor: colors.dangerSoft,
+    },
+    priorityBadgeText: {
+      fontSize: fs(10),
+      fontWeight: '700',
+      fontFamily,
+    },
+    priorityBadgeTextNormal: {
+      color: colors.textMuted,
+    },
+    priorityBadgeTextMed: {
+      color: '#b45309',
+    },
+    priorityBadgeTextHigh: {
+      color: '#b91c1c',
+    },
+    timeBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      backgroundColor: colors.surface,
+      borderRadius: 6,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    timeBadgeText: {
+      fontSize: fs(10),
+      fontWeight: '600',
+      color: colors.textMuted,
+      fontFamily,
+    },
+    taskActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      flexShrink: 0,
+    },
+    bellBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: colors.surfaceMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bellBtnActive: {
+      backgroundColor: colors.primarySoft,
+      borderWidth: 1,
+      borderColor: colors.primaryMuted,
+    },
+    editBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deleteBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: colors.dangerSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    modalContent: {
+      width: '100%',
+      maxWidth: 420,
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 20,
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.25,
+      shadowRadius: 16,
+      elevation: 12,
+    },
+    confirmIconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: colors.dangerSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      marginBottom: 12,
+    },
+    confirmTitle: {
+      fontSize: fs(20),
+      fontWeight: '800',
+      color: colors.text,
+      textAlign: 'center',
+      fontFamily,
+    },
+    confirmSub: {
+      fontSize: fs(13),
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: 6,
+      marginBottom: 16,
+      lineHeight: 18,
+      fontFamily,
+    },
+    deleteChoiceRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    cancelChoiceBtn: {
+      flex: 1,
+      height: 44,
+      borderRadius: 10,
+      backgroundColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelChoiceText: {
+      color: colors.textSecondary,
+      fontWeight: '700',
+      fontSize: fs(14),
+      fontFamily,
+    },
+    deleteConfirmBtn: {
+      flex: 1,
+      height: 44,
+      borderRadius: 10,
+      backgroundColor: colors.danger,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deleteConfirmText: {
+      color: colors.white,
+      fontWeight: '700',
+      fontSize: fs(14),
+      fontFamily,
+    },
+  });
+}

@@ -47,11 +47,17 @@ grow on based on number of days we have done that task
 
 - Add a pet / animal -> Initally sad and when some task is done, it's get happier. 
 
+- Insted of emojis as icon add a custom icon which have as many as 100 or 200 icon which can be searched to pick. 
+- 
+
+
 Features which are done: 
 
 ------------------------
 
 
+- Create a global config for font size, font family, them color control and add option to add light, dark theme or system theme option. 
+Add option to control overall fontsize of the app from setting for user who prefer larger text size. 
 
 - Give enable editing in Monthy view mode -> Button for enable editing -> When check and uncheck done -> Click on same button to save changes. 
 

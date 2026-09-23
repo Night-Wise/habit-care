@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarChart2, Check, CheckCircle2, Flame, Minus, Trophy, X, XCircle } from 'lucide-react-native';
+import { useTheme } from '@/context/theme-context';
 import { formatDateKey, getMonday, getTodoInsights, isTodoCompleted, Todo } from '@/context/todos-context';
+import type { ThemeColors } from '@/theme/colors';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -23,6 +25,11 @@ interface InsightsModalProps {
 }
 
 function ActivityInsightCard({ todo }: { todo: Todo }) {
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
   const insights = getTodoInsights(todo);
   const now = new Date();
   const todayKey = formatDateKey(now);
@@ -165,6 +172,11 @@ function ActivityInsightCard({ todo }: { todo: Todo }) {
 
 export function InsightsModal({ visible, onClose, todos }: InsightsModalProps) {
   const insets = useSafeAreaInsets();
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
 
   return (
     <Modal
@@ -192,7 +204,7 @@ export function InsightsModal({ visible, onClose, todos }: InsightsModalProps) {
           {/* Modal Header */}
           <View style={styles.sheetHeader}>
             <View style={styles.sheetHeaderTitleRow}>
-              <BarChart2 size={22} color="#6366f1" style={{ marginRight: 8 }} />
+              <BarChart2 size={22} color={colors.primary} style={{ marginRight: 8 }} />
               <View>
                 <Text style={styles.sheetTitle}>Activity Insights</Text>
                 <Text style={styles.sheetSubtitle}>
@@ -206,7 +218,7 @@ export function InsightsModal({ visible, onClose, todos }: InsightsModalProps) {
               hitSlop={12}
               activeOpacity={0.7}
             >
-              <X size={18} color="#6366f1" strokeWidth={2.5} />
+              <X size={18} color={colors.primary} strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
 
@@ -218,7 +230,7 @@ export function InsightsModal({ visible, onClose, todos }: InsightsModalProps) {
           >
             {todos.length === 0 ? (
               <View style={styles.emptyState}>
-                <BarChart2 size={44} color="#94a3b8" style={{ marginBottom: 10 }} />
+                <BarChart2 size={44} color={colors.inactive} style={{ marginBottom: 10 }} />
                 <Text style={styles.emptyText}>No activities yet</Text>
                 <Text style={styles.emptySubtext}>
                   Add tasks from the home screen to see detailed streak and completion stats here.
@@ -236,22 +248,22 @@ export function InsightsModal({ visible, onClose, todos }: InsightsModalProps) {
   );
 }
 
-const PRIMARY = '#6366f1';
-const TEXT_DARK = '#1e1b4b';
-const TEXT_MUTED = '#64748b';
-const CARD_BG = '#ffffff';
-
-const styles = StyleSheet.create({
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: colors.overlay,
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
   },
   sheetContainer: {
-    backgroundColor: '#f8f7ff',
+    backgroundColor: colors.background,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     maxHeight: '85%',
@@ -270,7 +282,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 4.5,
     borderRadius: 3,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: colors.borderStrong,
   },
   sheetHeader: {
     flexDirection: 'row',
@@ -280,7 +292,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#ede9fe',
+    borderBottomColor: colors.primaryMuted,
   },
   sheetHeaderTitleRow: {
     flexDirection: 'row',
@@ -289,20 +301,22 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: TEXT_DARK,
+    color: colors.text,
+    fontFamily,
     letterSpacing: -0.4,
   },
   sheetSubtitle: {
     fontSize: 12,
     fontWeight: '500',
-    color: TEXT_MUTED,
+    color: colors.textMuted,
+    fontFamily,
     marginTop: 2,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#ede9fe',
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -316,17 +330,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: CARD_BG,
+    backgroundColor: colors.card,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    shadowColor: PRIMARY,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#ede9fe',
+    borderColor: colors.primaryMuted,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -347,7 +361,8 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: TEXT_DARK,
+    color: colors.text,
+    fontFamily,
     flexShrink: 1,
   },
   activePill: {
@@ -367,7 +382,7 @@ const styles = StyleSheet.create({
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.surfaceMuted,
     marginBottom: 9,
   },
   streaksContainer: {
@@ -395,7 +410,8 @@ const styles = StyleSheet.create({
   streakValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: TEXT_DARK,
+    color: colors.text,
+    fontFamily,
   },
   streakSeparator: {
     width: 1,
@@ -458,7 +474,7 @@ const styles = StyleSheet.create({
   },
   timeframeBox: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 6,
@@ -469,14 +485,16 @@ const styles = StyleSheet.create({
   timeframeLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: TEXT_MUTED,
+    color: colors.textMuted,
+    fontFamily,
     marginBottom: 2,
     textAlign: 'center',
   },
   timeframeValue: {
     fontSize: 12,
     fontWeight: '800',
-    color: TEXT_DARK,
+    color: colors.text,
+    fontFamily,
     textAlign: 'center',
   },
   emptyState: {
@@ -488,12 +506,14 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '700',
-    color: TEXT_DARK,
+    color: colors.text,
+    fontFamily,
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 13,
-    color: TEXT_MUTED,
+    color: colors.textMuted,
+    fontFamily,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -501,7 +521,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: colors.surfaceMuted,
   },
   weekHistoryRow: {
     flexDirection: 'row',
@@ -513,22 +533,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 4,
     borderRadius: 10,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
     minWidth: 38,
   },
   historyPillToday: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: colors.primaryMuted,
   },
   historyDayLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748b',
+    color: colors.textMuted,
     marginBottom: 4,
   },
   historyDayLabelToday: {
-    color: PRIMARY,
+    color: colors.primary,
     fontWeight: '800',
   },
   historyBadge: {
@@ -539,12 +559,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   historyBadgeDone: {
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
   },
   historyBadgeMissed: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: colors.dangerSoft,
   },
   historyBadgeFuture: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: colors.border,
   },
-});
+  });
+}

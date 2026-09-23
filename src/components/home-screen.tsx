@@ -30,7 +30,9 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { InsightsModal } from '@/components/insights-modal';
 import { TodoItem } from '@/components/todo-item';
+import { useTheme } from '@/context/theme-context';
 import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
+import type { ThemeColors } from '@/theme/colors';
 
 const HERO_IMAGES = {
   morning: require('../../assets/home-page-hero/morning.png'),
@@ -117,7 +119,15 @@ function getWeekDaysFromMonday(monday: Date): Date[] {
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 
-function CircularProgress({ pct }: { pct: number }) {
+function CircularProgress({
+  pct,
+  styles,
+  colors,
+}: {
+  pct: number;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}) {
   const size = 64;
   const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
@@ -132,7 +142,7 @@ function CircularProgress({ pct }: { pct: number }) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#ede9fe"
+          stroke={colors.primaryMuted}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -140,7 +150,7 @@ function CircularProgress({ pct }: { pct: number }) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#6264FD"
+          stroke={colors.primary}
           strokeWidth={strokeWidth}
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={strokeDashoffset}
@@ -153,7 +163,13 @@ function CircularProgress({ pct }: { pct: number }) {
   );
 }
 
-function ProgressBarFill({ pct }: { pct: number }) {
+function ProgressBarFill({
+  pct,
+  styles,
+}: {
+  pct: number;
+  styles: ReturnType<typeof createStyles>;
+}) {
   const [animatedWidth] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
@@ -205,6 +221,11 @@ export function HomeScreen({
   const isLoaded = isLoadedOverride ?? ownTodos.isLoaded;
   const toggleTodo = ownTodos.toggleTodo;
   const insets = useSafeAreaInsets();
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
 
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [weekStartDate, setWeekStartDate] = useState<Date>(() => getMonday(new Date()));
@@ -398,7 +419,7 @@ export function HomeScreen({
               hitSlop={8}
               activeOpacity={0.7}
             >
-              <ChevronLeft size={18} color="#6264FD" />
+              <ChevronLeft size={18} color={colors.primary} />
             </TouchableOpacity>
 
             <Text style={styles.weekRangeText}>{weekMonthYear}</Text>
@@ -410,7 +431,7 @@ export function HomeScreen({
                 hitSlop={8}
                 activeOpacity={0.7}
               >
-                <ChevronRight size={18} color="#6264FD" />
+                <ChevronRight size={18} color={colors.primary} />
               </TouchableOpacity>
             ) : (
               <View style={styles.navArrowPlaceholder} />
@@ -455,11 +476,11 @@ export function HomeScreen({
 
         {isSearchOpen && (
           <View style={styles.searchBar}>
-            <Search size={16} color="#94a3b8" />
+            <Search size={16} color={colors.inactive} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search tasks..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.inactive}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoFocus
@@ -474,16 +495,16 @@ export function HomeScreen({
 
         {/* Today's Progress */}
         <View style={styles.progressCard}>
-          <CircularProgress pct={progressPct} />
+          <CircularProgress pct={progressPct} styles={styles} colors={colors} />
           <View style={styles.progressMiddle}>
             <Text style={styles.progressLabel}>{progressLabel}</Text>
             <Text style={styles.progressCount}>
               {done} of {total} tasks completed
             </Text>
-            <ProgressBarFill pct={progressPct} />
+            <ProgressBarFill pct={progressPct} styles={styles} />
           </View>
           <View style={styles.encourageBadge}>
-            <Trophy size={12} color="#6264FD" />
+            <Trophy size={12} color={colors.primary} />
             <Text style={styles.encourageText}>{encouragement}</Text>
           </View>
         </View>
@@ -500,7 +521,7 @@ export function HomeScreen({
               onPress={() => setSortBy('timing')}
               activeOpacity={0.85}
             >
-              <Clock size={13} color={sortBy === 'timing' ? '#ffffff' : '#64748b'} />
+              <Clock size={13} color={sortBy === 'timing' ? colors.white : colors.textMuted} />
               <Text style={[styles.sortPillText, sortBy === 'timing' && styles.sortPillTextActive]}>
                 Timing
               </Text>
@@ -511,7 +532,7 @@ export function HomeScreen({
               onPress={() => setSortBy('priority')}
               activeOpacity={0.85}
             >
-              <Zap size={13} color={sortBy === 'priority' ? '#ffffff' : '#64748b'} />
+              <Zap size={13} color={sortBy === 'priority' ? colors.white : colors.textMuted} />
               <Text
                 style={[styles.sortPillText, sortBy === 'priority' && styles.sortPillTextActive]}
               >
@@ -524,7 +545,7 @@ export function HomeScreen({
               onPress={() => setSortBy('category')}
               activeOpacity={0.85}
             >
-              <LayoutGrid size={13} color={sortBy === 'category' ? '#ffffff' : '#64748b'} />
+              <LayoutGrid size={13} color={sortBy === 'category' ? colors.white : colors.textMuted} />
               <Text
                 style={[styles.sortPillText, sortBy === 'category' && styles.sortPillTextActive]}
               >
@@ -538,11 +559,11 @@ export function HomeScreen({
             onPress={() => setIsFilterOpen(true)}
             activeOpacity={0.85}
           >
-            <Filter size={13} color="#64748b" />
+            <Filter size={13} color={colors.textMuted} />
             <Text style={styles.allFilterText} numberOfLines={1}>
               {categoryFilter || 'All'}
             </Text>
-            <ChevronDown size={14} color="#94a3b8" />
+            <ChevronDown size={14} color={colors.inactive} />
           </TouchableOpacity>
         </View>
 
@@ -670,17 +691,15 @@ export function HomeScreen({
 
 export default HomeScreen;
 
-const PRIMARY = '#6264FD';
-const PRIMARY_SOFT = '#eef0ff';
-const BG = '#f4f3fb';
-const CARD = '#ffffff';
-const TEXT = '#1e1b4b';
-const SUBTEXT = '#6b7280';
-
-const styles = StyleSheet.create({
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: colors.background,
   },
   list: {
     flex: 1,
@@ -695,7 +714,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     overflow: 'hidden',
-    backgroundColor: '#6264FD',
+    backgroundColor: colors.primary,
   },
   heroImage: {
     ...StyleSheet.absoluteFill,
@@ -786,7 +805,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   dateCard: {
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 16,
     paddingHorizontal: 8,
     paddingTop: 6,
@@ -810,7 +829,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: PRIMARY_SOFT,
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -819,7 +838,8 @@ const styles = StyleSheet.create({
     height: 26,
   },
   weekRangeText: {
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.2,
@@ -851,7 +871,7 @@ const styles = StyleSheet.create({
     paddingTop: 3,
     paddingBottom: 6,
     borderRadius: 12,
-    backgroundColor: PRIMARY,
+    backgroundColor: colors.primary,
   },
   dayName: {
     fontSize: 10,
@@ -872,7 +892,8 @@ const styles = StyleSheet.create({
   dayNum: {
     fontSize: 13,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
   },
   dayNumToday: {
     color: '#ea580c',
@@ -888,32 +909,33 @@ const styles = StyleSheet.create({
   dayNumSelected: {
     fontSize: 12,
     fontWeight: '800',
-    color: PRIMARY,
+    color: colors.primary,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#ede9fe',
+    borderColor: colors.primaryMuted,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
     padding: 0,
   },
   searchClear: {
     fontSize: 12,
     fontWeight: '700',
-    color: PRIMARY,
+    color: colors.primary,
   },
   progressCard: {
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 24,
     padding: 16,
     flexDirection: 'row',
@@ -937,7 +959,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontSize: 14,
     fontWeight: '800',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
   },
   progressMiddle: {
     flex: 1,
@@ -946,30 +969,32 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
   },
   progressCount: {
     fontSize: 12,
     fontWeight: '500',
-    color: SUBTEXT,
+    color: colors.textMuted,
+    fontFamily,
     marginBottom: 4,
   },
   progressTrack: {
     height: 8,
-    backgroundColor: '#ede9fe',
+    backgroundColor: colors.primaryMuted,
     borderRadius: 99,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: PRIMARY,
+    backgroundColor: colors.primary,
     borderRadius: 99,
   },
   encourageBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: PRIMARY_SOFT,
+    backgroundColor: colors.primarySoft,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 14,
@@ -978,7 +1003,7 @@ const styles = StyleSheet.create({
   encourageText: {
     fontSize: 10,
     fontWeight: '700',
-    color: PRIMARY,
+    color: colors.primary,
   },
   sortBar: {
     flexDirection: 'row',
@@ -995,21 +1020,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#eef2ff',
+    borderColor: colors.border,
   },
   sortPillActive: {
-    backgroundColor: PRIMARY,
-    borderColor: PRIMARY,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   sortPillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748b',
+    color: colors.textMuted,
+    fontFamily,
   },
   sortPillTextActive: {
     color: '#ffffff',
@@ -1019,18 +1045,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#eef2ff',
+    borderColor: colors.border,
     maxWidth: 110,
   },
   allFilterText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748b',
+    color: colors.textMuted,
+    fontFamily,
     maxWidth: 56,
   },
   emptyState: {
@@ -1041,22 +1068,24 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: SUBTEXT,
+    color: colors.textMuted,
+    fontFamily,
     marginTop: 6,
     textAlign: 'center',
   },
   futureNoticeBanner: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primarySoft,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.primaryMuted,
     alignItems: 'center',
   },
   futureNoticeText: {
@@ -1065,7 +1094,7 @@ const styles = StyleSheet.create({
     color: '#1e40af',
   },
   motivationBanner: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: colors.successSoft,
     borderRadius: 22,
     paddingHorizontal: 18,
     paddingVertical: 18,
@@ -1105,7 +1134,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   filterSheet: {
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -1115,7 +1144,8 @@ const styles = StyleSheet.create({
   filterSheetTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
     marginBottom: 12,
   },
   filterOption: {
@@ -1125,15 +1155,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   filterOptionActive: {
-    backgroundColor: PRIMARY_SOFT,
+    backgroundColor: colors.primarySoft,
   },
   filterOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.textSecondary,
+    fontFamily,
   },
   filterOptionTextActive: {
-    color: PRIMARY,
+    color: colors.primary,
     fontWeight: '700',
   },
-});
+  });
+}

@@ -1,8 +1,11 @@
 import { useRouter } from 'expo-router';
 import { Home, Plus, Settings, Sparkles, Users } from 'lucide-react-native';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/theme/colors';
 
 interface BottomNavProps {
   activeTab?: 'home' | 'habits' | 'friends' | 'settings';
@@ -13,6 +16,11 @@ interface BottomNavProps {
 export function BottomNav({ activeTab: propsActiveTab, state, navigation }: BottomNavProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
 
   let currentTab = propsActiveTab || 'home';
   if (state && state.routes && typeof state.index === 'number') {
@@ -43,13 +51,11 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           <View style={[styles.iconWrap, currentTab === 'home' && styles.iconWrapActive]}>
             <Home
               size={20}
-              color={currentTab === 'home' ? PRIMARY : INACTIVE_COLOR}
+              color={currentTab === 'home' ? colors.primary : colors.inactive}
               strokeWidth={currentTab === 'home' ? 2.5 : 2}
             />
           </View>
-          <Text style={currentTab === 'home' ? styles.navLabelActive : styles.navLabel}>
-            Home
-          </Text>
+          <Text style={currentTab === 'home' ? styles.navLabelActive : styles.navLabel}>Home</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -60,7 +66,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           <View style={[styles.iconWrap, currentTab === 'habits' && styles.iconWrapActive]}>
             <Sparkles
               size={20}
-              color={currentTab === 'habits' ? PRIMARY : INACTIVE_COLOR}
+              color={currentTab === 'habits' ? colors.primary : colors.inactive}
               strokeWidth={currentTab === 'habits' ? 2.5 : 2}
             />
           </View>
@@ -78,7 +84,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
             onPress={() => router.push('/add-or-edit-task')}
           >
             <View style={styles.addButton}>
-              <Plus size={24} color="#ffffff" strokeWidth={2.8} />
+              <Plus size={24} color={colors.white} strokeWidth={2.8} />
             </View>
           </Pressable>
         </View>
@@ -91,7 +97,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           <View style={[styles.iconWrap, currentTab === 'friends' && styles.iconWrapActive]}>
             <Users
               size={20}
-              color={currentTab === 'friends' ? PRIMARY : INACTIVE_COLOR}
+              color={currentTab === 'friends' ? colors.primary : colors.inactive}
               strokeWidth={currentTab === 'friends' ? 2.5 : 2}
             />
           </View>
@@ -108,7 +114,7 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
           <View style={[styles.iconWrap, currentTab === 'settings' && styles.iconWrapActive]}>
             <Settings
               size={20}
-              color={currentTab === 'settings' ? PRIMARY : INACTIVE_COLOR}
+              color={currentTab === 'settings' ? colors.primary : colors.inactive}
               strokeWidth={currentTab === 'settings' ? 2.5 : 2}
             />
           </View>
@@ -121,70 +127,73 @@ export function BottomNav({ activeTab: propsActiveTab, state, navigation }: Bott
   );
 }
 
-const PRIMARY = '#6264FD';
-const PRIMARY_SOFT = '#eef0ff';
-const CARD = '#ffffff';
-const INACTIVE_COLOR = '#94a3b8';
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: CARD,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    shadowColor: PRIMARY,
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    paddingHorizontal: 6,
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    minHeight: 52,
-  },
-  iconWrap: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  iconWrapActive: {
-    backgroundColor: PRIMARY_SOFT,
-  },
-  navLabelActive: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: PRIMARY,
-    marginTop: 3,
-  },
-  navLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: INACTIVE_COLOR,
-    marginTop: 3,
-  },
-  addButtonWrap: {
-    marginTop: -22,
-    marginBottom: 2,
-  },
-  addButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: PRIMARY,
-    shadowColor: PRIMARY,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-});
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
+    container: {
+      backgroundColor: colors.background,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: -6 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 10,
+    },
+    bottomNav: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      paddingTop: 8,
+      paddingHorizontal: 6,
+    },
+    navItem: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      minHeight: 52,
+    },
+    iconWrap: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 14,
+    },
+    iconWrapActive: {
+      backgroundColor: colors.primarySoft,
+    },
+    navLabelActive: {
+      fontSize: fs(10),
+      fontWeight: '700',
+      color: colors.primary,
+      marginTop: 3,
+      fontFamily,
+    },
+    navLabel: {
+      fontSize: fs(10),
+      fontWeight: '500',
+      color: colors.inactive,
+      marginTop: 3,
+      fontFamily,
+    },
+    addButtonWrap: {
+      marginTop: -22,
+      marginBottom: 2,
+    },
+    addButton: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 10,
+    },
+  });
+}

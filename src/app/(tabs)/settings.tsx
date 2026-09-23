@@ -3,7 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { AlertTriangle, BarChart3, Bell, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogIn, LogOut, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -19,13 +19,46 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/auth-context';
+import { useTheme } from '@/context/theme-context';
 import { useTodos } from '@/context/todos-context';
-import { sendTestNotification } from '@/utils/notifications';
+import {
+  ACCENT_LABELS,
+  AccentColor,
+  buildThemeColors,
+  FONT_FAMILY_LABELS,
+  FONT_SCALE_LABELS,
+  FontScaleId,
+  THEME_MODE_LABELS,
+  ThemeMode,
+} from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { requestNotificationPermissions, sendTestNotification } from '@/utils/notifications';
+
+const THEME_MODES: ThemeMode[] = ['light', 'dark', 'system'];
+const ACCENT_OPTIONS: AccentColor[] = ['purple', 'blue', 'green'];
+const FONT_SCALES: FontScaleId[] = ['default', 'large', 'xlarge'];
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { todos, exportData, importData, clearAllData, replaceTodos } = useTodos();
   const { user, isLoading, isConfigured, authError, signInWithGoogle, signOut, syncTodos } = useAuth();
+  const {
+    colors,
+    fs,
+    fontFamilyValue,
+    resolvedScheme,
+    themeMode,
+    accent,
+    fontScale,
+    fontFamily,
+    setThemeMode,
+    setAccent,
+    setFontScale,
+  } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -214,6 +247,7 @@ export default function SettingsScreen() {
 
   // TEST NOTIFICATION HANDLER
   const handleTestNotification = async () => {
+    await requestNotificationPermissions(colors.primary);
     const success = await sendTestNotification();
     if (success) {
       showToast('🔔 Test notification sent! Check your notification bar.');
@@ -281,7 +315,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -304,7 +338,7 @@ export default function SettingsScreen() {
         {/* Overview Stats Card */}
         <View style={styles.statsCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <BarChart3 size={18} color="#6366f1" style={{ marginRight: 6 }} />
+            <BarChart3 size={18} color={colors.primary} style={{ marginRight: 6 }} />
             <Text style={styles.sectionHeading}>Data Summary</Text>
           </View>
           <View style={styles.statsGrid}>
@@ -319,6 +353,91 @@ export default function SettingsScreen() {
             <View style={styles.statBox}>
               <Text style={styles.statNumber}>{dataSizeKb} KB</Text>
               <Text style={styles.statLabel}>Backup Size</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Appearance */}
+        <View style={styles.card}>
+          <Text style={styles.sectionHeading}>Appearance</Text>
+
+          <Text style={styles.appearanceLabel}>Theme mode</Text>
+          <View style={styles.chipRow}>
+            {THEME_MODES.map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                style={[styles.appearanceChip, themeMode === mode && styles.appearanceChipActive]}
+                onPress={() => setThemeMode(mode)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.appearanceChipText,
+                    themeMode === mode && styles.appearanceChipTextActive,
+                  ]}
+                >
+                  {THEME_MODE_LABELS[mode]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.appearanceLabel}>Accent</Text>
+          <View style={styles.accentRow}>
+            {ACCENT_OPTIONS.map((accentOption) => {
+              const swatchColor = buildThemeColors(accentOption, resolvedScheme).primary;
+              const isSelected = accent === accentOption;
+              return (
+                <TouchableOpacity
+                  key={accentOption}
+                  style={styles.accentOption}
+                  onPress={() => setAccent(accentOption)}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      styles.accentSwatch,
+                      { backgroundColor: swatchColor },
+                      isSelected && styles.accentSwatchSelected,
+                    ]}
+                  />
+                  <Text
+                    style={[styles.accentOptionText, isSelected && styles.accentOptionTextActive]}
+                  >
+                    {ACCENT_LABELS[accentOption]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={styles.appearanceLabel}>Font size</Text>
+          <View style={styles.chipRow}>
+            {FONT_SCALES.map((scale) => (
+              <TouchableOpacity
+                key={scale}
+                style={[styles.appearanceChip, fontScale === scale && styles.appearanceChipActive]}
+                onPress={() => setFontScale(scale)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.appearanceChipText,
+                    fontScale === scale && styles.appearanceChipTextActive,
+                  ]}
+                >
+                  {FONT_SCALE_LABELS[scale]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.appearanceLabel}>Font family</Text>
+          <View style={styles.chipRow}>
+            <View style={[styles.appearanceChip, styles.appearanceChipActive]}>
+              <Text style={[styles.appearanceChipText, styles.appearanceChipTextActive]}>
+                {FONT_FAMILY_LABELS[fontFamily]}
+              </Text>
             </View>
           </View>
         </View>
@@ -363,7 +482,7 @@ export default function SettingsScreen() {
         {/* Export Data Section */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Share2 size={24} color="#6366f1" style={{ marginTop: 2 }} />
+            <Share2 size={24} color={colors.primary} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>Export Data (JSON)</Text>
               <Text style={styles.cardSub}>
@@ -397,7 +516,7 @@ export default function SettingsScreen() {
             onPress={() => setIsViewJsonOpen(true)}
             activeOpacity={0.7}
           >
-            <Eye size={14} color="#6366f1" style={{ marginRight: 4 }} />
+            <Eye size={14} color={colors.primary} style={{ marginRight: 4 }} />
             <Text style={styles.inlineLinkText}>View / Inspect Raw JSON</Text>
           </TouchableOpacity>
         </View>
@@ -441,7 +560,7 @@ export default function SettingsScreen() {
         {/* Push Notifications Section */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Bell size={24} color="#6366f1" style={{ marginTop: 2 }} />
+            <Bell size={24} color={colors.primary} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>Push Notifications</Text>
               <Text style={styles.cardSub}>
@@ -503,10 +622,10 @@ export default function SettingsScreen() {
                 <Text style={styles.modalBtnText}>📋 Copy to Clipboard</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: '#e2e8f0' }]}
+                style={[styles.modalBtn, { backgroundColor: colors.surfaceMuted }]}
                 onPress={() => setIsViewJsonOpen(false)}
               >
-                <Text style={[styles.modalBtnText, { color: '#334155' }]}>Close</Text>
+                <Text style={[styles.modalBtnText, { color: colors.textSecondary }]}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -548,10 +667,10 @@ export default function SettingsScreen() {
                 <Text style={styles.modalBtnText}>Validate & Import</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: '#e2e8f0' }]}
+                style={[styles.modalBtn, { backgroundColor: colors.surfaceMuted }]}
                 onPress={() => setIsPasteJsonOpen(false)}
               >
-                <Text style={[styles.modalBtnText, { color: '#334155' }]}>Cancel</Text>
+                <Text style={[styles.modalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -563,11 +682,11 @@ export default function SettingsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: 420 }]}>
             <View style={styles.confirmIconWrap}>
-              <Upload size={28} color={PURPLE} />
+              <Upload size={28} color={colors.primary} />
             </View>
             <Text style={styles.confirmTitle}>Confirm JSON Import</Text>
             <Text style={styles.confirmSub}>
-              Found <Text style={{ fontWeight: '700', color: PURPLE }}>{importSummaryCount}</Text>{' '}
+              Found <Text style={{ fontWeight: '700', color: colors.primary }}>{importSummaryCount}</Text>{' '}
               habits in the JSON data. How would you like to apply this backup?
             </Text>
 
@@ -578,7 +697,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.choiceBtnIconWrap}>
-                  <GitMerge size={20} color={PURPLE} />
+                  <GitMerge size={20} color={colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.choiceBtnTitle}>Merge Data (Recommended)</Text>
@@ -622,7 +741,7 @@ export default function SettingsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: 500 }]}>
             <View style={styles.confirmIconWrap}>
-              <Cloud size={28} color={PURPLE} />
+              <Cloud size={28} color={colors.primary} />
             </View>
             <Text style={styles.confirmTitle}>Choose cloud sync</Text>
             <Text style={styles.confirmSub}>
@@ -636,7 +755,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.choiceBtnIconWrap}>
-                  <GitMerge size={20} color={PURPLE} />
+                  <GitMerge size={20} color={colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.choiceBtnTitle}>Merge local + cloud</Text>
@@ -652,7 +771,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.choiceBtnIconWrap}>
-                  <CloudUpload size={20} color={PURPLE} />
+                  <CloudUpload size={20} color={colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.choiceBtnTitle}>Replace cloud with local</Text>
@@ -668,7 +787,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.choiceBtnIconWrap}>
-                  <CloudDownload size={20} color={PURPLE} />
+                  <CloudDownload size={20} color={colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.choiceBtnTitle}>Use cloud only</Text>
@@ -692,19 +811,18 @@ export default function SettingsScreen() {
   );
 }
 
-const PURPLE = '#6264FD';
-const BG = '#f8f7ff';
-const CARD = '#ffffff';
-const TEXT = '#1e1b4b';
-const SUBTEXT = '#6b7280';
-
-const styles = StyleSheet.create({
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: PURPLE,
+    backgroundColor: colors.headerBg,
     paddingHorizontal: 24,
     paddingBottom: 14,
   },
@@ -724,7 +842,7 @@ const styles = StyleSheet.create({
     top: 90,
     left: 20,
     right: 20,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -749,7 +867,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   statsCard: {
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
@@ -761,8 +879,73 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: 16,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
     marginBottom: 12,
+  },
+  appearanceLabel: {
+    fontSize: fs(13),
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginTop: 14,
+    marginBottom: 8,
+    fontFamily,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  appearanceChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  appearanceChipActive: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  appearanceChipText: {
+    fontSize: fs(13),
+    fontWeight: '600',
+    color: colors.textMuted,
+    fontFamily,
+  },
+  appearanceChipTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  accentRow: {
+    flexDirection: 'row',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  accentOption: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  accentSwatch: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  accentSwatchSelected: {
+    borderColor: colors.text,
+  },
+  accentOptionText: {
+    fontSize: fs(12),
+    fontWeight: '600',
+    color: colors.textMuted,
+    fontFamily,
+  },
+  accentOptionTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -777,16 +960,17 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: '800',
-    color: PURPLE,
+    color: colors.primary,
   },
   statLabel: {
     fontSize: 12,
-    color: SUBTEXT,
+    color: colors.textMuted,
+    fontFamily,
     marginTop: 2,
     fontWeight: '500',
   },
   card: {
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 18,
     shadowColor: '#000',
@@ -807,11 +991,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
   },
   cardSub: {
     fontSize: 13,
-    color: SUBTEXT,
+    color: colors.textMuted,
+    fontFamily,
     marginTop: 2,
     lineHeight: 18,
   },
@@ -846,7 +1032,7 @@ const styles = StyleSheet.create({
     alignSelf: 'auto',
   },
   btnPrimary: {
-    backgroundColor: PURPLE,
+    backgroundColor: colors.primary,
   },
   btnPrimaryText: {
     color: '#ffffff',
@@ -869,7 +1055,7 @@ const styles = StyleSheet.create({
   },
   inlineLinkText: {
     fontSize: 13,
-    color: PURPLE,
+    color: colors.primary,
     fontWeight: '600',
   },
   dangerCard: {
@@ -902,7 +1088,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxHeight: '80%',
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
@@ -920,20 +1106,23 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
   },
   modalSub: {
     fontSize: 13,
-    color: SUBTEXT,
+    color: colors.textMuted,
+    fontFamily,
     marginBottom: 12,
   },
   modalClose: {
     fontSize: 20,
-    color: SUBTEXT,
+    color: colors.textMuted,
+    fontFamily,
     fontWeight: '600',
   },
   jsonScrollView: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.black,
     borderRadius: 10,
     padding: 12,
     maxHeight: 280,
@@ -944,14 +1133,14 @@ const styles = StyleSheet.create({
     color: '#38bdf8',
   },
   jsonInput: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.inputBg,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: colors.borderStrong,
     borderRadius: 10,
     padding: 12,
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: TEXT,
+    color: colors.text,
     height: 150,
     textAlignVertical: 'top',
   },
@@ -963,7 +1152,7 @@ const styles = StyleSheet.create({
   modalBtn: {
     flex: 1,
     height: 44,
-    backgroundColor: PURPLE,
+    backgroundColor: colors.primary,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -979,7 +1168,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
@@ -988,12 +1177,14 @@ const styles = StyleSheet.create({
   confirmTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
     textAlign: 'center',
   },
   confirmSub: {
     fontSize: 13,
-    color: SUBTEXT,
+    color: colors.textMuted,
+    fontFamily,
     textAlign: 'center',
     marginTop: 6,
     marginBottom: 16,
@@ -1016,7 +1207,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1026,11 +1217,13 @@ const styles = StyleSheet.create({
   choiceBtnTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: TEXT,
+    color: colors.text,
+    fontFamily,
   },
   choiceBtnSub: {
     fontSize: 11,
-    color: SUBTEXT,
+    color: colors.textMuted,
+    fontFamily,
     marginTop: 2,
   },
   cancelChoiceBtn: {
@@ -1039,8 +1232,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelChoiceText: {
-    fontSize: 14,
-    color: SUBTEXT,
+    fontSize: fs(14),
+    color: colors.textMuted,
+    fontFamily,
     fontWeight: '600',
   },
-});
+  });
+}

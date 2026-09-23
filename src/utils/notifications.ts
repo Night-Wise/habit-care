@@ -27,10 +27,15 @@ try {
   Notifications = null;
 }
 
+/** Default Android notification LED color (purple accent). Pass theme `colors.primary` when available. */
+const DEFAULT_NOTIFICATION_LIGHT_COLOR = '#6366f1';
+
 /**
  * Request notification permissions and setup Android notification channel
  */
-export async function requestNotificationPermissions(): Promise<boolean> {
+export async function requestNotificationPermissions(
+  lightColor: string = DEFAULT_NOTIFICATION_LIGHT_COLOR
+): Promise<boolean> {
   if (!Notifications || Platform.OS === 'web') return false;
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -50,7 +55,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
         name: 'Task Reminders',
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#6366f1',
+        lightColor,
       });
     }
 

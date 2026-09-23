@@ -9,10 +9,23 @@ import {
   Save,
   X,
 } from 'lucide-react-native';
-import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { useTheme } from '@/context/theme-context';
 import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
+import type { ThemeColors } from '@/theme/colors';
+
+type MonthlyViewStyles = ReturnType<typeof createStyles>;
+const MonthlyViewStylesContext = createContext<MonthlyViewStyles | null>(null);
+
+function useMonthlyViewStyles() {
+  const ctx = useContext(MonthlyViewStylesContext);
+  if (!ctx) {
+    throw new Error('useMonthlyViewStyles must be used within MonthlyHabitView');
+  }
+  return ctx;
+}
 
 function draftKey(todoId: string, dateKey: string) {
   return `${todoId}::${dateKey}`;
@@ -132,6 +145,7 @@ const DayCell = memo(function DayCell({
   onToggle?: (todoId: string, dateKey: string, nextCompleted: boolean) => void;
   resetToken: number;
 }) {
+  const styles = useMonthlyViewStyles();
   const [done, setDone] = useState(initialDone);
 
   useEffect(() => {
@@ -196,6 +210,7 @@ function MonthlyTable({
   onToggleCell?: (todoId: string, dateKey: string, nextCompleted: boolean) => void;
   resetToken: number;
 }) {
+  const styles = useMonthlyViewStyles();
   const getCategoryLabel = (todo: Todo) => todo.category?.trim() || 'Uncategorized';
 
   const monthlyStats = useMemo(
@@ -372,6 +387,11 @@ export function MonthlyHabitView({
   readOnly?: boolean;
 }) {
   const { applyCompletionEdits } = useTodos();
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
   const [sortBy, setSortBy] = useState<'completion' | 'priority'>('completion');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [groupByCategory, setGroupByCategory] = useState(false);
@@ -464,6 +484,7 @@ export function MonthlyHabitView({
   };
 
   return (
+    <MonthlyViewStylesContext.Provider value={styles}>
     <View style={styles.monthView}>
       <View style={styles.monthToolbar}>
         <TouchableOpacity
@@ -472,7 +493,7 @@ export function MonthlyHabitView({
           disabled={isEditing}
           accessibilityLabel="Previous month"
         >
-          <ChevronLeft size={20} color={isEditing ? '#cbd5e1' : TEXT} />
+          <ChevronLeft size={20} color={isEditing ? colors.inactive : colors.text} />
         </TouchableOpacity>
         <Text style={styles.monthTitle}>
           {monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -483,7 +504,7 @@ export function MonthlyHabitView({
           disabled={isCurrentMonth || isEditing}
           accessibilityLabel="Next month"
         >
-          <ChevronRight size={20} color={isCurrentMonth || isEditing ? '#cbd5e1' : TEXT} />
+          <ChevronRight size={20} color={isCurrentMonth || isEditing ? colors.inactive : colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -529,9 +550,9 @@ export function MonthlyHabitView({
           accessibilityLabel="Change sort direction"
         >
           {sortDirection === 'desc' ? (
-            <ChevronDown size={15} color={isEditing ? '#94a3b8' : PURPLE} />
+            <ChevronDown size={15} color={isEditing ? colors.inactive : colors.primary} />
           ) : (
-            <ChevronUp size={15} color={isEditing ? '#94a3b8' : PURPLE} />
+            <ChevronUp size={15} color={isEditing ? colors.inactive : colors.primary} />
           )}
           <Text style={[styles.sortDirectionText, isEditing && styles.disabledText]}>
             {sortDirection === 'desc'
@@ -584,7 +605,7 @@ export function MonthlyHabitView({
               activeOpacity={0.85}
               accessibilityLabel="Enable monthly editing"
             >
-              <Pencil size={14} color={PURPLE} />
+              <Pencil size={14} color={colors.primary} />
               <Text style={styles.editBtnText}>Enable editing</Text>
             </TouchableOpacity>
           ) : (
@@ -619,17 +640,18 @@ export function MonthlyHabitView({
         </View>
       ) : null}
     </View>
+    </MonthlyViewStylesContext.Provider>
   );
 }
 
-const PURPLE = '#6366f1';
-const CARD = '#ffffff';
-const TEXT = '#1e1b4b';
-const SUBTEXT = '#6b7280';
-
-const styles = StyleSheet.create({
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
   monthView: {
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
     borderRadius: 14,
     paddingVertical: 14,
     overflow: 'hidden',
@@ -647,14 +669,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 9,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.surfaceMuted,
   },
   monthArrowDisabled: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
   },
   monthTitle: {
-    color: TEXT,
-    fontSize: 16,
+    color: colors.text,
+    fontSize: fs(16),
+    fontFamily,
     fontWeight: '800',
   },
   editRow: {
@@ -676,21 +699,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: colors.primaryMuted,
   },
   editBtnActive: {
-    backgroundColor: PURPLE,
-    borderColor: PURPLE,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   discardBtn: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.danger,
   },
   editBtnText: {
-    color: PURPLE,
-    fontSize: 12,
+    color: colors.primary,
+    fontSize: fs(12),
+    fontFamily,
     fontWeight: '800',
   },
   editBtnTextActive: {
@@ -702,8 +726,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   editHint: {
-    color: SUBTEXT,
-    fontSize: 11,
+    color: colors.textMuted,
+    fontSize: fs(11),
+    fontFamily,
     fontWeight: '600',
   },
   sortRow: {
@@ -724,7 +749,7 @@ const styles = StyleSheet.create({
   },
   sortCriteria: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 8,
     padding: 2,
   },
@@ -734,15 +759,16 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   sortOptionActive: {
-    backgroundColor: CARD,
+    backgroundColor: colors.card,
   },
   sortOptionText: {
-    color: SUBTEXT,
-    fontSize: 11,
+    color: colors.textMuted,
+    fontSize: fs(11),
+    fontFamily,
     fontWeight: '600',
   },
   sortOptionTextActive: {
-    color: PURPLE,
+    color: colors.primary,
     fontWeight: '800',
   },
   sortDirection: {
@@ -753,8 +779,9 @@ const styles = StyleSheet.create({
     paddingLeft: 6,
   },
   sortDirectionText: {
-    color: PURPLE,
-    fontSize: 11,
+    color: colors.primary,
+    fontSize: fs(11),
+    fontFamily,
     fontWeight: '700',
   },
   categoryToggle: {
@@ -764,27 +791,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.surfaceMuted,
   },
   categoryToggleActive: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
   },
   categoryToggleText: {
-    color: SUBTEXT,
-    fontSize: 11,
+    color: colors.textMuted,
+    fontSize: fs(11),
+    fontFamily,
     fontWeight: '700',
   },
   categoryToggleTextActive: {
-    color: PURPLE,
+    color: colors.primary,
   },
   monthTable: {
     borderTopWidth: 1,
     borderLeftWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
   },
   monthHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
   },
   monthDataRow: {
     flexDirection: 'row',
@@ -793,20 +821,21 @@ const styles = StyleSheet.create({
     minHeight: 32,
     justifyContent: 'center',
     paddingHorizontal: 12,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     borderBottomWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: colors.primaryMuted,
   },
   monthCategoryHeaderText: {
-    color: PURPLE,
-    fontSize: 11,
+    color: colors.primary,
+    fontSize: fs(11),
+    fontFamily,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   monthTotalsRow: {
     flexDirection: 'row',
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
   },
   monthTaskColumn: {
     width: 132,
@@ -816,14 +845,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
   },
   monthHeaderCell: {
     minHeight: 48,
   },
   monthHeaderText: {
-    color: TEXT,
-    fontSize: 12,
+    color: colors.text,
+    fontSize: fs(12),
+    fontFamily,
     fontWeight: '800',
   },
   monthDayColumn: {
@@ -833,7 +863,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
   },
   monthSummaryColumn: {
     width: 78,
@@ -845,7 +875,7 @@ const styles = StyleSheet.create({
     gap: 4,
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
   },
   summaryProgressTrack: {
     width: '88%',
@@ -868,8 +898,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   monthDayNumber: {
-    color: TEXT,
-    fontSize: 12,
+    color: colors.text,
+    fontSize: fs(12),
+    fontFamily,
     fontWeight: '800',
     marginTop: 1,
   },
@@ -877,10 +908,10 @@ const styles = StyleSheet.create({
     minHeight: 46,
   },
   editableCell: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
   },
   editableCellDone: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: colors.successSoft,
   },
   monthTotalsCell: {
     minHeight: 46,
@@ -891,13 +922,15 @@ const styles = StyleSheet.create({
   },
   monthTaskName: {
     flex: 1,
-    color: TEXT,
-    fontSize: 12,
+    color: colors.text,
+    fontSize: fs(12),
+    fontFamily,
     fontWeight: '700',
   },
   monthTotalsLabel: {
-    color: TEXT,
-    fontSize: 12,
+    color: colors.text,
+    fontSize: fs(12),
+    fontFamily,
     fontWeight: '800',
   },
   monthTaskPriority: {
@@ -921,9 +954,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   monthTotalsText: {
-    color: PURPLE,
-    fontSize: 10,
+    color: colors.primary,
+    fontSize: fs(10),
     fontWeight: '800',
     textAlign: 'center',
+    fontFamily,
   },
-});
+  });
+}

@@ -13,11 +13,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTheme } from '@/context/theme-context';
+import type { ThemeColors } from '@/theme/colors';
 import {
   EMOJI_CATEGORIES,
   EmojiCategory,
   EmojiItem,
-  POPULAR_EMOJIS,
   searchEmojis,
 } from '@/utils/emoji-data';
 
@@ -35,6 +36,11 @@ export function EmojiPickerModal({
   selectedEmoji,
 }: EmojiPickerModalProps) {
   const insets = useSafeAreaInsets();
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<EmojiCategory>('Popular');
 
@@ -42,11 +48,9 @@ export function EmojiPickerModal({
     return searchEmojis(searchQuery, activeCategory);
   }, [searchQuery, activeCategory]);
 
-  // Check if searchQuery itself contains a custom native emoji (not in dataset)
   const isDirectEmojiInput = useMemo(() => {
     const trimmed = searchQuery.trim();
     if (!trimmed) return false;
-    // Regex checking for emoji character sequence
     const emojiRegex = /\p{Extended_Pictographic}/u;
     return emojiRegex.test(trimmed);
   }, [searchQuery]);
@@ -64,22 +68,20 @@ export function EmojiPickerModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Select Icon / Emoji</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={12}>
-            <X size={18} color="#6b7280" />
+            <X size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
-            <Search size={18} color="#9ca3af" style={styles.searchIcon} />
+            <Search size={18} color={colors.inactive} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search emojis e.g. water, run, book…"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.inactive}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -88,13 +90,12 @@ export function EmojiPickerModal({
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
-                <X size={16} color="#9ca3af" />
+                <X size={16} color={colors.inactive} />
               </TouchableOpacity>
             )}
           </View>
         </View>
 
-        {/* Custom Direct Emoji Banner (if user typed/pasted an emoji directly) */}
         {isDirectEmojiInput && (
           <TouchableOpacity
             style={styles.customEmojiBanner}
@@ -110,7 +111,6 @@ export function EmojiPickerModal({
           </TouchableOpacity>
         )}
 
-        {/* Category Tabs (only shown when search query is empty) */}
         {searchQuery.length === 0 && (
           <View style={styles.categoriesWrapper}>
             <ScrollView
@@ -137,7 +137,6 @@ export function EmojiPickerModal({
           </View>
         )}
 
-        {/* Emojis Grid */}
         <FlatList
           data={filteredEmojis}
           keyExtractor={(item, index) => item.emoji + index}
@@ -159,7 +158,7 @@ export function EmojiPickerModal({
               <Pressable
                 style={[styles.emojiBtn, isSelected && styles.emojiBtnSelected]}
                 onPress={() => handleSelect(item.emoji)}
-                android_ripple={{ color: '#e0e7ff' }}
+                android_ripple={{ color: colors.primarySoft }}
               >
                 <Text style={styles.emojiText}>{item.emoji}</Text>
               </Pressable>
@@ -171,165 +170,172 @@ export function EmojiPickerModal({
   );
 }
 
-const PURPLE = '#6366f1';
-const PURPLE_LIGHT = '#eef2ff';
-const TEXT = '#1e1b4b';
-const SUBTEXT = '#6b7280';
-const BORDER = '#e5e7eb';
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: TEXT,
-  },
-  closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 8,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 48,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: TEXT,
-    fontWeight: '500',
-  },
-  customEmojiBanner: {
-    marginHorizontal: 20,
-    marginTop: 4,
-    marginBottom: 8,
-    backgroundColor: PURPLE_LIGHT,
-    borderColor: PURPLE,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  customEmojiText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: TEXT,
-  },
-  customEmojiLarge: {
-    fontSize: 20,
-  },
-  customEmojiChip: {
-    backgroundColor: PURPLE,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  customEmojiChipText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  categoriesWrapper: {
-    paddingVertical: 8,
-  },
-  categoriesContent: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  categoryTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  categoryTabActive: {
-    backgroundColor: PURPLE_LIGHT,
-    borderColor: PURPLE,
-  },
-  categoryTabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: SUBTEXT,
-  },
-  categoryTabTextActive: {
-    color: PURPLE,
-    fontWeight: '700',
-  },
-  gridContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  emojiBtn: {
-    flex: 1,
-    aspectRatio: 1,
-    margin: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  emojiBtnSelected: {
-    backgroundColor: PURPLE_LIGHT,
-    borderColor: PURPLE,
-  },
-  emojiText: {
-    fontSize: 24,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-  emptyIcon: {
-    fontSize: 40,
-    marginBottom: 10,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: TEXT,
-    marginBottom: 4,
-  },
-  emptySub: {
-    fontSize: 13,
-    color: SUBTEXT,
-    textAlign: 'center',
-  },
-});
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.card,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    headerTitle: {
+      fontSize: fs(18),
+      fontWeight: '700',
+      color: colors.text,
+      fontFamily,
+    },
+    closeBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: colors.surfaceMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    searchContainer: {
+      paddingHorizontal: 20,
+      paddingTop: 14,
+      paddingBottom: 8,
+    },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.inputBg,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      height: 48,
+    },
+    searchIcon: {
+      marginRight: 8,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: fs(15),
+      color: colors.text,
+      fontWeight: '500',
+      fontFamily,
+    },
+    customEmojiBanner: {
+      marginHorizontal: 20,
+      marginTop: 4,
+      marginBottom: 8,
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
+      borderWidth: 1.5,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    customEmojiText: {
+      fontSize: fs(14),
+      fontWeight: '600',
+      color: colors.text,
+      fontFamily,
+    },
+    customEmojiLarge: {
+      fontSize: 20,
+    },
+    customEmojiChip: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    customEmojiChipText: {
+      color: colors.white,
+      fontSize: fs(12),
+      fontWeight: '700',
+      fontFamily,
+    },
+    categoriesWrapper: {
+      paddingVertical: 8,
+    },
+    categoriesContent: {
+      paddingHorizontal: 20,
+      gap: 8,
+    },
+    categoryTab: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceMuted,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    categoryTabActive: {
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
+    },
+    categoryTabText: {
+      fontSize: fs(13),
+      fontWeight: '600',
+      color: colors.textMuted,
+      fontFamily,
+    },
+    categoryTabTextActive: {
+      color: colors.primary,
+      fontWeight: '700',
+    },
+    gridContainer: {
+      paddingHorizontal: 16,
+      paddingTop: 12,
+    },
+    emojiBtn: {
+      flex: 1,
+      aspectRatio: 1,
+      margin: 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 14,
+      backgroundColor: colors.inputBg,
+      borderWidth: 1.5,
+      borderColor: 'transparent',
+    },
+    emojiBtnSelected: {
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
+    },
+    emojiText: {
+      fontSize: 24,
+    },
+    emptyState: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 40,
+      paddingHorizontal: 20,
+    },
+    emptyIcon: {
+      fontSize: 40,
+      marginBottom: 10,
+    },
+    emptyTitle: {
+      fontSize: fs(16),
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 4,
+      fontFamily,
+    },
+    emptySub: {
+      fontSize: fs(13),
+      color: colors.textMuted,
+      textAlign: 'center',
+      fontFamily,
+    },
+  });
+}

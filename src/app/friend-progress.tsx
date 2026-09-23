@@ -1,16 +1,23 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HomeScreen } from '@/components/home-screen';
 import { MonthlyHabitView } from '@/components/monthly-habit-view';
 import type { Todo } from '@/context/todos-context';
+import { useTheme } from '@/context/theme-context';
 import { fetchFriendTodos } from '@/lib/friends';
+import type { ThemeColors } from '@/theme/colors';
 
 export default function FriendProgressScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
   const params = useLocalSearchParams<{ userId?: string; email?: string }>();
   const userId = typeof params.userId === 'string' ? params.userId : '';
   const email = typeof params.email === 'string' ? params.email : 'Friend';
@@ -50,7 +57,7 @@ export default function FriendProgressScreen() {
   if (error) {
     return (
       <View style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
+        <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>‹ Back</Text>
@@ -84,7 +91,7 @@ export default function FriendProgressScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.headerBg} />
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>‹ Back</Text>
@@ -121,6 +128,12 @@ function ViewSwitcher({
   viewMode: 'daily' | 'month';
   onChange: (mode: 'daily' | 'month') => void;
 }) {
+  const { colors, fs, fontFamilyValue } = useTheme();
+  const styles = useMemo(
+    () => createStyles(colors, fs, fontFamilyValue),
+    [colors, fs, fontFamilyValue]
+  );
+
   return (
     <View style={styles.viewSwitcher}>
       <TouchableOpacity
@@ -139,86 +152,94 @@ function ViewSwitcher({
   );
 }
 
-const PURPLE = '#6264FD';
-const BG = '#f8f7ff';
-const CARD = '#ffffff';
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  switcherDock: {
-    backgroundColor: BG,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  header: {
-    backgroundColor: PURPLE,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  backBtn: {
-    marginBottom: 8,
-  },
-  backText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  headerSub: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 4,
-  },
-  viewSwitcher: {
-    flexDirection: 'row',
-    backgroundColor: '#eef2ff',
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 3,
-    borderRadius: 10,
-  },
-  viewOption: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 9,
-    borderRadius: 8,
-  },
-  viewOptionActive: {
-    backgroundColor: CARD,
-  },
-  viewOptionText: {
-    color: '#64748b',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  viewOptionTextActive: {
-    color: PURPLE,
-    fontWeight: '700',
-  },
-  monthScroll: {
-    flex: 1,
-  },
-  monthWrap: {
-    padding: 16,
-    flexGrow: 1,
-  },
-  loadingText: {
-    color: '#64748b',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 14,
-    padding: 20,
-  },
-});
+function createStyles(
+  colors: ThemeColors,
+  fs: (size: number) => number,
+  fontFamily?: string
+) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    switcherDock: {
+      backgroundColor: colors.background,
+      paddingHorizontal: 16,
+      paddingTop: 8,
+    },
+    header: {
+      backgroundColor: colors.headerBg,
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+    },
+    backBtn: {
+      marginBottom: 8,
+    },
+    backText: {
+      color: 'rgba(255,255,255,0.9)',
+      fontSize: fs(16),
+      fontWeight: '700',
+      fontFamily,
+    },
+    headerTitle: {
+      fontSize: fs(22),
+      fontWeight: '800',
+      color: colors.headerText,
+      fontFamily,
+    },
+    headerSub: {
+      fontSize: fs(13),
+      color: 'rgba(255,255,255,0.75)',
+      marginTop: 4,
+      fontFamily,
+    },
+    viewSwitcher: {
+      flexDirection: 'row',
+      backgroundColor: colors.primarySoft,
+      marginHorizontal: 16,
+      marginTop: 12,
+      padding: 3,
+      borderRadius: 10,
+    },
+    viewOption: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: 9,
+      borderRadius: 8,
+    },
+    viewOptionActive: {
+      backgroundColor: colors.card,
+    },
+    viewOptionText: {
+      color: colors.textMuted,
+      fontSize: fs(13),
+      fontWeight: '600',
+      fontFamily,
+    },
+    viewOptionTextActive: {
+      color: colors.primary,
+      fontWeight: '700',
+    },
+    monthScroll: {
+      flex: 1,
+    },
+    monthWrap: {
+      padding: 16,
+      flexGrow: 1,
+    },
+    loadingText: {
+      color: colors.textMuted,
+      fontSize: fs(14),
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: 24,
+      fontFamily,
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: fs(14),
+      padding: 20,
+      fontFamily,
+    },
+  });
+}

@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTheme } from '@/context/theme-context';
 import { formatDateKey, getMonday, isTodoCompleted, Todo } from '@/context/todos-context';
 
 const WEEKS = 8;
@@ -63,6 +64,11 @@ export const HabitHeatmap = memo(function HabitHeatmap({
   todo: Todo;
   color: string;
 }) {
+  const { resolvedScheme } = useTheme();
+  const styles = useMemo(
+    () => createStyles(resolvedScheme),
+    [resolvedScheme]
+  );
   const grid = useMemo(() => buildHeatmapGrid(todo, new Date()), [todo]);
 
   return (
@@ -72,10 +78,7 @@ export const HabitHeatmap = memo(function HabitHeatmap({
           {column.map((done, dayIndex) => (
             <View
               key={dayIndex}
-              style={[
-                styles.cell,
-                done ? { backgroundColor: color } : styles.cellEmpty,
-              ]}
+              style={[styles.cell, done ? { backgroundColor: color } : styles.cellEmpty]}
             />
           ))}
         </View>
@@ -84,20 +87,23 @@ export const HabitHeatmap = memo(function HabitHeatmap({
   );
 });
 
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: 'row',
-    gap: GAP,
-  },
-  column: {
-    gap: GAP,
-  },
-  cell: {
-    width: CELL,
-    height: CELL,
-    borderRadius: 2,
-  },
-  cellEmpty: {
-    backgroundColor: '#e8eaed',
-  },
-});
+function createStyles(scheme: 'light' | 'dark') {
+  return StyleSheet.create({
+    grid: {
+      flexDirection: 'row',
+      gap: GAP,
+    },
+    column: {
+      gap: GAP,
+    },
+    cell: {
+      width: CELL,
+      height: CELL,
+      borderRadius: 2,
+    },
+    // Distinct from page bg so unmarked days stay visible (GitHub-style).
+    cellEmpty: {
+      backgroundColor: scheme === 'dark' ? '#2e2e2e' : '#e2e8f0',
+    },
+  });
+}
