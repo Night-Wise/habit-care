@@ -34,6 +34,7 @@ import { GoogleLogo } from '@/components/google-logo';
 import { ScreenHeader } from '@/components/screen-header';
 import {
   FriendListItem,
+  getAuthDisplayName,
   listFriendships,
   removeFriendship,
   respondToFriendRequest,
@@ -169,7 +170,7 @@ export default function FriendsScreen() {
 
   const handleRemove = (item: FriendListItem, label: string) => {
 
-    Alert.alert(label, `Remove ${item.email}?`, [
+    Alert.alert(label, `Remove ${item.name}?`, [
 
       { text: 'Cancel', style: 'cancel' },
 
@@ -317,7 +318,7 @@ export default function FriendsScreen() {
 
             </View>
 
-            <Text style={styles.hint}>Signed in as {user.email}</Text>
+            <Text style={styles.hint}>Signed in as {getAuthDisplayName(user)}</Text>
 
           </View>
 
@@ -341,7 +342,7 @@ export default function FriendsScreen() {
 
                   <View style={styles.personInfo}>
 
-                    <Text style={styles.personEmail}>{item.email}</Text>
+                    <Text style={styles.personEmail}>{item.name}</Text>
 
                     <Text style={styles.personMeta}>Wants to be friends</Text>
 
@@ -381,7 +382,7 @@ export default function FriendsScreen() {
 
                   <View style={styles.personInfo}>
 
-                    <Text style={styles.personEmail}>{item.email}</Text>
+                    <Text style={styles.personEmail}>{item.name}</Text>
 
                     <Text style={styles.personMeta}>Request sent</Text>
 
@@ -427,7 +428,7 @@ export default function FriendsScreen() {
 
                         pathname: '/friend-progress',
 
-                        params: { userId: item.userId, email: item.email },
+                        params: { userId: item.userId, name: item.name, email: item.email },
 
                       })
 
@@ -437,7 +438,7 @@ export default function FriendsScreen() {
 
                   >
 
-                    <Text style={styles.personEmail}>{item.email}</Text>
+                    <Text style={styles.personEmail}>{item.name}</Text>
 
                     <Text style={styles.personMeta}>Tap to see daily and monthly progress</Text>
 

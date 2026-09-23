@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import type { Todo } from '@/context/todos-context';
-import { ensureUserProfile } from '@/lib/friends';
+import { ensureUserProfile, getAuthDisplayName } from '@/lib/friends';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -21,8 +21,6 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   syncTodos: (localTodos: Todo[], mode: SyncMode) => Promise<Todo[]>;
 }
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function getCodeFromUrl(url: string): string | null {
   const query = url.split('?')[1]?.split('#')[0];
@@ -69,6 +67,8 @@ function getAuthErrorMessage(message: string | undefined): string {
   return message || 'Unable to start Google sign-in.';
 }
 
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
@@ -83,7 +83,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(data.session);
       setIsLoading(false);
       if (data.session?.user) {
-        void ensureUserProfile(data.session.user.id, data.session.user.email);
+        void ensureUserProfile(
+          data.session.user.id,
+          data.session.user.email,
+          getAuthDisplayName(data.session.user)
+        );
       }
     });
 
@@ -91,7 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(nextSession);
       setIsLoading(false);
       if (nextSession?.user) {
-        void ensureUserProfile(nextSession.user.id, nextSession.user.email);
+        void ensureUserProfile(
+          nextSession.user.id,
+          nextSession.user.email,
+          getAuthDisplayName(nextSession.user)
+        );
       }
     });
 

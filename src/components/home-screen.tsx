@@ -205,6 +205,7 @@ export function HomeScreen({
   onBack,
   emptySubtitle,
   listBottomPadding,
+  hideHeader = false,
 }: {
   todosOverride?: Todo[];
   isLoadedOverride?: boolean;
@@ -214,6 +215,7 @@ export function HomeScreen({
   onBack?: () => void;
   emptySubtitle?: string;
   listBottomPadding?: number;
+  hideHeader?: boolean;
 } = {}) {
   const ownTodos = useTodos();
   const todos = todosOverride ?? ownTodos.todos;
@@ -349,63 +351,67 @@ export function HomeScreen({
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={hero.statusBarColor} />
+      {!hideHeader ? (
+        <>
+          <StatusBar barStyle="light-content" backgroundColor={hero.statusBarColor} />
 
-      {/* Hero */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Image
-          source={HERO_IMAGES[hero.period]}
-          style={styles.heroImage}
-          contentFit="cover"
-          transition={300}
-        />
-        <LinearGradient
-          colors={['rgba(15,23,42,0.18)', 'rgba(15,23,42,0.42)']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.heroOverlay}
-          pointerEvents="none"
-        />
+          {/* Hero */}
+          <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+            <Image
+              source={HERO_IMAGES[hero.period]}
+              style={styles.heroImage}
+              contentFit="cover"
+              transition={300}
+            />
+            <LinearGradient
+              colors={['rgba(15,23,42,0.18)', 'rgba(15,23,42,0.42)']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.heroOverlay}
+              pointerEvents="none"
+            />
 
-        <View style={styles.titleRow}>
-          <View style={styles.titleLeft}>
-            {onBack ? (
-              <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.8}>
-                <ChevronLeft size={22} color="#ffffff" />
-              </TouchableOpacity>
-            ) : null}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.greeting}>{hero.greeting}</Text>
-              <Text style={styles.headerTitle}>{headerTitle || 'Daily Tasks'}</Text>
-              <View style={styles.subtitleSlot}>
-                {headerSubtitle ? (
-                  <Text style={styles.headerSubtitle} numberOfLines={1}>
-                    {headerSubtitle}
-                  </Text>
-                ) : isViewingToday ? (
-                  <Text style={styles.headerSubtitle} numberOfLines={1}>
-                    "{dailyQuote.text}"
-                  </Text>
-                ) : (
-                  <TouchableOpacity style={styles.todayChip} onPress={goToToday} activeOpacity={0.85}>
-                    <Text style={styles.todayChipText}>Jump to Today</Text>
+            <View style={styles.titleRow}>
+              <View style={styles.titleLeft}>
+                {onBack ? (
+                  <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.8}>
+                    <ChevronLeft size={22} color="#ffffff" />
                   </TouchableOpacity>
-                )}
+                ) : null}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.greeting}>{hero.greeting}</Text>
+                  <Text style={styles.headerTitle}>{headerTitle || 'Daily Tasks'}</Text>
+                  <View style={styles.subtitleSlot}>
+                    {headerSubtitle ? (
+                      <Text style={styles.headerSubtitle} numberOfLines={1}>
+                        {headerSubtitle}
+                      </Text>
+                    ) : isViewingToday ? (
+                      <Text style={styles.headerSubtitle} numberOfLines={1}>
+                        "{dailyQuote.text}"
+                      </Text>
+                    ) : (
+                      <TouchableOpacity style={styles.todayChip} onPress={goToToday} activeOpacity={0.85}>
+                        <Text style={styles.todayChipText}>Jump to Today</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.headerButtonsRow}>
+                <TouchableOpacity
+                  style={styles.iconCircleBtn}
+                  onPress={() => setIsSearchOpen((v) => !v)}
+                  activeOpacity={0.8}
+                >
+                  <Search size={18} color="#ffffff" />
+                </TouchableOpacity>
               </View>
             </View>
           </View>
-
-          <View style={styles.headerButtonsRow}>
-            <TouchableOpacity
-              style={styles.iconCircleBtn}
-              onPress={() => setIsSearchOpen((v) => !v)}
-              activeOpacity={0.8}
-            >
-              <Search size={18} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+        </>
+      ) : null}
 
       <View style={styles.body}>
         {/* Floating date selector */}
