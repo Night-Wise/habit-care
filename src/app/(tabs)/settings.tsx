@@ -139,7 +139,7 @@ export default function SettingsScreen() {
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(fileUri, {
             mimeType: 'application/json',
-            dialogTitle: 'Export Habit Tracker Backup',
+            dialogTitle: 'Export HabitCare Backup',
             UTI: 'public.json',
           });
           showToast('✅ Backup file exported!');

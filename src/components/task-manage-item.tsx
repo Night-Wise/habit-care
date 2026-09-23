@@ -1,6 +1,6 @@
-import { Bell, Clock, Pencil, Trash2, Zap } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
-import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Bell, Clock, EllipsisVertical, Pencil, Trash2, Zap } from 'lucide-react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { getHabitTheme } from '@/components/habit-heatmap';
 import { HabitIcon } from '@/components/habit-icon';
@@ -38,7 +38,8 @@ export function TaskManageItem({
     [colors, fs, fontFamilyValue]
   );
   const prioLevel = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
-  const [scaleAnim] = useState(() => new Animated.Value(1));
+  const moreAnchorRef = useRef<View>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ top: number; left: number } | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const categoryStyle = useMemo(() => getCategoryStyle(category, colors), [category, colors]);
   const habitTheme = useMemo(() => getHabitTheme(name || icon), [name, icon]);
@@ -52,16 +53,34 @@ export function TaskManageItem({
     onDelete();
   };
 
-  const handlePressIn = () => {
-    Animated.timing(scaleAnim, { toValue: 0.98, duration: 60, useNativeDriver: true }).start();
-  };
-  const handlePressOut = () => {
-    Animated.timing(scaleAnim, { toValue: 1, duration: 60, useNativeDriver: true }).start();
+  const openMenu = () => {
+    moreAnchorRef.current?.measureInWindow((x, y, width, height) => {
+      const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+      const menuWidth = 168;
+      const menuHeight = 96;
+      const gap = 6;
+      let top = y + height + gap;
+      if (top + menuHeight > screenHeight - 12) {
+        top = Math.max(12, y - menuHeight - gap);
+      }
+      let left = x + width - menuWidth;
+      left = Math.max(12, Math.min(left, screenWidth - menuWidth - 12));
+      setMenuAnchor({ top, left });
+    });
   };
 
+  const closeMenu = () => setMenuAnchor(null);
+
   return (
-    <Animated.View style={[styles.taskCard, { transform: [{ scale: scaleAnim }] }]}>
+    <View style={styles.taskCard}>
       <View style={styles.taskRow}>
+        <TouchableOpacity
+          style={styles.itemPress}
+          onPress={onEdit}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${name}`}
+        >
         <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
           <HabitIcon icon={icon} size={20} color={habitTheme.solid} strokeWidth={2.2} />
         </View>
@@ -126,35 +145,63 @@ export function TaskManageItem({
             </View>
           </View>
         </View>
+        </TouchableOpacity>
 
         <View style={styles.taskActions}>
           <TouchableOpacity
             style={[styles.bellBtn, notificationEnabled && styles.bellBtnActive]}
             onPress={onToggleNotification}
             hitSlop={6}
+            accessibilityLabel={`${notificationEnabled ? 'Disable' : 'Enable'} reminder for ${name}`}
           >
             <Bell size={14} color={notificationEnabled ? colors.primary : colors.inactive} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.editBtn}
-            onPress={onEdit}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            hitSlop={8}
-          >
-            <Pencil size={14} color={colors.primary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.deleteBtn}
-            onPress={() => setIsDeleteConfirmOpen(true)}
-            hitSlop={8}
-          >
-            <Trash2 size={14} color={colors.danger} />
-          </TouchableOpacity>
+          <View ref={moreAnchorRef} collapsable={false}>
+            <TouchableOpacity
+              style={styles.moreBtn}
+              onPress={openMenu}
+              hitSlop={8}
+              accessibilityLabel={`More actions for ${name}`}
+            >
+              <EllipsisVertical size={16} color={colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
+
+      <Modal visible={menuAnchor !== null} animationType="fade" transparent onRequestClose={closeMenu}>
+        <View style={styles.menuBackdrop}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeMenu} />
+          {menuAnchor ? (
+            <View style={[styles.menuCard, { top: menuAnchor.top, left: menuAnchor.left }]}>
+              <TouchableOpacity
+                style={styles.menuOption}
+                onPress={() => {
+                  closeMenu();
+                  onEdit();
+                }}
+                accessibilityLabel={`Edit ${name}`}
+              >
+                <Pencil size={15} color={colors.primary} />
+                <Text style={styles.menuOptionText}>Edit</Text>
+              </TouchableOpacity>
+              <View style={styles.menuDivider} />
+              <TouchableOpacity
+                style={styles.menuOption}
+                onPress={() => {
+                  closeMenu();
+                  setIsDeleteConfirmOpen(true);
+                }}
+                accessibilityLabel={`Delete ${name}`}
+              >
+                <Trash2 size={15} color={colors.danger} />
+                <Text style={[styles.menuOptionText, styles.menuDeleteText]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
 
       <Modal visible={isDeleteConfirmOpen} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
@@ -187,7 +234,7 @@ export function TaskManageItem({
           </View>
         </View>
       </Modal>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -208,6 +255,12 @@ function createStyles(
       alignItems: 'center',
       paddingHorizontal: 14,
       paddingVertical: 13,
+    },
+    itemPress: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      minWidth: 0,
     },
     iconWrap: {
       width: 34,
@@ -340,21 +393,50 @@ function createStyles(
       borderWidth: 1,
       borderColor: colors.primaryMuted,
     },
-    editBtn: {
+    moreBtn: {
       width: 32,
       height: 32,
       borderRadius: 8,
-      backgroundColor: colors.primarySoft,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    deleteBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: colors.dangerSoft,
+    menuBackdrop: {
+      flex: 1,
+    },
+    menuCard: {
+      position: 'absolute',
+      width: 168,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 4,
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    menuOption: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      gap: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    menuOptionText: {
+      fontSize: fs(14),
+      fontWeight: '700',
+      color: colors.text,
+      fontFamily,
+    },
+    menuDeleteText: {
+      color: colors.danger,
+    },
+    menuDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+      marginHorizontal: 10,
     },
     modalOverlay: {
       flex: 1,

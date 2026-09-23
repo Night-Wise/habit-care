@@ -486,7 +486,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
 
   const exportData = (): string => {
     const payload = {
-      appName: 'Habit Tracker App',
+      appName: 'HabitCare',
       version: 1,
       exportedAt: new Date().toISOString(),
       todos,

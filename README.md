@@ -1,6 +1,6 @@
-# Welcome to your Expo app 👋
+# HabitCare
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+An [Expo](https://expo.dev) habit tracking app.
 
 ## Get started
 
@@ -138,7 +138,7 @@ cd android
 
 ### Copy Release APK to `build-apk`
 
-To copy the generated release APK from the Android build output folder to `habit-app\build-apk\app-release.apk`:
+To copy the generated release APK from the Android build output folder to `habitcare\build-apk\app-release.apk`:
 
 **PowerShell (Windows):**
 ```powershell
@@ -154,6 +154,53 @@ if not exist build-apk mkdir build-apk && copy android\app\build\outputs\apk\rel
 ```bash
 mkdir -p build-apk && cp android/app/build/outputs/apk/release/app-release.apk build-apk/app-release.apk
 ```
+
+## Building Android App Bundle (.aab)
+
+Use an `.aab` (Android App Bundle) when uploading HabitCare to the Google Play Console. Prerequisites are the same as for APK builds above. Make sure the `android` folder exists (`npx expo prebuild --platform android` if needed).
+
+### Build Release AAB with Gradle
+
+```bash
+cd android
+.\gradlew bundleRelease
+```
+*(On macOS/Linux, use `./gradlew bundleRelease`)*
+
+The release AAB is written to:
+
+```text
+android/app/build/outputs/bundle/release/app-release.aab
+```
+
+You can also use the fully qualified task name:
+
+```bash
+cd android
+.\gradlew app:bundleRelease
+```
+*(On macOS/Linux, use `./gradlew app:bundleRelease`)*
+
+### Copy Release AAB to `build-apk`
+
+**PowerShell (Windows):**
+```powershell
+mkdir -Force build-apk; Copy-Item android\app\build\outputs\bundle\release\app-release.aab build-apk\app-release.aab
+```
+
+**CMD (Windows):**
+```cmd
+if not exist build-apk mkdir build-apk && copy android\app\build\outputs\bundle\release\app-release.aab build-apk\app-release.aab
+```
+
+**Bash (macOS/Linux):**
+```bash
+mkdir -p build-apk && cp android/app/build/outputs/bundle/release/app-release.aab build-apk/app-release.aab
+```
+
+### Signing note
+
+A release `.aab` for Play Store upload must be signed with your upload keystore. Configure signing in `android/gradle.properties` and `android/app/build.gradle` before running `bundleRelease`. See [Expo: Create a release build locally](https://docs.expo.dev/guides/local-app-production/).
 
 ## Get a fresh project
 

@@ -34,7 +34,7 @@ it won't go to default values
 
 - Add dragable slider option -> Todo items. 
 
-- Pick the name for this Habit App 
+- Pick the name for this Habit App → HabitCare (done)
 
 - Create trees (3d) which represent a habit, a person (3d) which can view those tree, and tree can
 grow on based on number of days we have done that task 

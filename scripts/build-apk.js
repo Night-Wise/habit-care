@@ -8,7 +8,7 @@ const apkFilename = target === 'release' ? 'app-release.apk' : 'app-debug.apk';
 
 const rootDir = path.resolve(__dirname, '..');
 const androidDir = path.join(rootDir, 'android');
-const buildApkDir = path.join(rootDir, 'build-apk');
+const releaseDir = path.join(rootDir, 'release');
 const outputApkPath = path.join(
   androidDir,
   'app',
@@ -18,7 +18,7 @@ const outputApkPath = path.join(
   target,
   apkFilename
 );
-const destApkPath = path.join(buildApkDir, apkFilename);
+const destApkPath = path.join(releaseDir, apkFilename);
 
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const gradleCmd = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
@@ -36,8 +36,8 @@ if (!fs.existsSync(androidDir)) {
   throw new Error(`Android folder not found at ${androidDir}. Run "npx expo prebuild --platform android" first.`);
 }
 
-if (!fs.existsSync(buildApkDir)) {
-  fs.mkdirSync(buildApkDir, { recursive: true });
+if (!fs.existsSync(releaseDir)) {
+  fs.mkdirSync(releaseDir, { recursive: true });
 }
 
 console.log(`\n🛠 Running Gradle ${gradleTask}...\n`);
@@ -52,4 +52,4 @@ if (!fs.existsSync(outputApkPath)) {
 }
 
 fs.copyFileSync(outputApkPath, destApkPath);
-console.log(`\n✅ Built ${apkFilename} and saved to build-apk/${apkFilename}\n`);
+console.log(`\n✅ Built ${apkFilename} and saved to release/${apkFilename}\n`);
