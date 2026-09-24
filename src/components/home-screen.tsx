@@ -28,8 +28,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
 import { TodoItem } from '@/components/todo-item';
+import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
 import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-context';
+import { getAuthDisplayName } from '@/lib/friends';
 import type { ThemeColors } from '@/theme/colors';
 import { getDailyQuote } from '@/utils/daily-quote';
 
@@ -222,6 +224,7 @@ export function HomeScreen({
   const isLoaded = isLoadedOverride ?? ownTodos.isLoaded;
   const toggleTodo = ownTodos.toggleTodo;
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { colors, fs, fontFamilyValue } = useTheme();
   const styles = useMemo(
     () => createStyles(colors, fs, fontFamilyValue),
@@ -348,6 +351,12 @@ export function HomeScreen({
   const dailyQuote = useMemo(() => getDailyQuote(new Date()), []);
 
   const hero = getHeroPeriod();
+  const userFirstName = user
+    ? getAuthDisplayName(user).split(/\s+/).filter(Boolean)[0]
+    : null;
+  const greetingText = userFirstName
+    ? `${hero.greeting}, ${userFirstName}`
+    : hero.greeting;
 
   return (
     <View style={styles.root}>
@@ -379,7 +388,9 @@ export function HomeScreen({
                   </TouchableOpacity>
                 ) : null}
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.greeting}>{hero.greeting}</Text>
+                  <Text style={styles.greeting} numberOfLines={1}>
+                    {greetingText}
+                  </Text>
                   <Text style={styles.headerTitle}>{headerTitle || 'Daily Tasks'}</Text>
                   <View style={styles.subtitleSlot}>
                     {headerSubtitle ? (
