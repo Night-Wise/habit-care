@@ -136,23 +136,48 @@ cd android
 ```
 *(On macOS/Linux, use `./gradlew assembleRelease`)*
 
-### Copy Release APK to `build-apk`
+### Copy Debug APK, Release APK, and Release Bundle
 
-To copy the generated release APK from the Android build output folder to `habitcare\build-apk\app-release.apk`:
+After building, copy the debug APK, release APK, and release AAB from the Android output folders into both `build-apk` and `release`:
+
+| Artifact | Source |
+| --- | --- |
+| Debug APK | `android/app/build/outputs/apk/debug/app-debug.apk` |
+| Release APK | `android/app/build/outputs/apk/release/app-release.apk` |
+| Release AAB | `android/app/build/outputs/bundle/release/app-release.aab` |
 
 **PowerShell (Windows):**
 ```powershell
-mkdir -Force build-apk; Copy-Item android\app\build\outputs\apk\release\app-release.apk build-apk\app-release.apk
+mkdir -Force build-apk, release
+Copy-Item android\app\build\outputs\apk\debug\app-debug.apk build-apk\app-debug.apk
+Copy-Item android\app\build\outputs\apk\debug\app-debug.apk release\app-debug.apk
+Copy-Item android\app\build\outputs\apk\release\app-release.apk build-apk\app-release.apk
+Copy-Item android\app\build\outputs\apk\release\app-release.apk release\app-release.apk
+Copy-Item android\app\build\outputs\bundle\release\app-release.aab build-apk\app-release.aab
+Copy-Item android\app\build\outputs\bundle\release\app-release.aab release\app-release.aab
 ```
 
 **CMD (Windows):**
 ```cmd
-if not exist build-apk mkdir build-apk && copy android\app\build\outputs\apk\release\app-release.apk build-apk\app-release.apk
+if not exist build-apk mkdir build-apk
+if not exist release mkdir release
+copy android\app\build\outputs\apk\debug\app-debug.apk build-apk\app-debug.apk
+copy android\app\build\outputs\apk\debug\app-debug.apk release\app-debug.apk
+copy android\app\build\outputs\apk\release\app-release.apk build-apk\app-release.apk
+copy android\app\build\outputs\apk\release\app-release.apk release\app-release.apk
+copy android\app\build\outputs\bundle\release\app-release.aab build-apk\app-release.aab
+copy android\app\build\outputs\bundle\release\app-release.aab release\app-release.aab
 ```
 
 **Bash (macOS/Linux):**
 ```bash
-mkdir -p build-apk && cp android/app/build/outputs/apk/release/app-release.apk build-apk/app-release.apk
+mkdir -p build-apk release
+cp android/app/build/outputs/apk/debug/app-debug.apk build-apk/app-debug.apk
+cp android/app/build/outputs/apk/debug/app-debug.apk release/app-debug.apk
+cp android/app/build/outputs/apk/release/app-release.apk build-apk/app-release.apk
+cp android/app/build/outputs/apk/release/app-release.apk release/app-release.apk
+cp android/app/build/outputs/bundle/release/app-release.aab build-apk/app-release.aab
+cp android/app/build/outputs/bundle/release/app-release.aab release/app-release.aab
 ```
 
 ## Building Android App Bundle (.aab)
@@ -181,26 +206,63 @@ cd android
 ```
 *(On macOS/Linux, use `./gradlew app:bundleRelease`)*
 
-### Copy Release AAB to `build-apk`
+After `bundleRelease`, use the [Copy Debug APK, Release APK, and Release Bundle](#copy-debug-apk-release-apk-and-release-bundle) commands above to copy `app-release.aab` into `build-apk` and `release`.
 
-**PowerShell (Windows):**
-```powershell
-mkdir -Force build-apk; Copy-Item android\app\build\outputs\bundle\release\app-release.aab build-apk\app-release.aab
-```
+### Signing for Play Store
 
-**CMD (Windows):**
-```cmd
-if not exist build-apk mkdir build-apk && copy android\app\build\outputs\bundle\release\app-release.aab build-apk\app-release.aab
-```
+Play Console rejects bundles signed with the debug keystore (`CN=Android Debug`). Create an upload keystore once, keep it private, and reuse it for every future release.
 
-**Bash (macOS/Linux):**
+#### 1. Create an upload keystore
+
+From the project root (Windows; run from your JDK `bin` folder if `keytool` is not on PATH):
+
 ```bash
-mkdir -p build-apk && cp android/app/build/outputs/bundle/release/app-release.aab build-apk/app-release.aab
+keytool -genkeypair -v -storetype PKCS12 -keystore my-upload-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-### Signing note
+Move the file into `android/app/`:
 
-A release `.aab` for Play Store upload must be signed with your upload keystore. Configure signing in `android/gradle.properties` and `android/app/build.gradle` before running `bundleRelease`. See [Expo: Create a release build locally](https://docs.expo.dev/guides/local-app-production/).
+```bash
+mv my-upload-key.keystore android/app/
+```
+
+Back up the keystore file and passwords somewhere safe. If you lose them, you cannot update the same Play Store app.
+
+#### 2. Add Gradle signing variables (do not commit these)
+
+Create or edit `~/.gradle/gradle.properties` (on Windows: `C:\Users\<you>\.gradle\gradle.properties`) and add:
+
+```properties
+MYAPP_UPLOAD_STORE_FILE=my-upload-key.keystore
+MYAPP_UPLOAD_KEY_ALIAS=my-key-alias
+MYAPP_UPLOAD_STORE_PASSWORD=*****
+MYAPP_UPLOAD_KEY_PASSWORD=*****
+```
+
+Replace `*****` with the passwords you chose. Putting these in `~/.gradle/gradle.properties` keeps secrets out of the repo. Do not put them in `android/gradle.properties` if that file is committed.
+
+#### 3. Confirm release signing is wired up
+
+`android/app/build.gradle` must use `signingConfigs.release` when `MYAPP_UPLOAD_STORE_FILE` is set. This repo includes `./plugins/withAndroidReleaseSigning.js` so that survives `npx expo prebuild`. If you regenerate native projects, run prebuild again before building.
+
+#### 4. Rebuild and verify the certificate
+
+```bash
+cd android
+./gradlew clean app:bundleRelease
+```
+
+*(On Windows: `.\gradlew clean app:bundleRelease`)*
+
+Copy the new AAB into `release/` (see copy commands above), then confirm it is **not** debug-signed:
+
+```bash
+keytool -printcert -jarfile release/app-release.aab
+```
+
+The owner must **not** be `CN=Android Debug`. Upload that AAB to Play Console.
+
+See also [Expo: Create a release build locally](https://docs.expo.dev/guides/local-app-production/).
 
 ## Get a fresh project
 

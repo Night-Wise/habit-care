@@ -1,0 +1,61 @@
+const { withAppBuildGradle } = require('expo/config-plugins');
+
+/**
+ * Ensures release builds use an upload keystore (MYAPP_UPLOAD_*) instead of the
+ * debug keystore, so Play Store accepts the AAB. Survives `npx expo prebuild`.
+ */
+function withAndroidReleaseSigning(config) {
+  return withAppBuildGradle(config, (config) => {
+    let contents = config.modResults.contents;
+
+    if (contents.includes('MYAPP_UPLOAD_STORE_FILE')) {
+      return config;
+    }
+
+    if (!contents.includes('signingConfigs.debug')) {
+      throw new Error(
+        'withAndroidReleaseSigning: expected debug signingConfig in android/app/build.gradle'
+      );
+    }
+
+    contents = contents.replace(
+      /signingConfigs\s*\{\s*debug\s*\{[\s\S]*?\n\s*\}/,
+      (match) => `${match}
+        release {
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            }
+        }`
+    );
+
+    contents = contents.replace(
+      /release\s*\{\s*\/\/ Caution! In production[\s\S]*?signingConfig signingConfigs\.debug/,
+      `release {
+            // Play Store rejects debug-signed bundles. Set MYAPP_UPLOAD_* in
+            // ~/.gradle/gradle.properties (see README) before building release.
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                signingConfig signingConfigs.release
+            } else {
+                throw new GradleException(
+                    "Release builds require an upload keystore. Set MYAPP_UPLOAD_STORE_FILE, " +
+                    "MYAPP_UPLOAD_KEY_ALIAS, MYAPP_UPLOAD_STORE_PASSWORD, and MYAPP_UPLOAD_KEY_PASSWORD " +
+                    "in ~/.gradle/gradle.properties. See README Signing for Play Store."
+                )
+            }`
+    );
+
+    if (!contents.includes('MYAPP_UPLOAD_STORE_FILE')) {
+      throw new Error(
+        'withAndroidReleaseSigning: failed to patch android/app/build.gradle for release signing'
+      );
+    }
+
+    config.modResults.contents = contents;
+    return config;
+  });
+}
+
+module.exports = withAndroidReleaseSigning;
