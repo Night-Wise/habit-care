@@ -51,6 +51,7 @@ grow on based on number of days we have done that task
 
 - Insted of emojis as icon add a custom icon which have as many as 100 or 200 icon which can be searched to pick. 
 
+- Instead of Priority as P1, P2 , etc. keep it as Low, Medium, High. And default priority should be "None"
 
 Features which are done: 
 

@@ -1,7 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Session, User } from '@supabase/supabase-js';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import type { Todo } from '@/context/todos-context';
@@ -10,16 +11,22 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
-type SyncMode = 'merge' | 'replace' | 'cloud';
+export type SyncMode = 'merge' | 'replace' | 'cloud';
+
+const AUTO_SYNC_KEY = '@habit_app_auto_sync';
+const LAST_SYNCED_KEY = '@habit_app_last_synced_at';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isConfigured: boolean;
   authError: string | null;
+  autoSyncEnabled: boolean;
+  lastSyncedAt: string | null;
+  setAutoSyncEnabled: (enabled: boolean) => void;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  syncTodos: (localTodos: Todo[], mode: SyncMode) => Promise<Todo[]>;
+  syncTodos: (localTodos: Todo[], mode?: SyncMode) => Promise<Todo[]>;
 }
 
 function getCodeFromUrl(url: string): string | null {
@@ -38,13 +45,20 @@ function getRedirectUri(): string {
   });
 }
 
-function mergeTodos(localTodos: Todo[], cloudTodos: Todo[]): Todo[] {
+export function mergeTodos(localTodos: Todo[], cloudTodos: Todo[]): Todo[] {
   const merged = new Map<string, Todo>();
   [...cloudTodos, ...localTodos].forEach((todo) => {
     const existing = merged.get(todo.id);
-    merged.set(todo.id, existing
-      ? { ...existing, ...todo, completions: { ...(existing.completions || {}), ...(todo.completions || {}) } }
-      : todo);
+    merged.set(
+      todo.id,
+      existing
+        ? {
+            ...existing,
+            ...todo,
+            completions: { ...(existing.completions || {}), ...(todo.completions || {}) },
+          }
+        : todo
+    );
   });
   return Array.from(merged.values());
 }
@@ -73,6 +87,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [autoSyncEnabled, setAutoSyncEnabledState] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [autoSyncRaw, lastSyncedRaw] = await Promise.all([
+          AsyncStorage.getItem(AUTO_SYNC_KEY),
+          AsyncStorage.getItem(LAST_SYNCED_KEY),
+        ]);
+        if (cancelled) return;
+        if (autoSyncRaw === 'false') setAutoSyncEnabledState(false);
+        if (autoSyncRaw === 'true') setAutoSyncEnabledState(true);
+        if (lastSyncedRaw) setLastSyncedAt(lastSyncedRaw);
+      } catch {
+        // keep defaults
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -106,6 +143,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  const setAutoSyncEnabled = useCallback((enabled: boolean) => {
+    setAutoSyncEnabledState(enabled);
+    void AsyncStorage.setItem(AUTO_SYNC_KEY, enabled ? 'true' : 'false').catch(() => {});
+  }, []);
+
+  const markSyncedNow = useCallback(async () => {
+    const iso = new Date().toISOString();
+    setLastSyncedAt(iso);
+    await AsyncStorage.setItem(LAST_SYNCED_KEY, iso).catch(() => {});
+  }, []);
+
+  const clearSyncMeta = useCallback(async () => {
+    setLastSyncedAt(null);
+    await AsyncStorage.removeItem(LAST_SYNCED_KEY).catch(() => {});
+  }, []);
+
   const signInWithGoogle = async () => {
     setAuthError(null);
     if (!isSupabaseConfigured) {
@@ -114,7 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const redirectUri = getRedirectUri();
-    console.log('[Auth] redirectUri =>', redirectUri); // 👈 check Metro logs for this
+    console.log('[Auth] redirectUri =>', redirectUri);
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -130,7 +183,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 👇 Decode the redirect_uri Supabase embedded in the OAuth URL
     const oauthUrl = new URL(data.url);
     console.log('[Auth] Supabase OAuth URL redirect_to param =>', oauthUrl.searchParams.get('redirect_to'));
 
@@ -149,10 +201,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     setAuthError(null);
     const { error } = await supabase.auth.signOut();
-    if (error) setAuthError(error.message);
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+    await clearSyncMeta();
   };
 
-  const syncTodos = async (localTodos: Todo[], mode: SyncMode) => {
+  const syncTodos = async (localTodos: Todo[], mode: SyncMode = 'merge') => {
     console.log('[Cloud Sync] Preparing Supabase sync', {
       mode,
       localTodoCount: localTodos.length,
@@ -192,11 +248,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const cloudTodos = Array.isArray(data?.todos) ? (data.todos as Todo[]) : [];
     console.log('[Cloud Sync] Supabase fetch succeeded', { cloudTodoCount: cloudTodos.length });
-    const nextTodos = mode === 'cloud'
-      ? cloudTodos
-      : mode === 'replace'
-        ? localTodos
-        : mergeTodos(localTodos, cloudTodos);
+    const nextTodos =
+      mode === 'cloud'
+        ? cloudTodos
+        : mode === 'replace'
+          ? localTodos
+          : mergeTodos(localTodos, cloudTodos);
 
     console.log('[Cloud Sync] Saving habit_data row', { nextTodoCount: nextTodos.length });
     const { error: saveError } = await supabase.from('habit_data').upsert({
@@ -214,6 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw saveError;
     }
     console.log('[Cloud Sync] Supabase save succeeded');
+    await markSyncedNow();
     return nextTodos;
   };
 
@@ -224,6 +282,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isConfigured: isSupabaseConfigured,
         authError,
+        autoSyncEnabled,
+        lastSyncedAt,
+        setAutoSyncEnabled,
         signInWithGoogle,
         signOut,
         syncTodos,
@@ -238,4 +299,21 @@ export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used inside AuthProvider');
   return context;
+}
+
+export function formatLastSyncedAt(iso: string | null): string {
+  if (!iso) return 'Never synced';
+  try {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return 'Never synced';
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  } catch {
+    return 'Never synced';
+  }
 }

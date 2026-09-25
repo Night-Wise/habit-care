@@ -2,14 +2,15 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, BarChart3, Bell, BellRing, ChevronDown, ChevronUp, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, BarChart3, Bell, BellRing, ChevronDown, ChevronUp, Cloud, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -17,7 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAuth } from '@/context/auth-context';
+import { formatLastSyncedAt, useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
 import { useTodos } from '@/context/todos-context';
 import { GoogleLogo } from '@/components/google-logo';
@@ -47,7 +48,17 @@ const FONT_SCALES: FontScaleId[] = ['small', 'default', 'large'];
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { todos, exportData, importData, clearAllData, replaceTodos } = useTodos();
-  const { user, isLoading, isConfigured, authError, signInWithGoogle, signOut, syncTodos } = useAuth();
+  const {
+    user,
+    isConfigured,
+    authError,
+    autoSyncEnabled,
+    lastSyncedAt,
+    setAutoSyncEnabled,
+    signInWithGoogle,
+    signOut,
+    syncTodos,
+  } = useAuth();
   const {
     colors,
     fs,
@@ -69,8 +80,6 @@ export default function SettingsScreen() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [appearanceExpanded, setAppearanceExpanded] = useState(false);
-  const authWasInitialized = useRef(false);
-  const previousUserId = useRef<string | null>(null);
 
   // Modals state
   const [isViewJsonOpen, setIsViewJsonOpen] = useState(false);
@@ -81,32 +90,11 @@ export default function SettingsScreen() {
   const [pendingImportJson, setPendingImportJson] = useState<string | null>(null);
   const [importSummaryCount, setImportSummaryCount] = useState<number>(0);
   const [isConfirmImportOpen, setIsConfirmImportOpen] = useState(false);
-  const [isSyncChoiceOpen, setIsSyncChoiceOpen] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (!authWasInitialized.current) {
-      authWasInitialized.current = true;
-      previousUserId.current = user?.id || null;
-      return;
-    }
-
-    const nextUserId = user?.id || null;
-    if (nextUserId === previousUserId.current) return;
-
-    if (nextUserId) {
-      Alert.alert('Sign-in successful', `Signed in as ${user?.email || 'your Google account'}.`);
-    } else {
-      Alert.alert('Signed out', 'You have been signed out successfully.');
-    }
-    previousUserId.current = nextUserId;
-  }, [isLoading, user]);
 
   // Calculate statistics
   const totalHabits = todos.length;
@@ -302,18 +290,21 @@ export default function SettingsScreen() {
     );
   };
 
-  const runCloudSync = async (mode: 'merge' | 'replace' | 'cloud') => {
-    console.log('[Cloud Sync] Starting sync', { mode, localTodoCount: todos.length });
+  const handleCloudSync = async () => {
+    console.log('[Cloud Sync] Sync Now pressed', {
+      isConfigured,
+      userId: user?.id,
+      localTodoCount: todos.length,
+    });
     setIsSyncing(true);
-    showToast('Syncing habits with Supabase...');
+    showToast('Merging habits with cloud...');
     try {
-      const syncedTodos = await syncTodos(todos, mode);
+      const syncedTodos = await syncTodos(todos, 'merge');
       replaceTodos(syncedTodos);
-      console.log('[Cloud Sync] Sync completed successfully', {
-        mode,
-        syncedTodoCount: syncedTodos.length,
-      });
-      Alert.alert('Cloud sync successful', `${syncedTodos.length} habit${syncedTodos.length === 1 ? '' : 's'} synced successfully.`);
+      Alert.alert(
+        'Cloud sync successful',
+        `${syncedTodos.length} habit${syncedTodos.length === 1 ? '' : 's'} synced successfully.`
+      );
     } catch (error: any) {
       console.error('[Cloud Sync] Sync failed', error);
       Alert.alert('Cloud sync failed', error?.message || 'Unable to sync your habits.');
@@ -322,19 +313,27 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleCloudSync = () => {
-    console.log('[Cloud Sync] Sync Habits pressed', {
-      isConfigured,
-      userId: user?.id,
-      localTodoCount: todos.length,
-    });
-    showToast('Choose how to sync your habits.');
-    setIsSyncChoiceOpen(true);
-  };
+  const handleSignOut = () => {
+    const message =
+      'This will clear all local habit data and reset preferences on this device. Your cloud backup stays intact.';
 
-  const chooseSyncMode = (mode: 'merge' | 'replace' | 'cloud') => {
-    setIsSyncChoiceOpen(false);
-    void runCloudSync(mode);
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Sign out?\n\n${message}`)) {
+        void signOut();
+      }
+      return;
+    }
+
+    Alert.alert('Sign out?', message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out & Clear',
+        style: 'destructive',
+        onPress: () => {
+          void signOut();
+        },
+      },
+    ]);
   };
 
   return (
@@ -513,16 +512,46 @@ export default function SettingsScreen() {
               <Text style={styles.btnPrimaryText}>Continue with Google</Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.btnRow}>
-              <TouchableOpacity style={[styles.btn, styles.btnInRow, styles.btnPrimary, isSyncing && { opacity: 0.55 }]} onPress={handleCloudSync} disabled={isSyncing} activeOpacity={0.8}>
-                <Cloud size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.btnPrimaryText}>{isSyncing ? 'Syncing...' : 'Sync Habits'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.btn, styles.btnInRow, styles.btnSecondary]} onPress={signOut} activeOpacity={0.8}>
-                <LogOut size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                <Text style={styles.btnSecondaryText}>Sign Out</Text>
-              </TouchableOpacity>
-            </View>
+            <>
+              <View style={styles.syncMetaRow}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.syncMetaTitle}>Auto sync</Text>
+                  <Text style={styles.syncMetaSub}>
+                    Merge with cloud when the app opens or returns to the foreground.
+                  </Text>
+                </View>
+                <Switch
+                  value={autoSyncEnabled}
+                  onValueChange={setAutoSyncEnabled}
+                  trackColor={{ false: colors.border, true: colors.primarySoft }}
+                  thumbColor={autoSyncEnabled ? colors.primary : colors.inactive}
+                />
+              </View>
+
+              <Text style={styles.lastSyncedText}>
+                Last synced: {formatLastSyncedAt(lastSyncedAt)}
+              </Text>
+
+              <View style={styles.btnRow}>
+                <TouchableOpacity
+                  style={[styles.btn, styles.btnInRow, styles.btnPrimary, isSyncing && { opacity: 0.55 }]}
+                  onPress={handleCloudSync}
+                  disabled={isSyncing}
+                  activeOpacity={0.8}
+                >
+                  <Cloud size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.btnPrimaryText}>{isSyncing ? 'Syncing...' : 'Sync Now'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btn, styles.btnInRow, styles.btnSecondary]}
+                  onPress={handleSignOut}
+                  activeOpacity={0.8}
+                >
+                  <LogOut size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                  <Text style={styles.btnSecondaryText}>Sign Out</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
           {!isConfigured && <Text style={styles.setupHint}>Add Supabase values from SUPABASE_SETUP.md to enable sign-in.</Text>}
           {authError && <Text style={styles.errorText}>{authError}</Text>}
@@ -817,77 +846,6 @@ export default function SettingsScreen() {
         </View>
       </Modal>
 
-      {/* MODAL 4: Cloud Sync Choice */}
-      <Modal visible={isSyncChoiceOpen} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: 500 }]}>
-            <View style={styles.confirmIconWrap}>
-              <Cloud size={28} color={colors.primary} />
-            </View>
-            <Text style={styles.confirmTitle}>Choose cloud sync</Text>
-            <Text style={styles.confirmSub}>
-              What should happen to your local habits?
-            </Text>
-
-            <View style={styles.confirmChoiceGroup}>
-              <TouchableOpacity
-                style={styles.choiceBtn}
-                onPress={() => chooseSyncMode('merge')}
-                activeOpacity={0.8}
-              >
-                <View style={styles.choiceBtnIconWrap}>
-                  <GitMerge size={20} color={colors.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.choiceBtnTitle}>Merge local + cloud</Text>
-                  <Text style={styles.choiceBtnSub}>
-                    Keep local habits and add or update habits from the cloud.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.choiceBtn}
-                onPress={() => chooseSyncMode('replace')}
-                activeOpacity={0.8}
-              >
-                <View style={styles.choiceBtnIconWrap}>
-                  <CloudUpload size={20} color={colors.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.choiceBtnTitle}>Replace cloud with local</Text>
-                  <Text style={styles.choiceBtnSub}>
-                    Upload this device&apos;s habits and overwrite cloud data.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.choiceBtn}
-                onPress={() => chooseSyncMode('cloud')}
-                activeOpacity={0.8}
-              >
-                <View style={styles.choiceBtnIconWrap}>
-                  <CloudDownload size={20} color={colors.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.choiceBtnTitle}>Use cloud only</Text>
-                  <Text style={styles.choiceBtnSub}>
-                    Replace this device&apos;s habits with the cloud data.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={styles.cancelChoiceBtn}
-              onPress={() => setIsSyncChoiceOpen(false)}
-            >
-              <Text style={styles.cancelChoiceText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1094,6 +1052,30 @@ function createStyles(
     fontSize: 12,
     marginTop: 10,
     lineHeight: 17,
+  },
+  syncMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  syncMetaTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    fontFamily,
+  },
+  syncMetaSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontFamily,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  lastSyncedText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontFamily,
+    marginBottom: 12,
   },
   btnRow: {
     flexDirection: 'row',

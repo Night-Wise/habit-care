@@ -40,6 +40,7 @@ interface ThemeContextValue extends AppearancePrefs {
   setAccent: (accent: AccentColor) => void;
   setFontScale: (scale: FontScaleId) => void;
   setFontFamily: (family: FontFamilyId) => void;
+  resetAppearance: () => void;
   isReady: boolean;
 }
 
@@ -129,6 +130,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [updatePrefs]
   );
 
+  const resetAppearance = useCallback(() => {
+    setPrefs(DEFAULT_PREFS);
+    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_PREFS)).catch(() => {});
+  }, []);
+
   const resolvedScheme: 'light' | 'dark' =
     prefs.themeMode === 'system'
       ? systemScheme === 'dark'
@@ -162,6 +168,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setAccent,
       setFontScale,
       setFontFamily,
+      resetAppearance,
       isReady,
     }),
     [
@@ -175,6 +182,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setAccent,
       setFontScale,
       setFontFamily,
+      resetAppearance,
       isReady,
     ]
   );

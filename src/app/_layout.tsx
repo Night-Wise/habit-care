@@ -1,6 +1,7 @@
 import { AuthProvider } from '@/context/auth-context';
 import { ThemeProvider } from '@/context/theme-context';
 import { TodosProvider } from '@/context/todos-context';
+import { CloudSyncBridge } from '@/components/cloud-sync-bridge';
 import '@/utils/notifications';
 import { Stack } from 'expo-router';
 
@@ -13,6 +14,7 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <TodosProvider>
+          <CloudSyncBridge />
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen
@@ -29,4 +31,3 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
-
