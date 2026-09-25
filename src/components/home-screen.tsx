@@ -34,6 +34,7 @@ import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-
 import { getAuthDisplayName } from '@/lib/friends';
 import type { ThemeColors } from '@/theme/colors';
 import { getDailyQuote } from '@/utils/daily-quote';
+import { isTodoDueOnDate } from '@/utils/todo-schedule';
 
 const HERO_IMAGES = {
   morning: require('../../assets/home-page-hero/morning.png'),
@@ -289,8 +290,13 @@ export function HomeScreen({
   const yearStr = weekDays[6].getFullYear();
   const weekMonthYear = `${weekDays[0].toLocaleDateString('en-US', { month: 'long' })} ${yearStr}`;
 
-  const done = todos.filter((t) => isTodoCompleted(t, selectedDateKey)).length;
-  const total = todos.length;
+  const dueTodos = useMemo(
+    () => todos.filter((t) => isTodoDueOnDate(t, selectedDateKey)),
+    [todos, selectedDateKey]
+  );
+
+  const done = dueTodos.filter((t) => isTodoCompleted(t, selectedDateKey)).length;
+  const total = dueTodos.length;
   const progressPct = total === 0 ? 0 : done / total;
 
   const progressLabel = isViewingToday
@@ -301,16 +307,16 @@ export function HomeScreen({
 
   const categories = useMemo(() => {
     const set = new Set<string>();
-    todos.forEach((t) => {
+    dueTodos.forEach((t) => {
       const c = t.category?.trim();
       if (c) set.add(c);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [todos]);
+  }, [dueTodos]);
 
   const sortedTodos = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const filtered = todos.filter((t) => {
+    const filtered = dueTodos.filter((t) => {
       if (categoryFilter) {
         const cat = t.category?.trim() || '';
         if (cat.toLowerCase() !== categoryFilter.toLowerCase()) return false;
@@ -339,7 +345,7 @@ export function HomeScreen({
       const pB = typeof b.priority === 'number' ? b.priority : 0;
       return pB - pA;
     });
-  }, [todos, sortBy, categoryFilter, searchQuery]);
+  }, [dueTodos, sortBy, categoryFilter, searchQuery]);
 
   const encouragement =
     total > 0 && done === total
@@ -594,9 +600,13 @@ export function HomeScreen({
             <Text style={styles.emptyText}>Loading...</Text>
           ) : sortedTodos.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No tasks yet</Text>
+              <Text style={styles.emptyText}>
+                {todos.length > 0 ? 'Nothing scheduled' : 'No tasks yet'}
+              </Text>
               <Text style={styles.emptySubtext}>
-                {emptySubtitle || 'Tap + to add your first task'}
+                {todos.length > 0
+                  ? 'No habits are due on this day based on their repeat settings.'
+                  : emptySubtitle || 'Tap + to add your first task'}
               </Text>
             </View>
           ) : (

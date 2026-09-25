@@ -2,6 +2,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowRight,
   Bell,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   FilePen,
   Palette,
@@ -29,9 +32,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HabitIcon } from '@/components/habit-icon';
 import { IconPickerModal } from '@/components/icon-picker-modal';
 import { useTheme } from '@/context/theme-context';
-import { useTodos } from '@/context/todos-context';
+import { formatDateKey, parseDateKey, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
 import { DEFAULT_HABIT_ICON, POPULAR_HABIT_ICONS } from '@/utils/habit-icons';
+import {
+  SCHEDULE_INTERVAL_DEFAULT,
+  SCHEDULE_INTERVAL_MAX,
+  SCHEDULE_INTERVAL_MIN,
+  WEEKDAY_OPTIONS,
+  clampScheduleInterval,
+  normalizeScheduleFields,
+  type TodoScheduleType,
+} from '@/utils/todo-schedule';
 
 const TIME_PRESETS = [15, 30, 45, 60];
 const PRIORITY_PRESETS = [0, 1, 2, 3, 5];
@@ -80,6 +92,25 @@ function parseScheduleParts(value: string): { hour: string; minute: string; peri
   };
 }
 
+function formatStartDateLabel(dateKey: string) {
+  try {
+    return parseDateKey(dateKey).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return dateKey;
+  }
+}
+
+const REPEAT_OPTIONS: { type: TodoScheduleType; label: string; hint: string }[] = [
+  { type: 'everyday', label: 'Everyday', hint: 'Show every day' },
+  { type: 'interval', label: 'Every X days', hint: 'Repeat on a cadence' },
+  { type: 'weekdays', label: 'Specific days', hint: 'Pick weekdays' },
+];
+
 export default function AddOrEditTaskPage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -107,6 +138,7 @@ export default function AddOrEditTaskPage() {
   const initialIsCustomCategory =
     initialCategory.length > 0 &&
     !CATEGORY_PRESETS.some((preset) => preset.toLowerCase() === initialCategory.toLowerCase());
+  const initialRepeat = normalizeScheduleFields(todo ?? {});
 
   const [name, setName] = useState(todo?.name ?? '');
   const [time, setTime] = useState(String(todo?.timeMinutes ?? 30));
@@ -121,12 +153,23 @@ export default function AddOrEditTaskPage() {
     todo?.notificationEnabled ?? true
   );
   const [priority, setPriority] = useState(String(todo?.priority ?? 0));
+  const [repeatType, setRepeatType] = useState<TodoScheduleType>(initialRepeat.scheduleType);
+  const [intervalDays, setIntervalDays] = useState(
+    String(initialRepeat.scheduleIntervalDays ?? SCHEDULE_INTERVAL_DEFAULT)
+  );
+  const [startDateKey, setStartDateKey] = useState(
+    initialRepeat.scheduleStartDate ?? formatDateKey(new Date())
+  );
+  const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>(
+    initialRepeat.scheduleWeekdays ?? [1, 2, 3, 4, 5]
+  );
   const [hasHydratedEdit, setHasHydratedEdit] = useState(!isEdit);
 
   useEffect(() => {
     if (!isEdit || !todo || hasHydratedEdit) return;
     const schedule = parseScheduleParts(todo.notificationTime ?? '08:00 AM');
     const nextCategory = todo.category ?? '';
+    const nextRepeat = normalizeScheduleFields(todo);
     setName(todo.name);
     setTime(String(todo.timeMinutes ?? 30));
     setSelectedIcon(todo.icon ?? null);
@@ -140,6 +183,10 @@ export default function AddOrEditTaskPage() {
     setSchedulePeriod(schedule.period);
     setNotificationEnabled(todo.notificationEnabled ?? true);
     setPriority(String(todo.priority ?? 0));
+    setRepeatType(nextRepeat.scheduleType);
+    setIntervalDays(String(nextRepeat.scheduleIntervalDays ?? SCHEDULE_INTERVAL_DEFAULT));
+    setStartDateKey(nextRepeat.scheduleStartDate ?? formatDateKey(new Date()));
+    setSelectedWeekdays(nextRepeat.scheduleWeekdays ?? [1, 2, 3, 4, 5]);
     setHasHydratedEdit(true);
   }, [isEdit, todo, hasHydratedEdit]);
 
@@ -202,10 +249,46 @@ export default function AddOrEditTaskPage() {
     setPriority(value.replace(/\D/g, '').slice(0, 4));
   };
 
+  const handleIntervalChange = (value: string) => {
+    setIntervalDays(value.replace(/\D/g, '').slice(0, 3));
+  };
+
+  const handleIntervalBlur = () => {
+    setIntervalDays(String(clampScheduleInterval(intervalDays)));
+  };
+
+  const shiftStartDate = (deltaDays: number) => {
+    const next = parseDateKey(startDateKey);
+    next.setDate(next.getDate() + deltaDays);
+    setStartDateKey(formatDateKey(next));
+  };
+
+  const toggleWeekday = (day: number) => {
+    setSelectedWeekdays((current) => {
+      if (current.includes(day)) {
+        if (current.length <= 1) return current;
+        return current.filter((d) => d !== day).sort((a, b) => a - b);
+      }
+      return [...current, day].sort((a, b) => a - b);
+    });
+  };
+
   const durationInputRef = useRef<TextInputType>(null);
   const priorityInputRef = useRef<TextInputType>(null);
+  const intervalInputRef = useRef<TextInputType>(null);
   const isCustomDuration = !TIME_PRESETS.some((preset) => time.trim() === String(preset));
   const isCustomPriority = !PRIORITY_PRESETS.some((preset) => priority.trim() === String(preset));
+
+  const builtSchedule = useMemo(
+    () =>
+      normalizeScheduleFields({
+        scheduleType: repeatType,
+        scheduleIntervalDays: clampScheduleInterval(intervalDays),
+        scheduleStartDate: startDateKey,
+        scheduleWeekdays: selectedWeekdays,
+      }),
+    [repeatType, intervalDays, startDateKey, selectedWeekdays]
+  );
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -223,7 +306,8 @@ export default function AddOrEditTaskPage() {
         scheduledTime,
         notificationEnabled,
         prioVal,
-        category.trim()
+        category.trim(),
+        builtSchedule
       );
     } else {
       await addTodo(
@@ -233,7 +317,8 @@ export default function AddOrEditTaskPage() {
         scheduledTime,
         notificationEnabled,
         prioVal,
-        category.trim()
+        category.trim(),
+        builtSchedule
       );
     }
     dismissScreen();
@@ -376,6 +461,131 @@ export default function AddOrEditTaskPage() {
           ) : null}
         </View>
 
+        {/* Repeat schedule */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.sectionIcon, { backgroundColor: '#fef3c7' }]}>
+              <CalendarDays size={15} color="#d97706" />
+            </View>
+            <Text style={styles.cardLabel}>Repeat</Text>
+            <Text style={styles.cardHint}>One option per task</Text>
+          </View>
+
+          <View style={styles.repeatModeRow}>
+            {REPEAT_OPTIONS.map((option) => {
+              const isSelected = repeatType === option.type;
+              return (
+                <TouchableOpacity
+                  key={option.type}
+                  style={[styles.repeatModeChip, isSelected && styles.repeatModeChipSelected]}
+                  onPress={() => setRepeatType(option.type)}
+                  activeOpacity={0.75}
+                >
+                  <Text
+                    style={[
+                      styles.repeatModeChipText,
+                      isSelected && styles.repeatModeChipTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {repeatType === 'everyday' ? (
+            <Text style={styles.repeatHint}>Visible and reminds you every day.</Text>
+          ) : null}
+
+          {repeatType === 'interval' ? (
+            <View style={styles.repeatDetails}>
+              <Text style={styles.repeatSubLabel}>Repeat every</Text>
+              <Pressable
+                style={styles.intervalInputWrap}
+                onPress={() => intervalInputRef.current?.focus()}
+              >
+                <TextInput
+                  ref={intervalInputRef}
+                  style={styles.intervalInput}
+                  value={intervalDays}
+                  onChangeText={handleIntervalChange}
+                  onBlur={handleIntervalBlur}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                  placeholder={String(SCHEDULE_INTERVAL_DEFAULT)}
+                  placeholderTextColor={colors.inactive}
+                  selectTextOnFocus
+                />
+                <Text style={styles.fieldInputSuffix}>
+                  day{clampScheduleInterval(intervalDays) === 1 ? '' : 's'}
+                </Text>
+              </Pressable>
+              <Text style={styles.repeatHint}>
+                Min {SCHEDULE_INTERVAL_MIN}, max {SCHEDULE_INTERVAL_MAX}. Default{' '}
+                {SCHEDULE_INTERVAL_DEFAULT}.
+              </Text>
+
+              <Text style={[styles.repeatSubLabel, { marginTop: 12 }]}>Starting from</Text>
+              <View style={styles.startDateRow}>
+                <TouchableOpacity
+                  style={styles.startDateNavBtn}
+                  onPress={() => shiftStartDate(-1)}
+                  activeOpacity={0.75}
+                >
+                  <ChevronLeft size={18} color={colors.text} />
+                </TouchableOpacity>
+                <View style={styles.startDateLabelWrap}>
+                  <Text style={styles.startDateLabel}>{formatStartDateLabel(startDateKey)}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.startDateNavBtn}
+                  onPress={() => shiftStartDate(1)}
+                  activeOpacity={0.75}
+                >
+                  <ChevronRight size={18} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={styles.todayChip}
+                onPress={() => setStartDateKey(formatDateKey(new Date()))}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.todayChipText}>Use today</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {repeatType === 'weekdays' ? (
+            <View style={styles.repeatDetails}>
+              <Text style={styles.repeatSubLabel}>Active on</Text>
+              <View style={styles.weekdayRow}>
+                {WEEKDAY_OPTIONS.map((item, index) => {
+                  const isSelected = selectedWeekdays.includes(item.day);
+                  return (
+                    <TouchableOpacity
+                      key={`${item.label}-${item.day}-${index}`}
+                      style={[styles.weekdayChip, isSelected && styles.weekdayChipSelected]}
+                      onPress={() => toggleWeekday(item.day)}
+                      activeOpacity={0.75}
+                    >
+                      <Text
+                        style={[
+                          styles.weekdayChipText,
+                          isSelected && styles.weekdayChipTextSelected,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={styles.repeatHint}>Mon → Sun. At least one day required.</Text>
+            </View>
+          ) : null}
+        </View>
+
         {/* Timing */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -468,7 +678,11 @@ export default function AddOrEditTaskPage() {
             <Text style={styles.notificationTitle}>Push Notification</Text>
             <Text style={styles.notificationSub}>
               {notificationEnabled
-                ? `Get a reminder at ${scheduledTime}`
+                ? repeatType === 'everyday'
+                  ? `Reminder every day at ${scheduledTime}`
+                  : repeatType === 'interval'
+                    ? `Reminder every ${clampScheduleInterval(intervalDays)} day(s) at ${scheduledTime}`
+                    : `Reminder on selected days at ${scheduledTime}`
                 : 'Notifications disabled for this task'}
             </Text>
           </View>
@@ -949,6 +1163,135 @@ function createStyles(
     flexDirection: 'row',
     gap: 8,
     paddingRight: 4,
+  },
+  repeatModeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  repeatModeChip: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  repeatModeChipSelected: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  repeatModeChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  repeatModeChipTextSelected: {
+    color: colors.primary,
+  },
+  repeatDetails: {
+    marginTop: 14,
+    gap: 8,
+  },
+  repeatSubLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  repeatHint: {
+    marginTop: 10,
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 17,
+  },
+  intervalInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.inputBg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    minWidth: 140,
+  },
+  intervalInput: {
+    minWidth: 48,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    paddingVertical: 10,
+    textAlign: 'center',
+  },
+  startDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  startDateNavBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startDateLabelWrap: {
+    flex: 1,
+    backgroundColor: colors.inputBg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  startDateLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  todayChip: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.primarySoft,
+  },
+  todayChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  weekdayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  weekdayChip: {
+    flex: 1,
+    aspectRatio: 1,
+    maxWidth: 44,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  weekdayChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  weekdayChipText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.textMuted,
+  },
+  weekdayChipTextSelected: {
+    color: colors.white,
   },
   outlineChip: {
     backgroundColor: colors.surface,

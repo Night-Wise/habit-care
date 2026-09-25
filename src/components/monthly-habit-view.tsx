@@ -26,12 +26,14 @@ type MonthlyViewPrefs = {
   sortBy: MonthlySortBy;
   sortDirection: MonthlySortDirection;
   groupByCategory: boolean;
+  pinTaskColumn: boolean;
 };
 
 const DEFAULT_MONTHLY_VIEW_PREFS: MonthlyViewPrefs = {
   sortBy: 'completion',
   sortDirection: 'desc',
   groupByCategory: false,
+  pinTaskColumn: true,
 };
 
 function parseMonthlyViewPrefs(raw: string | null): MonthlyViewPrefs {
@@ -42,6 +44,8 @@ function parseMonthlyViewPrefs(raw: string | null): MonthlyViewPrefs {
       sortBy: parsed.sortBy === 'priority' ? 'priority' : 'completion',
       sortDirection: parsed.sortDirection === 'asc' ? 'asc' : 'desc',
       groupByCategory: parsed.groupByCategory === true,
+      // Default pinned when missing so older prefs pick up the sticky column.
+      pinTaskColumn: parsed.pinTaskColumn !== false,
     };
   } catch {
     return DEFAULT_MONTHLY_VIEW_PREFS;
@@ -384,6 +388,7 @@ type MonthDataRowProps = {
   isEditing: boolean;
   draft: CompletionDraft;
   onToggle: (todoId: string, dateKey: string, nextCompleted: boolean) => void;
+  showTaskColumn: boolean;
 };
 
 function areRowPropsEqual(prev: MonthDataRowProps, next: MonthDataRowProps) {
@@ -391,7 +396,8 @@ function areRowPropsEqual(prev: MonthDataRowProps, next: MonthDataRowProps) {
     prev.row !== next.row ||
     prev.categoryHeader !== next.categoryHeader ||
     prev.isEditing !== next.isEditing ||
-    prev.onToggle !== next.onToggle
+    prev.onToggle !== next.onToggle ||
+    prev.showTaskColumn !== next.showTaskColumn
   ) {
     return false;
   }
@@ -407,49 +413,62 @@ function areRowPropsEqual(prev: MonthDataRowProps, next: MonthDataRowProps) {
   return true;
 }
 
+function TaskNameCell({ row }: { row: RowModel }) {
+  const styles = useMonthlyViewStyles();
+  const { todo, priority, priorityTone } = row;
+
+  return (
+    <View style={styles.monthTaskColumn}>
+      <View style={styles.monthTaskIcon}>
+        <HabitIcon icon={todo.icon} size={14} color={row.iconColor} strokeWidth={2.2} />
+      </View>
+      <Text style={styles.monthTaskName} numberOfLines={1}>
+        {todo.name}
+      </Text>
+      {priorityTone ? (
+        <Text
+          style={[
+            styles.monthTaskPriority,
+            { color: priorityTone.text, backgroundColor: priorityTone.bg },
+          ]}
+        >
+          P{priority}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 const MonthDataRow = memo(function MonthDataRow({
   row,
   categoryHeader,
   isEditing,
   draft,
   onToggle,
+  showTaskColumn,
 }: MonthDataRowProps) {
   const styles = useMonthlyViewStyles();
-  const { todo, priority, priorityTone, summaryTone } = row;
+  const { todo, summaryTone } = row;
   const markStyle = {
     done: styles.statusDone,
     missed: styles.statusMissed,
     empty: styles.statusEmpty,
   };
 
-  const rowWidth = TASK_COL_WIDTH + row.cells.length * DAY_COL_WIDTH + SUMMARY_COL_WIDTH;
+  const scrollWidth =
+    row.cells.length * DAY_COL_WIDTH + SUMMARY_COL_WIDTH + (showTaskColumn ? TASK_COL_WIDTH : 0);
 
   return (
-    <View style={{ width: rowWidth }}>
+    <View style={{ width: scrollWidth }}>
       {categoryHeader ? (
-        <View style={styles.monthCategoryHeader}>
-          <Text style={styles.monthCategoryHeaderText}>{categoryHeader}</Text>
+        <View style={[styles.monthCategoryHeader, !showTaskColumn && styles.monthCategoryHeaderScroll]}>
+          {showTaskColumn ? (
+            <Text style={styles.monthCategoryHeaderText}>{categoryHeader}</Text>
+          ) : null}
         </View>
       ) : null}
       <View style={styles.monthDataRow}>
-        <View style={styles.monthTaskColumn}>
-          <View style={styles.monthTaskIcon}>
-            <HabitIcon icon={todo.icon} size={14} color={row.iconColor} strokeWidth={2.2} />
-          </View>
-          <Text style={styles.monthTaskName} numberOfLines={1}>
-            {todo.name}
-          </Text>
-          {priorityTone ? (
-            <Text
-              style={[
-                styles.monthTaskPriority,
-                { color: priorityTone.text, backgroundColor: priorityTone.bg },
-              ]}
-            >
-              P{priority}
-            </Text>
-          ) : null}
-        </View>
+        {showTaskColumn ? <TaskNameCell row={row} /> : null}
         {row.cells.map((cell) => {
           const editable = isEditing && !cell.isFuture;
           const key = draftKey(todo.id, cell.dateKey);
@@ -509,6 +528,44 @@ const MonthDataRow = memo(function MonthDataRow({
   );
 }, areRowPropsEqual);
 
+function StickyTaskPane({
+  orderedRows,
+  groupByCategory,
+}: {
+  orderedRows: RowModel[];
+  groupByCategory: boolean;
+}) {
+  const styles = useMonthlyViewStyles();
+
+  return (
+    <View style={styles.stickyTaskPane}>
+      <View style={[styles.monthTaskColumn, styles.monthHeaderCell, styles.stickyTaskHeader]}>
+        <Text style={styles.monthHeaderText}>Task</Text>
+      </View>
+      {orderedRows.map((row, index) => {
+        const previousCategory = index > 0 ? orderedRows[index - 1].categoryLabel : null;
+        const categoryHeader =
+          groupByCategory && row.categoryLabel !== previousCategory ? row.categoryLabel : null;
+        return (
+          <View key={row.todo.id}>
+            {categoryHeader ? (
+              <View style={styles.monthCategoryHeader}>
+                <Text style={styles.monthCategoryHeaderText} numberOfLines={1}>
+                  {categoryHeader}
+                </Text>
+              </View>
+            ) : null}
+            <TaskNameCell row={row} />
+          </View>
+        );
+      })}
+      <View style={[styles.monthTaskColumn, styles.stickyTotalsTask]}>
+        <Text style={styles.monthTotalsLabel}>Totals</Text>
+      </View>
+    </View>
+  );
+}
+
 function MonthlyTable({
   model,
   orderedRows,
@@ -516,6 +573,7 @@ function MonthlyTable({
   isEditing,
   draft,
   onToggleCell,
+  pinTaskColumn,
 }: {
   model: MonthModel;
   orderedRows: RowModel[];
@@ -523,88 +581,122 @@ function MonthlyTable({
   isEditing: boolean;
   draft: CompletionDraft;
   onToggleCell: (todoId: string, dateKey: string, nextCompleted: boolean) => void;
+  pinTaskColumn: boolean;
 }) {
   const styles = useMonthlyViewStyles();
+  const showTaskColumn = !pinTaskColumn;
 
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      <View style={styles.monthTable}>
-        <View style={styles.monthHeaderRow}>
-          <View style={[styles.monthTaskColumn, styles.monthHeaderCell]}>
-            <Text style={styles.monthHeaderText}>Task</Text>
-          </View>
-          {model.days.map((day) => (
-            <View
-              key={day.dateKey}
-              style={[styles.monthDayColumn, day.isToday && styles.todayColumn]}
-            >
-              <Text style={styles.monthDayName}>{day.weekdayLetter}</Text>
-              <Text style={styles.monthDayNumber}>{day.dayNumber}</Text>
-            </View>
-          ))}
-          <View style={[styles.monthSummaryColumn, styles.monthHeaderCell]}>
-            <Text style={styles.monthHeaderText}>Summary</Text>
-          </View>
+  const dayAndSummaryHeader = (
+    <>
+      {model.days.map((day) => (
+        <View
+          key={day.dateKey}
+          style={[styles.monthDayColumn, day.isToday && styles.todayColumn]}
+        >
+          <Text style={styles.monthDayName}>{day.weekdayLetter}</Text>
+          <Text style={styles.monthDayNumber}>{day.dayNumber}</Text>
         </View>
+      ))}
+      <View style={[styles.monthSummaryColumn, styles.monthHeaderCell]}>
+        <Text style={styles.monthHeaderText}>Summary</Text>
+      </View>
+    </>
+  );
 
-        {orderedRows.map((row, index) => {
-          const previousCategory = index > 0 ? orderedRows[index - 1].categoryLabel : null;
-          const categoryHeader =
-            groupByCategory && row.categoryLabel !== previousCategory ? row.categoryLabel : null;
+  const dataRows = orderedRows.map((row, index) => {
+    const previousCategory = index > 0 ? orderedRows[index - 1].categoryLabel : null;
+    const categoryHeader =
+      groupByCategory && row.categoryLabel !== previousCategory ? row.categoryLabel : null;
 
-          return (
-            <MonthDataRow
-              key={row.todo.id}
-              row={row}
-              categoryHeader={categoryHeader}
-              isEditing={isEditing}
-              draft={draft}
-              onToggle={onToggleCell}
-            />
-          );
-        })}
+    return (
+      <MonthDataRow
+        key={row.todo.id}
+        row={row}
+        categoryHeader={categoryHeader}
+        isEditing={isEditing}
+        draft={draft}
+        onToggle={onToggleCell}
+        showTaskColumn={showTaskColumn}
+      />
+    );
+  });
 
-        <View style={styles.monthTotalsRow}>
-          <View style={styles.monthTaskColumn}>
-            <Text style={styles.monthTotalsLabel}>Totals</Text>
-          </View>
-          {model.totals.map((total) => (
-            <View
-              key={`total-${total.dateKey}`}
-              style={[
-                styles.monthDayColumn,
-                styles.monthTotalsCell,
-                total.isToday && styles.todayColumn,
-              ]}
-            >
-              {total.active > 0 ? (
-                <Text style={styles.monthTotalsText}>
-                  {total.completed}/{total.active}
-                </Text>
-              ) : (
-                <Text style={styles.futureMark}>-</Text>
-              )}
-            </View>
-          ))}
-          <View style={[styles.monthSummaryColumn, { backgroundColor: model.totalsTone.bg }]}>
-            <Text style={[styles.monthTotalsText, { color: model.totalsTone.text }]}>
-              {model.completedTotal}/{model.trackedTotal} ({model.percentage}%)
+  const totalsDays = (
+    <>
+      {model.totals.map((total) => (
+        <View
+          key={`total-${total.dateKey}`}
+          style={[
+            styles.monthDayColumn,
+            styles.monthTotalsCell,
+            total.isToday && styles.todayColumn,
+          ]}
+        >
+          {total.active > 0 ? (
+            <Text style={styles.monthTotalsText}>
+              {total.completed}/{total.active}
             </Text>
-            <View style={styles.summaryProgressTrack}>
-              <View
-                style={[
-                  styles.summaryProgressFill,
-                  {
-                    width: `${model.trackedTotal > 0 ? model.percentage : 0}%`,
-                    backgroundColor: model.totalsTone.fill,
-                  },
-                ]}
-              />
-            </View>
-          </View>
+          ) : (
+            <Text style={styles.futureMark}>–</Text>
+          )}
+        </View>
+      ))}
+      <View style={[styles.monthSummaryColumn, { backgroundColor: model.totalsTone.bg }]}>
+        <Text style={[styles.monthTotalsText, { color: model.totalsTone.text }]}>
+          {model.completedTotal}/{model.trackedTotal} ({model.percentage}%)
+        </Text>
+        <View style={styles.summaryProgressTrack}>
+          <View
+            style={[
+              styles.summaryProgressFill,
+              {
+                width: `${model.trackedTotal > 0 ? model.percentage : 0}%`,
+                backgroundColor: model.totalsTone.fill,
+              },
+            ]}
+          />
         </View>
       </View>
-    </ScrollView>
+    </>
+  );
+
+  if (!pinTaskColumn) {
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={styles.monthTable}>
+          <View style={styles.monthHeaderRow}>
+            <View style={[styles.monthTaskColumn, styles.monthHeaderCell]}>
+              <Text style={styles.monthHeaderText}>Task</Text>
+            </View>
+            {dayAndSummaryHeader}
+          </View>
+          {dataRows}
+          <View style={styles.monthTotalsRow}>
+            <View style={styles.monthTaskColumn}>
+              <Text style={styles.monthTotalsLabel}>Totals</Text>
+            </View>
+            {totalsDays}
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  return (
+    <View style={styles.monthTablePinned}>
+      <StickyTaskPane orderedRows={orderedRows} groupByCategory={groupByCategory} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.monthScrollPane}
+      >
+        <View style={[styles.monthTable, styles.monthTableScrollBody]}>
+          <View style={styles.monthHeaderRow}>{dayAndSummaryHeader}</View>
+          {dataRows}
+          <View style={styles.monthTotalsRow}>{totalsDays}</View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -630,6 +722,9 @@ export function MonthlyHabitView({
   const [groupByCategory, setGroupByCategory] = useState(
     () => (cachedMonthlyViewPrefs ?? DEFAULT_MONTHLY_VIEW_PREFS).groupByCategory
   );
+  const [pinTaskColumn, setPinTaskColumn] = useState(
+    () => (cachedMonthlyViewPrefs ?? DEFAULT_MONTHLY_VIEW_PREFS).pinTaskColumn
+  );
   const [prefsReady, setPrefsReady] = useState(cachedMonthlyViewPrefs !== null);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<CompletionDraft>({});
@@ -645,6 +740,7 @@ export function MonthlyHabitView({
       setSortBy(prefs.sortBy);
       setSortDirection(prefs.sortDirection);
       setGroupByCategory(prefs.groupByCategory);
+      setPinTaskColumn(prefs.pinTaskColumn);
       setPrefsReady(true);
     });
     return () => {
@@ -654,10 +750,10 @@ export function MonthlyHabitView({
 
   useEffect(() => {
     if (!prefsReady) return;
-    const prefs: MonthlyViewPrefs = { sortBy, sortDirection, groupByCategory };
+    const prefs: MonthlyViewPrefs = { sortBy, sortDirection, groupByCategory, pinTaskColumn };
     rememberMonthlyViewPrefs(prefs);
     void AsyncStorage.setItem(MONTHLY_VIEW_PREFS_KEY, JSON.stringify(prefs)).catch(() => {});
-  }, [prefsReady, sortBy, sortDirection, groupByCategory]);
+  }, [prefsReady, sortBy, sortDirection, groupByCategory, pinTaskColumn]);
 
   const todayKey = formatDateKey(new Date());
   const monthDays = useMemo(() => getMonthDays(monthDate), [monthDate]);
@@ -822,26 +918,48 @@ export function MonthlyHabitView({
           </Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={[
-          styles.categoryToggle,
-          groupByCategory && styles.categoryToggleActive,
-          isEditing && styles.controlsDisabled,
-        ]}
-        onPress={() => !isEditing && setGroupByCategory((current) => !current)}
-        disabled={isEditing}
-        accessibilityLabel="Toggle grouping by category"
-      >
-        <Text
+      <View style={styles.toggleRow}>
+        <TouchableOpacity
           style={[
-            styles.categoryToggleText,
-            groupByCategory && styles.categoryToggleTextActive,
-            isEditing && styles.disabledText,
+            styles.categoryToggle,
+            groupByCategory && styles.categoryToggleActive,
+            isEditing && styles.controlsDisabled,
           ]}
+          onPress={() => !isEditing && setGroupByCategory((current) => !current)}
+          disabled={isEditing}
+          accessibilityLabel="Toggle grouping by category"
         >
-          {groupByCategory ? 'Grouped by category' : 'Group by category'}
-        </Text>
-      </TouchableOpacity>
+          <Text
+            style={[
+              styles.categoryToggleText,
+              groupByCategory && styles.categoryToggleTextActive,
+              isEditing && styles.disabledText,
+            ]}
+          >
+            {groupByCategory ? 'Grouped by category' : 'Group by category'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.categoryToggle,
+            pinTaskColumn && styles.categoryToggleActive,
+            isEditing && styles.controlsDisabled,
+          ]}
+          onPress={() => !isEditing && setPinTaskColumn((current) => !current)}
+          disabled={isEditing}
+          accessibilityLabel="Toggle pinning the task column"
+        >
+          <Text
+            style={[
+              styles.categoryToggleText,
+              pinTaskColumn && styles.categoryToggleTextActive,
+              isEditing && styles.disabledText,
+            ]}
+          >
+            {pinTaskColumn ? 'Task column pinned' : 'Pin task column'}
+          </Text>
+        </TouchableOpacity>
+      </View>
       <MonthlyTable
         model={monthModel}
         orderedRows={orderedRows}
@@ -849,6 +967,7 @@ export function MonthlyHabitView({
         isEditing={isEditing && !readOnly}
         draft={draft}
         onToggleCell={handleToggleCell}
+        pinTaskColumn={pinTaskColumn}
       />
 
       {!readOnly ? (
@@ -1055,8 +1174,6 @@ function createStyles(
   },
   categoryToggle: {
     alignSelf: 'flex-start',
-    marginHorizontal: 14,
-    marginBottom: 10,
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 8,
@@ -1074,10 +1191,48 @@ function createStyles(
   categoryToggleTextActive: {
     color: colors.primary,
   },
+  toggleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+  },
   monthTable: {
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderColor: colors.border,
+  },
+  monthTablePinned: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: colors.border,
+  },
+  monthTableScrollBody: {
+    borderTopWidth: 0,
+    borderLeftWidth: 0,
+  },
+  stickyTaskPane: {
+    width: TASK_COL_WIDTH,
+    zIndex: 2,
+    backgroundColor: colors.card,
+    shadowColor: colors.black,
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  stickyTaskHeader: {
+    backgroundColor: colors.surface,
+  },
+  stickyTotalsTask: {
+    backgroundColor: colors.surface,
+  },
+  monthScrollPane: {
+    flex: 1,
   },
   monthHeaderRow: {
     flexDirection: 'row',
@@ -1093,6 +1248,9 @@ function createStyles(
     backgroundColor: colors.primarySoft,
     borderBottomWidth: 1,
     borderColor: colors.primaryMuted,
+  },
+  monthCategoryHeaderScroll: {
+    paddingHorizontal: 0,
   },
   monthCategoryHeaderText: {
     color: colors.primary,
@@ -1115,6 +1273,7 @@ function createStyles(
     borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   monthHeaderCell: {
     minHeight: 48,

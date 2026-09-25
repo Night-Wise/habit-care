@@ -1,5 +1,13 @@
 import { Platform } from 'react-native';
 
+import {
+  collectNotificationIds,
+  getTodoSchedule,
+  getUpcomingDueDateKeys,
+  type TodoScheduleFields,
+  type TodoScheduleType,
+} from '@/utils/todo-schedule';
+
 let Notifications: typeof import('expo-notifications') | null = null;
 
 try {
@@ -29,6 +37,8 @@ try {
 
 /** Default Android notification LED color (purple accent). Pass theme `colors.primary` when available. */
 const DEFAULT_NOTIFICATION_LIGHT_COLOR = '#6366f1';
+
+const INTERVAL_LOOKAHEAD = 60;
 
 /**
  * Request notification permissions and setup Android notification channel
@@ -87,39 +97,22 @@ export function parseTimeString(timeStr?: string): { hour: number; minute: numbe
   return { hour: Math.min(23, Math.max(0, hour)), minute: Math.min(59, Math.max(0, minute)) };
 }
 
-/**
- * Schedule a daily local notification for a task at its specified timing
- */
-export async function scheduleTaskNotification(
-  todoId: string,
-  taskName: string,
-  timeStr: string
+function buildContent(todoId: string, taskName: string) {
+  return {
+    title: '⏰ Task Reminder',
+    body: `It's time to complete: ${taskName}`,
+    sound: true as const,
+    data: { todoId },
+  };
+}
+
+async function scheduleOne(
+  content: ReturnType<typeof buildContent>,
+  trigger: import('expo-notifications').SchedulableNotificationTriggerInput
 ): Promise<string | null> {
-  if (!Notifications || Platform.OS === 'web') return null;
-
-  const granted = await requestNotificationPermissions();
-  if (!granted) {
-    console.warn('[Notifications] Permission not granted for scheduling task notification');
-    return null;
-  }
-
-  const { hour, minute } = parseTimeString(timeStr);
-
+  if (!Notifications) return null;
   try {
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: '⏰ Task Reminder',
-        body: `It's time to complete: ${taskName}`,
-        sound: true,
-        data: { todoId },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute,
-      },
-    });
-    return id;
+    return await Notifications.scheduleNotificationAsync({ content, trigger });
   } catch (err) {
     console.warn('[Notifications] Failed to schedule notification:', err);
     return null;
@@ -127,15 +120,97 @@ export async function scheduleTaskNotification(
 }
 
 /**
- * Cancel a scheduled local notification by ID
+ * Schedule local notification(s) for a task based on its repeat schedule.
+ * Returns all scheduled notification IDs (weekdays/interval may create multiple).
  */
-export async function cancelTaskNotification(notificationId?: string): Promise<void> {
-  if (!Notifications || !notificationId || Platform.OS === 'web') return;
-  try {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
-  } catch (err) {
-    console.warn('[Notifications] Failed to cancel notification:', err);
+export async function scheduleTaskNotification(
+  todoId: string,
+  taskName: string,
+  timeStr: string,
+  scheduleInput?: Partial<TodoScheduleFields>
+): Promise<string[]> {
+  if (!Notifications || Platform.OS === 'web') return [];
+
+  const granted = await requestNotificationPermissions();
+  if (!granted) {
+    console.warn('[Notifications] Permission not granted for scheduling task notification');
+    return [];
   }
+
+  const { hour, minute } = parseTimeString(timeStr);
+  const schedule = getTodoSchedule(scheduleInput ?? {});
+  const content = buildContent(todoId, taskName);
+  const ids: string[] = [];
+  const type: TodoScheduleType = schedule.scheduleType;
+
+  if (type === 'everyday') {
+    const id = await scheduleOne(content, {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+    });
+    if (id) ids.push(id);
+    return ids;
+  }
+
+  if (type === 'weekdays') {
+    const weekdays = schedule.scheduleWeekdays ?? [];
+    for (const jsDay of weekdays) {
+      // Expo WEEKLY weekday: 1=Sunday … 7=Saturday
+      const id = await scheduleOne(content, {
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: jsDay + 1,
+        hour,
+        minute,
+      });
+      if (id) ids.push(id);
+    }
+    return ids;
+  }
+
+  // Interval: one-shot DATE triggers for upcoming due days (refreshed when the app saves todos)
+  const now = new Date();
+  const dueKeys = getUpcomingDueDateKeys(schedule, now, INTERVAL_LOOKAHEAD);
+  for (const key of dueKeys) {
+    const parts = key.split('-').map(Number);
+    const fireAt = new Date(parts[0], parts[1] - 1, parts[2], hour, minute, 0, 0);
+    if (fireAt.getTime() <= now.getTime()) continue;
+    const id = await scheduleOne(content, {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: fireAt,
+    });
+    if (id) ids.push(id);
+  }
+
+  return ids;
+}
+
+/**
+ * Cancel one or more scheduled local notifications
+ */
+export async function cancelTaskNotification(
+  notificationIdOrIds?: string | string[] | null
+): Promise<void> {
+  if (!Notifications || Platform.OS === 'web') return;
+  const ids = Array.isArray(notificationIdOrIds)
+    ? notificationIdOrIds
+    : notificationIdOrIds
+      ? [notificationIdOrIds]
+      : [];
+  for (const notificationId of ids) {
+    if (!notificationId) continue;
+    try {
+      await Notifications.cancelScheduledNotificationAsync(notificationId);
+    } catch (err) {
+      console.warn('[Notifications] Failed to cancel notification:', err);
+    }
+  }
+}
+
+export async function cancelTodoNotifications(
+  todo: { notificationId?: string; notificationIds?: string[] }
+): Promise<void> {
+  await cancelTaskNotification(collectNotificationIds(todo));
 }
 
 /**

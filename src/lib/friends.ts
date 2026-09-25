@@ -102,6 +102,10 @@ function sanitizeTodos(raw: unknown): Todo[] {
         completions,
         notificationTime: todo.notificationTime || '09:00 AM',
         notificationEnabled: false,
+        scheduleType: todo.scheduleType,
+        scheduleIntervalDays: todo.scheduleIntervalDays,
+        scheduleStartDate: todo.scheduleStartDate,
+        scheduleWeekdays: todo.scheduleWeekdays,
       },
     ];
   });
