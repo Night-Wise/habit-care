@@ -145,3 +145,21 @@ export function collectNotificationIds(todo: ScheduleSource): string[] {
   }
   return ids;
 }
+
+/** Short label for home/list UI: "Everyday", "Every 3 days", "M T W F". */
+export function formatScheduleLabel(todo: Partial<TodoScheduleFields>): string {
+  const schedule = getTodoSchedule(todo);
+
+  if (schedule.scheduleType === 'everyday') return 'Everyday';
+
+  if (schedule.scheduleType === 'interval') {
+    const days = schedule.scheduleIntervalDays ?? SCHEDULE_INTERVAL_DEFAULT;
+    return days === 1 ? 'Every day' : `Every ${days} days`;
+  }
+
+  const selected = new Set(schedule.scheduleWeekdays ?? []);
+  const labels = WEEKDAY_OPTIONS.filter((opt) => selected.has(opt.day)).map((opt) => opt.label);
+  if (labels.length === 0) return 'Weekdays';
+  if (labels.length === 7) return 'Everyday';
+  return labels.join(' ');
+}

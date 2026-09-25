@@ -16,6 +16,8 @@ export interface TodoItemProps {
   priority?: number;
   notificationTime?: string;
   notificationEnabled?: boolean;
+  /** e.g. "Everyday", "Every 3 days", "M T W F" */
+  scheduleLabel?: string;
   completed: boolean;
   disabled?: boolean;
   onToggle: () => void;
@@ -59,6 +61,7 @@ export function TodoItem({
   priority = 0,
   notificationTime,
   notificationEnabled,
+  scheduleLabel,
   completed,
   disabled = false,
   onToggle,
@@ -141,6 +144,11 @@ export function TodoItem({
                 <View style={styles.timingRow}>
                   <Clock size={10} color={colors.primary} />
                   <Text style={styles.timingSubtext}>{notificationTime}</Text>
+                </View>
+              ) : null}
+              {scheduleLabel ? (
+                <View style={styles.scheduleBadge}>
+                  <Text style={styles.scheduleBadgeText}>{scheduleLabel}</Text>
                 </View>
               ) : null}
               {category ? (
@@ -323,6 +331,21 @@ function createStyles(
       fontWeight: '600',
       color: colors.primary,
       fontFamily,
+    },
+    scheduleBadge: {
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      backgroundColor: colors.surfaceMuted,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    scheduleBadgeText: {
+      fontSize: fs(10),
+      fontWeight: '700',
+      color: colors.textMuted,
+      fontFamily,
+      letterSpacing: 0.2,
     },
     badgesCol: {
       alignItems: 'flex-end',

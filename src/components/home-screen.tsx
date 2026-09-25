@@ -34,7 +34,7 @@ import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-
 import { getAuthDisplayName } from '@/lib/friends';
 import type { ThemeColors } from '@/theme/colors';
 import { getDailyQuote } from '@/utils/daily-quote';
-import { isTodoDueOnDate } from '@/utils/todo-schedule';
+import { formatScheduleLabel, isTodoDueOnDate } from '@/utils/todo-schedule';
 
 const HERO_IMAGES = {
   morning: require('../../assets/home-page-hero/morning.png'),
@@ -622,6 +622,7 @@ export function HomeScreen({
                   priority={todo.priority}
                   notificationTime={todo.notificationTime}
                   notificationEnabled={todo.notificationEnabled}
+                  scheduleLabel={formatScheduleLabel(todo)}
                   completed={completed}
                   disabled={readOnly || isFutureDate}
                   onToggle={() => {

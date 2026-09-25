@@ -257,6 +257,31 @@ function withNotificationIds(todo: Todo, ids: string[]): Todo {
   };
 }
 
+async function scheduleNotificationsForTodo(todo: Todo): Promise<string[]> {
+  if (!todo.notificationEnabled) return [];
+  return scheduleTaskNotification(
+    todo.id,
+    todo.name,
+    todo.notificationTime || '09:00 AM',
+    normalizeScheduleFields(todo),
+    todo.completions
+  );
+}
+
+/** Cancel and reschedule so already-completed days are not reminded. */
+async function resyncTodoNotifications(todo: Todo): Promise<Todo> {
+  await cancelTodoNotifications(todo);
+  if (!todo.notificationEnabled) {
+    return {
+      ...todo,
+      notificationId: undefined,
+      notificationIds: undefined,
+    };
+  }
+  const ids = await scheduleNotificationsForTodo(todo);
+  return withNotificationIds(todo, ids);
+}
+
 interface TodosContextType {
   todos: Todo[];
   isLoaded: boolean;
@@ -347,26 +372,17 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
 
         setTodos(migrated);
 
-        // Refresh interval reminders so DATE triggers stay ahead of today
+        // Refresh reminders so DATE triggers stay ahead of today and skip completed days
         void (async () => {
           const refreshed: Todo[] = [];
           let changed = false;
           for (const todo of migrated) {
-            if (
-              !todo.notificationEnabled ||
-              normalizeScheduleFields(todo).scheduleType !== 'interval'
-            ) {
+            if (!todo.notificationEnabled) {
               refreshed.push(todo);
               continue;
             }
-            await cancelTodoNotifications(todo);
-            const ids = await scheduleTaskNotification(
-              todo.id,
-              todo.name,
-              todo.notificationTime || '09:00 AM',
-              normalizeScheduleFields(todo)
-            );
-            refreshed.push(withNotificationIds(todo, ids));
+            const next = await resyncTodoNotifications(todo);
+            refreshed.push(next);
             changed = true;
           }
           if (changed) setTodos(refreshed);
@@ -407,48 +423,53 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     const timeStr = notificationTime || '09:00 AM';
     const scheduleFields = normalizeScheduleFields(schedule ?? {});
 
-    let notificationIds: string[] = [];
-    if (notificationEnabled) {
-      notificationIds = await scheduleTaskNotification(id, name.trim(), timeStr, scheduleFields);
-    }
-
-    const newTodo = withNotificationIds(
-      applyScheduleToTodo(
-        {
-          id,
-          name: name.trim(),
-          icon,
-          category: category?.trim() || '',
-          timeMinutes: minutes,
-          priority: prio,
-          createdAt: new Date().toISOString(),
-          completions: {},
-          notificationTime: timeStr,
-          notificationEnabled: !!notificationEnabled,
-        },
-        scheduleFields
-      ),
-      notificationIds
+    const newTodoBase = applyScheduleToTodo(
+      {
+        id,
+        name: name.trim(),
+        icon,
+        category: category?.trim() || '',
+        timeMinutes: minutes,
+        priority: prio,
+        createdAt: new Date().toISOString(),
+        completions: {},
+        notificationTime: timeStr,
+        notificationEnabled: !!notificationEnabled,
+      },
+      scheduleFields
     );
+    const notificationIds = await scheduleNotificationsForTodo(newTodoBase);
+    const newTodo = withNotificationIds(newTodoBase, notificationIds);
     setTodos((prev) => [...prev, newTodo]);
   };
 
   const toggleTodo = (id: string, dateKey?: string) => {
     const targetDate = dateKey || formatDateKey(new Date());
-    setTodos((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        const currentCompletions = t.completions || {};
-        const currentlyDone = isTodoCompleted(t, targetDate);
-        return {
-          ...t,
-          completions: {
-            ...currentCompletions,
-            [targetDate]: !currentlyDone,
-          },
-        };
-      })
-    );
+    setTodos((prev) => {
+      const existing = prev.find((t) => t.id === id);
+      if (!existing) return prev;
+
+      const currentlyDone = isTodoCompleted(existing, targetDate);
+      const updated: Todo = {
+        ...existing,
+        completions: {
+          ...(existing.completions || {}),
+          [targetDate]: !currentlyDone,
+        },
+      };
+
+      if (updated.notificationEnabled) {
+        void (async () => {
+          await cancelTodoNotifications(existing);
+          const ids = await scheduleNotificationsForTodo(updated);
+          setTodos((latest) =>
+            latest.map((t) => (t.id === id ? withNotificationIds(t, ids) : t))
+          );
+        })();
+      }
+
+      return prev.map((t) => (t.id === id ? updated : t));
+    });
   };
 
   const applyCompletionEdits = (
@@ -461,8 +482,8 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       current[edit.dateKey] = edit.completed;
       byTodo.set(edit.id, current);
     }
-    setTodos((prev) =>
-      prev.map((t) => {
+    setTodos((prev) => {
+      const next = prev.map((t) => {
         const overrides = byTodo.get(t.id);
         if (!overrides) return t;
         return {
@@ -472,8 +493,29 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
             ...overrides,
           },
         };
-      })
-    );
+      });
+
+      const toResync = next.filter((t) => t.notificationEnabled && byTodo.has(t.id));
+      if (toResync.length > 0) {
+        void (async () => {
+          for (const todo of toResync) {
+            await cancelTodoNotifications(todo);
+          }
+          const idsByTodo = new Map<string, string[]>();
+          for (const todo of toResync) {
+            idsByTodo.set(todo.id, await scheduleNotificationsForTodo(todo));
+          }
+          setTodos((latest) =>
+            latest.map((t) => {
+              const ids = idsByTodo.get(t.id);
+              return ids ? withNotificationIds(t, ids) : t;
+            })
+          );
+        })();
+      }
+
+      return next;
+    });
   };
 
   const deleteTodo = (id: string) => {
@@ -512,15 +554,25 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       ...schedule,
     });
 
-    let notificationIds: string[] = [];
-    if (notificationEnabled) {
-      notificationIds = await scheduleTaskNotification(
-        id,
-        name.trim(),
-        timeStr,
-        scheduleFields
-      );
-    }
+    const updatedBase = applyScheduleToTodo(
+      {
+        ...(existing ?? {
+          id,
+          name: name.trim(),
+          icon,
+          completions: {},
+        }),
+        name: name.trim(),
+        icon,
+        category: category?.trim() || '',
+        timeMinutes: minutes,
+        priority: prio,
+        notificationTime: timeStr,
+        notificationEnabled: !!notificationEnabled,
+      },
+      scheduleFields
+    );
+    const notificationIds = await scheduleNotificationsForTodo(updatedBase);
 
     setTodos((prev) =>
       prev.map((t) => {
@@ -565,13 +617,12 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       );
     } else {
       const timing = target.notificationTime || '09:00 AM';
-      const scheduleFields = normalizeScheduleFields(target);
-      const notificationIds = await scheduleTaskNotification(
-        id,
-        target.name,
-        timing,
-        scheduleFields
-      );
+      const enabledTodo: Todo = {
+        ...target,
+        notificationEnabled: true,
+        notificationTime: timing,
+      };
+      const notificationIds = await scheduleNotificationsForTodo(enabledTodo);
       setTodos((prev) =>
         prev.map((t) =>
           t.id === id

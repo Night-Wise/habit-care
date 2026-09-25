@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 import {
@@ -5,10 +6,11 @@ import {
   getTodoSchedule,
   getUpcomingDueDateKeys,
   type TodoScheduleFields,
-  type TodoScheduleType,
 } from '@/utils/todo-schedule';
 
 let Notifications: typeof import('expo-notifications') | null = null;
+
+const TODOS_STORAGE_KEY = '@habit_app_todos';
 
 try {
   // expo-notifications throws an error on import in Expo Go on SDK 53+
@@ -18,13 +20,19 @@ try {
   if (Platform.OS !== 'web' && Notifications && Notifications.setNotificationHandler) {
     try {
       Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldShowBanner: true,
-          shouldShowList: true,
-          shouldPlaySound: true,
-          shouldSetBadge: false,
-        }),
+        handleNotification: async (notification) => {
+          const todoId = notification.request.content.data?.todoId;
+          const alreadyDone =
+            typeof todoId === 'string' && (await isStoredTodoCompletedToday(todoId));
+          const show = !alreadyDone;
+          return {
+            shouldShowAlert: show,
+            shouldShowBanner: show,
+            shouldShowList: show,
+            shouldPlaySound: show,
+            shouldSetBadge: false,
+          };
+        },
       });
     } catch (err) {
       console.warn('[Notifications] setNotificationHandler skipped:', err);
@@ -39,6 +47,36 @@ try {
 const DEFAULT_NOTIFICATION_LIGHT_COLOR = '#6366f1';
 
 const INTERVAL_LOOKAHEAD = 60;
+
+function formatDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Read completion from persisted todos so we can suppress a reminder
+ * when the habit was already ticked for today.
+ */
+async function isStoredTodoCompletedToday(todoId: string): Promise<boolean> {
+  try {
+    const stored = await AsyncStorage.getItem(TODOS_STORAGE_KEY);
+    if (!stored) return false;
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return false;
+    const todo = parsed.find((t: { id?: unknown }) => String(t?.id) === String(todoId));
+    if (!todo) return false;
+    const todayKey = formatDateKey(new Date());
+    if (todo.completions && typeof todo.completions[todayKey] === 'boolean') {
+      return todo.completions[todayKey];
+    }
+    if (typeof todo.completed === 'boolean') return todo.completed;
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Request notification permissions and setup Android notification channel
@@ -121,13 +159,15 @@ async function scheduleOne(
 
 /**
  * Schedule local notification(s) for a task based on its repeat schedule.
- * Returns all scheduled notification IDs (weekdays/interval may create multiple).
+ * Skips any due day that is already marked completed.
+ * Returns all scheduled notification IDs.
  */
 export async function scheduleTaskNotification(
   todoId: string,
   taskName: string,
   timeStr: string,
-  scheduleInput?: Partial<TodoScheduleFields>
+  scheduleInput?: Partial<TodoScheduleFields>,
+  completions?: Record<string, boolean>
 ): Promise<string[]> {
   if (!Notifications || Platform.OS === 'web') return [];
 
@@ -141,40 +181,17 @@ export async function scheduleTaskNotification(
   const schedule = getTodoSchedule(scheduleInput ?? {});
   const content = buildContent(todoId, taskName);
   const ids: string[] = [];
-  const type: TodoScheduleType = schedule.scheduleType;
-
-  if (type === 'everyday') {
-    const id = await scheduleOne(content, {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour,
-      minute,
-    });
-    if (id) ids.push(id);
-    return ids;
-  }
-
-  if (type === 'weekdays') {
-    const weekdays = schedule.scheduleWeekdays ?? [];
-    for (const jsDay of weekdays) {
-      // Expo WEEKLY weekday: 1=Sunday … 7=Saturday
-      const id = await scheduleOne(content, {
-        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-        weekday: jsDay + 1,
-        hour,
-        minute,
-      });
-      if (id) ids.push(id);
-    }
-    return ids;
-  }
-
-  // Interval: one-shot DATE triggers for upcoming due days (refreshed when the app saves todos)
   const now = new Date();
   const dueKeys = getUpcomingDueDateKeys(schedule, now, INTERVAL_LOOKAHEAD);
+
   for (const key of dueKeys) {
+    // Already ticked for that day → do not schedule a reminder
+    if (completions?.[key]) continue;
+
     const parts = key.split('-').map(Number);
     const fireAt = new Date(parts[0], parts[1] - 1, parts[2], hour, minute, 0, 0);
     if (fireAt.getTime() <= now.getTime()) continue;
+
     const id = await scheduleOne(content, {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: fireAt,
