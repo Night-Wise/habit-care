@@ -317,7 +317,7 @@ export default function AddOrEditTaskPage() {
           <TextInput
             style={styles.input}
             placeholder="e.g. Morning run, Read 20 pages..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.inactive}
             value={name}
             onChangeText={setName}
             returnKeyType="done"
@@ -367,7 +367,7 @@ export default function AddOrEditTaskPage() {
             <TextInput
               style={[styles.input, styles.customCategoryInput]}
               placeholder="Enter custom category"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.inactive}
               value={category}
               onChangeText={setCategory}
               maxLength={30}
@@ -396,7 +396,7 @@ export default function AddOrEditTaskPage() {
                 keyboardType="number-pad"
                 maxLength={2}
                 placeholder="08"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.inactive}
                 selectTextOnFocus
               />
               <Text style={styles.scheduleColon}>:</Text>
@@ -408,7 +408,7 @@ export default function AddOrEditTaskPage() {
                 keyboardType="number-pad"
                 maxLength={2}
                 placeholder="00"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.inactive}
                 selectTextOnFocus
               />
             </View>
@@ -505,11 +505,11 @@ export default function AddOrEditTaskPage() {
                 keyboardType="number-pad"
                 maxLength={4}
                 placeholder="e.g. 20"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.inactive}
                 selectTextOnFocus
               />
               <Text style={styles.fieldInputSuffix}>min</Text>
-              <Pencil size={13} color="#94a3b8" style={{ marginLeft: 4 }} />
+              <Pencil size={13} color={colors.inactive} style={{ marginLeft: 4 }} />
             </Pressable>
             <View style={styles.presetsRow}>
               {TIME_PRESETS.map((preset) => {
@@ -561,11 +561,11 @@ export default function AddOrEditTaskPage() {
                 keyboardType="number-pad"
                 maxLength={4}
                 placeholder="e.g. 4"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.inactive}
                 selectTextOnFocus
               />
               <Text style={styles.fieldInputSuffix}>level</Text>
-              <Pencil size={13} color="#94a3b8" style={{ marginLeft: 4 }} />
+              <Pencil size={13} color={colors.inactive} style={{ marginLeft: 4 }} />
             </Pressable>
             <View style={styles.presetsRow}>
               {PRIORITY_PRESETS.map((preset) => {
@@ -730,7 +730,7 @@ function createStyles(
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(15, 23, 42, 0.04)',
+    borderColor: colors.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -758,7 +758,7 @@ function createStyles(
   cardHint: {
     marginLeft: 'auto',
     fontSize: 11,
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontWeight: '500',
   },
   fieldHint: {
@@ -777,7 +777,7 @@ function createStyles(
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.inputBg,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 12,
@@ -807,7 +807,7 @@ function createStyles(
     flexShrink: 0,
   },
   presetChip: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 10,
@@ -833,7 +833,7 @@ function createStyles(
     color: colors.primary,
   },
   input: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.inputBg,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 14,
@@ -851,7 +851,7 @@ function createStyles(
     gap: 8,
   },
   categoryChip: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -862,10 +862,10 @@ function createStyles(
   categoryChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
   },
   categoryChipTextSelected: {
-    color: '#ffffff',
+    color: colors.white,
     fontWeight: '700',
   },
   customChip: {
@@ -873,7 +873,7 @@ function createStyles(
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
+    borderColor: colors.borderStrong,
     borderStyle: 'dashed',
     backgroundColor: 'transparent',
   },
@@ -901,7 +901,7 @@ function createStyles(
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.inputBg,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 14,
@@ -924,7 +924,7 @@ function createStyles(
   },
   periodToggle: {
     flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 12,
     padding: 3,
     gap: 2,
@@ -943,7 +943,7 @@ function createStyles(
     color: colors.textMuted,
   },
   periodBtnTextSelected: {
-    color: '#ffffff',
+    color: colors.white,
   },
   timingPresetsRow: {
     flexDirection: 'row',
@@ -979,7 +979,7 @@ function createStyles(
     padding: 14,
     gap: 10,
     borderWidth: 1,
-    borderColor: 'rgba(15, 23, 42, 0.04)',
+    borderColor: colors.border,
   },
   notificationCopy: {
     flex: 1,
@@ -1019,7 +1019,7 @@ function createStyles(
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.inputBg,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
@@ -1036,7 +1036,7 @@ function createStyles(
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderStyle: 'dashed',
@@ -1065,7 +1065,7 @@ function createStyles(
     opacity: 0.4,
   },
   addBtnText: {
-    color: '#ffffff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,

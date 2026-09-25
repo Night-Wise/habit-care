@@ -108,7 +108,7 @@ const DARK_BASE: Omit<ThemeColors, 'primary' | 'primarySoft' | 'primaryMuted' | 
   successSoft: '#04140e',
   warningSoft: '#1a1408',
   overlay: 'rgba(0, 0, 0, 0.72)',
-  inputBg: '#0a0a0a',
+  inputBg: '#111111',
   inactive: '#737373',
   white: '#ffffff',
   black: '#000000',

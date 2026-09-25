@@ -186,7 +186,12 @@ function getMonthDays(monthDate: Date): Date[] {
   return days;
 }
 
-function buildMonthModel(todos: Todo[], monthDays: Date[], todayKey: string): MonthModel {
+function buildMonthModel(
+  todos: Todo[],
+  monthDays: Date[],
+  todayKey: string,
+  scheme: 'light' | 'dark'
+): MonthModel {
   const days: DayModel[] = monthDays.map((day) => {
     const dateKey = formatDateKey(day);
     return {
@@ -227,19 +232,21 @@ function buildMonthModel(todos: Todo[], monthDays: Date[], todayKey: string): Mo
     const priority =
       typeof todo.priority === 'number' && !Number.isNaN(todo.priority) ? todo.priority : 0;
     const completionPercentage = trackedCount ? Math.round((completedDays / trackedCount) * 100) : 0;
+    const category = typeof todo.category === 'string' ? todo.category.trim() : '';
+    const categoryLabel = category.length > 0 ? category : 'Uncategorized';
 
     return {
       todo,
-      iconColor: getHabitTheme(todo.name || todo.icon || todo.id).solid,
       cells,
+      iconColor: getHabitTheme(todo.name || todo.icon || todo.id).solid,
       completedDays,
       trackedCount,
       completionPercentage,
-      sortPriority: todo.priority ?? 0,
       priority,
-      priorityTone: priority > 0 ? getPriorityTone(priority) : null,
-      categoryLabel: todo.category?.trim() || 'Uncategorized',
-      summaryTone: getCompletionTone(completionPercentage, trackedCount > 0),
+      sortPriority: priority,
+      categoryLabel,
+      priorityTone: priority > 0 ? getPriorityTone(priority, scheme) : null,
+      summaryTone: getCompletionTone(completionPercentage, trackedCount > 0, scheme),
     };
   });
 
@@ -265,11 +272,40 @@ function buildMonthModel(todos: Todo[], monthDays: Date[], todayKey: string): Mo
     completedTotal,
     trackedTotal,
     percentage,
-    totalsTone: getCompletionTone(percentage, trackedTotal > 0),
+    totalsTone: getCompletionTone(percentage, trackedTotal > 0, scheme),
   };
 }
 
-function getCompletionTone(percentage: number, hasTracked: boolean) {
+function getCompletionTone(
+  percentage: number,
+  hasTracked: boolean,
+  scheme: 'light' | 'dark'
+) {
+  if (scheme === 'dark') {
+    if (!hasTracked) {
+      return { bg: '#161616', text: '#a3a3a3', fill: '#2a2a2a' };
+    }
+    if (percentage >= 90) {
+      return { bg: '#04140e', text: '#34d399', fill: '#10b981' };
+    }
+    if (percentage >= 75) {
+      return { bg: '#06140f', text: '#4ade80', fill: '#22c55e' };
+    }
+    if (percentage >= 60) {
+      return { bg: '#0f1406', text: '#a3e635', fill: '#84cc16' };
+    }
+    if (percentage >= 45) {
+      return { bg: '#1a1408', text: '#facc15', fill: '#eab308' };
+    }
+    if (percentage >= 30) {
+      return { bg: '#1a1008', text: '#fb923c', fill: '#f97316' };
+    }
+    if (percentage >= 15) {
+      return { bg: '#1a0808', text: '#f87171', fill: '#ef4444' };
+    }
+    return { bg: '#1a0808', text: '#f87171', fill: '#dc2626' };
+  }
+
   if (!hasTracked) {
     return { bg: '#f1f5f9', text: '#64748b', fill: '#cbd5e1' };
   }
@@ -294,17 +330,26 @@ function getCompletionTone(percentage: number, hasTracked: boolean) {
   return { bg: '#fecaca', text: '#991b1b', fill: '#dc2626' };
 }
 
-function getPriorityTone(priority: number) {
+function getPriorityTone(priority: number, scheme: 'light' | 'dark') {
   if (priority >= 5) {
-    return { bg: '#dc2626', text: '#ffffff' }; // dark-red
+    return { bg: '#dc2626', text: '#ffffff' };
+  }
+  if (scheme === 'dark') {
+    if (priority >= 3) {
+      return { bg: '#1a0808', text: '#f87171' };
+    }
+    if (priority >= 2) {
+      return { bg: '#1a1008', text: '#fb923c' };
+    }
+    return { bg: '#1a1408', text: '#facc15' };
   }
   if (priority >= 3) {
-    return { bg: '#fee2e2', text: '#b91c1c' }; // red
+    return { bg: '#fee2e2', text: '#b91c1c' };
   }
   if (priority >= 2) {
-    return { bg: '#ffedd5', text: '#c2410c' }; // orange
+    return { bg: '#ffedd5', text: '#c2410c' };
   }
-  return { bg: '#fef9c3', text: '#a16207' }; // yellow
+  return { bg: '#fef9c3', text: '#a16207' };
 }
 
 function sortRows(
@@ -329,8 +374,8 @@ function sortRows(
 
 const MARK_LABEL: Record<CellStatus, string> = {
   done: '✓',
-  missed: '×',
-  empty: '-',
+  missed: '✕',
+  empty: '–',
 };
 
 type MonthDataRowProps = {
@@ -571,10 +616,10 @@ export function MonthlyHabitView({
   readOnly?: boolean;
 }) {
   const { applyCompletionEdits } = useTodos();
-  const { colors, fs, fontFamilyValue } = useTheme();
+  const { colors, fs, fontFamilyValue, resolvedScheme } = useTheme();
   const styles = useMemo(
-    () => createStyles(colors, fs, fontFamilyValue),
-    [colors, fs, fontFamilyValue]
+    () => createStyles(colors, fs, fontFamilyValue, resolvedScheme),
+    [colors, fs, fontFamilyValue, resolvedScheme]
   );
   const [sortBy, setSortBy] = useState<MonthlySortBy>(
     () => (cachedMonthlyViewPrefs ?? DEFAULT_MONTHLY_VIEW_PREFS).sortBy
@@ -619,8 +664,8 @@ export function MonthlyHabitView({
   const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const isCurrentMonth = monthDate.getTime() >= currentMonth.getTime();
   const monthModel = useMemo(
-    () => buildMonthModel(todos, monthDays, todayKey),
-    [todos, monthDays, todayKey]
+    () => buildMonthModel(todos, monthDays, todayKey, resolvedScheme),
+    [todos, monthDays, todayKey, resolvedScheme]
   );
 
   const liveSortedRows = useMemo(
@@ -859,8 +904,20 @@ export function MonthlyHabitView({
 function createStyles(
   colors: ThemeColors,
   fs: (size: number) => number,
-  fontFamily?: string
+  fontFamily?: string,
+  scheme: 'light' | 'dark' = 'light'
 ) {
+  const isDark = scheme === 'dark';
+  const statusDone = isDark
+    ? { backgroundColor: '#0f2e24', color: '#5eead4' }
+    : { backgroundColor: '#d1fae5', color: '#059669' };
+  const statusMissed = isDark
+    ? { backgroundColor: '#3a1518', color: '#fb7185' }
+    : { backgroundColor: '#fee2e2', color: '#ef4444' };
+  const statusEmpty = isDark
+    ? { backgroundColor: '#1c2430', color: '#94a3b8' }
+    : { backgroundColor: colors.surfaceMuted, color: colors.inactive };
+
   return StyleSheet.create({
   monthView: {
     backgroundColor: colors.card,
@@ -933,7 +990,7 @@ function createStyles(
     color: '#ffffff',
   },
   discardBtnText: {
-    color: '#b91c1c',
+    color: colors.danger,
     fontSize: 12,
     fontWeight: '800',
   },
@@ -957,7 +1014,7 @@ function createStyles(
     opacity: 0.7,
   },
   disabledText: {
-    color: '#94a3b8',
+    color: colors.inactive,
   },
   sortCriteria: {
     flexDirection: 'row',
@@ -1093,7 +1150,7 @@ function createStyles(
     width: '88%',
     height: 3,
     borderRadius: 999,
-    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+    backgroundColor: colors.borderStrong,
     overflow: 'hidden',
   },
   summaryProgressFill: {
@@ -1101,10 +1158,10 @@ function createStyles(
     borderRadius: 999,
   },
   todayColumn: {
-    backgroundColor: '#fffbeb',
+    backgroundColor: colors.warningSoft,
   },
   monthDayName: {
-    color: '#94a3b8',
+    color: colors.inactive,
     fontSize: 9,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -1122,26 +1179,17 @@ function createStyles(
   statusMark: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: 7,
     overflow: 'hidden',
     textAlign: 'center',
     lineHeight: 22,
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     includeFontPadding: false,
   },
-  statusDone: {
-    backgroundColor: '#d1fae5',
-    color: '#059669',
-  },
-  statusMissed: {
-    backgroundColor: '#fee2e2',
-    color: '#ef4444',
-  },
-  statusEmpty: {
-    backgroundColor: '#f1f5f9',
-    color: '#94a3b8',
-  },
+  statusDone,
+  statusMissed,
+  statusEmpty,
   editableCell: {
     backgroundColor: colors.surface,
   },
@@ -1177,7 +1225,7 @@ function createStyles(
     overflow: 'hidden',
   },
   futureMark: {
-    color: '#94a3b8',
+    color: colors.inactive,
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 14,

@@ -497,7 +497,7 @@ export default function SettingsScreen() {
                 <Text style={styles.btnPrimaryText}>{isSyncing ? 'Syncing...' : 'Sync Habits'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.btn, styles.btnInRow, styles.btnSecondary]} onPress={signOut} activeOpacity={0.8}>
-                <LogOut size={16} color="#334155" style={{ marginRight: 6 }} />
+                <LogOut size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
                 <Text style={styles.btnSecondaryText}>Sign Out</Text>
               </TouchableOpacity>
             </View>
@@ -533,7 +533,7 @@ export default function SettingsScreen() {
               onPress={handleCopyClipboard}
               activeOpacity={0.8}
             >
-              <Copy size={16} color="#334155" style={{ marginRight: 6 }} />
+              <Copy size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
               <Text style={styles.btnSecondaryText}>Copy JSON</Text>
             </TouchableOpacity>
           </View>
@@ -578,7 +578,7 @@ export default function SettingsScreen() {
               }}
               activeOpacity={0.8}
             >
-              <FileText size={16} color="#334155" style={{ marginRight: 6 }} />
+              <FileText size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
               <Text style={styles.btnSecondaryText}>Paste Text</Text>
             </TouchableOpacity>
           </View>
@@ -609,9 +609,9 @@ export default function SettingsScreen() {
         {/* Reset / Danger Zone */}
         <View style={[styles.card, styles.dangerCard]}>
           <View style={styles.cardHeader}>
-            <AlertTriangle size={24} color="#dc2626" style={{ marginTop: 2 }} />
+            <AlertTriangle size={24} color={colors.danger} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: '#dc2626' }]}>Danger Zone</Text>
+              <Text style={[styles.cardTitle, { color: colors.danger }]}>Danger Zone</Text>
               <Text style={styles.cardSub}>
                 Clear all habits and reset the app back to initial state.
               </Text>
@@ -679,7 +679,7 @@ export default function SettingsScreen() {
               style={styles.jsonInput}
               multiline
               placeholder='{"todos": [...]}'
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.inactive}
               value={pastedJsonText}
               onChangeText={setPastedJsonText}
               autoCapitalize="none"
@@ -736,15 +736,15 @@ export default function SettingsScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.choiceBtn, { borderColor: '#fca5a5' }]}
+                style={[styles.choiceBtn, styles.choiceBtnDanger]}
                 onPress={() => handleConfirmImport('replace')}
                 activeOpacity={0.8}
               >
                 <View style={[styles.choiceBtnIconWrap, styles.choiceBtnIconWrapDanger]}>
-                  <RefreshCw size={20} color="#dc2626" />
+                  <RefreshCw size={20} color={colors.danger} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.choiceBtnTitle, { color: '#dc2626' }]}>
+                  <Text style={[styles.choiceBtnTitle, { color: colors.danger }]}>
                     Replace All Data
                   </Text>
                   <Text style={styles.choiceBtnSub}>
@@ -866,7 +866,7 @@ function createStyles(
     elevation: 8,
   },
   toastText: {
-    color: '#ffffff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
@@ -1031,13 +1031,13 @@ function createStyles(
     lineHeight: 18,
   },
   setupHint: {
-    color: '#64748b',
+    color: colors.textMuted,
     fontSize: 12,
     marginTop: 10,
     lineHeight: 17,
   },
   errorText: {
-    color: '#dc2626',
+    color: colors.danger,
     fontSize: 12,
     marginTop: 10,
     lineHeight: 17,
@@ -1064,15 +1064,17 @@ function createStyles(
     backgroundColor: colors.primary,
   },
   btnPrimaryText: {
-    color: '#ffffff',
+    color: colors.white,
     fontWeight: '600',
     fontSize: 14,
   },
   btnSecondary: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   btnSecondaryText: {
-    color: '#334155',
+    color: colors.textSecondary,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -1089,11 +1091,11 @@ function createStyles(
   },
   dangerCard: {
     borderWidth: 1,
-    borderColor: '#fecaca',
-    backgroundColor: '#fff5f5',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
   },
   dangerBtn: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.danger,
     height: 44,
     borderRadius: 10,
     flexDirection: 'row',
@@ -1101,7 +1103,7 @@ function createStyles(
     justifyContent: 'center',
   },
   dangerBtnText: {
-    color: '#ffffff',
+    color: colors.white,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -1188,7 +1190,7 @@ function createStyles(
     justifyContent: 'center',
   },
   modalBtnText: {
-    color: '#ffffff',
+    color: colors.white,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -1228,10 +1230,14 @@ function createStyles(
     alignItems: 'center',
     gap: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
+  },
+  choiceBtnDanger: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
   },
   choiceBtnIconWrap: {
     width: 40,
@@ -1242,7 +1248,7 @@ function createStyles(
     justifyContent: 'center',
   },
   choiceBtnIconWrapDanger: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: colors.dangerSoft,
   },
   choiceBtnTitle: {
     fontSize: 14,

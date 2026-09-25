@@ -247,12 +247,24 @@ Replace `*****` with the passwords you chose. Putting these in `~/.gradle/gradle
 
 #### 4. Rebuild and verify the certificate
 
+Do **not** run `./gradlew clean` before a release build. On React Native New Architecture, Gradle’s native clean re-runs CMake against codegen JNI folders that were already deleted, which fails with `add_subdirectory ... codegen/jni which is not an existing directory`.
+
+Instead, delete the stale native cache, then build:
+
 ```bash
+# From the project root (Git Bash / macOS / Linux)
+rm -rf android/app/.cxx
 cd android
-./gradlew clean app:bundleRelease
+./gradlew app:bundleRelease
 ```
 
-*(On Windows: `.\gradlew clean app:bundleRelease`)*
+*(On Windows PowerShell, from the project root:)*
+
+```powershell
+Remove-Item -Recurse -Force .\android\app\.cxx -ErrorAction SilentlyContinue
+cd android
+.\gradlew app:bundleRelease
+```
 
 Copy the new AAB into `release/` (see copy commands above), then confirm it is **not** debug-signed:
 
