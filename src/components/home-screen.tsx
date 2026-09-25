@@ -34,6 +34,7 @@ import { formatDateKey, isTodoCompleted, Todo, useTodos } from '@/context/todos-
 import { getAuthDisplayName } from '@/lib/friends';
 import type { ThemeColors } from '@/theme/colors';
 import { getDailyQuote } from '@/utils/daily-quote';
+import { normalizePriority } from '@/utils/priority';
 import { formatScheduleLabel, isTodoDueOnDate } from '@/utils/todo-schedule';
 
 const HERO_IMAGES = {
@@ -327,8 +328,8 @@ export function HomeScreen({
 
     return [...filtered].sort((a, b) => {
       if (sortBy === 'priority') {
-        const pA = typeof a.priority === 'number' ? a.priority : 0;
-        const pB = typeof b.priority === 'number' ? b.priority : 0;
+        const pA = normalizePriority(a.priority);
+        const pB = normalizePriority(b.priority);
         if (pB !== pA) return pB - pA;
         return parseTimeToMinutes(a.notificationTime) - parseTimeToMinutes(b.notificationTime);
       }
@@ -341,8 +342,8 @@ export function HomeScreen({
       const tA = parseTimeToMinutes(a.notificationTime);
       const tB = parseTimeToMinutes(b.notificationTime);
       if (tA !== tB) return tA - tB;
-      const pA = typeof a.priority === 'number' ? a.priority : 0;
-      const pB = typeof b.priority === 'number' ? b.priority : 0;
+      const pA = normalizePriority(a.priority);
+      const pB = normalizePriority(b.priority);
       return pB - pA;
     });
   }, [dueTodos, sortBy, categoryFilter, searchQuery]);

@@ -1,5 +1,6 @@
 import type { Todo } from '@/context/todos-context';
 import { supabase } from '@/lib/supabase';
+import { normalizePriority } from '@/utils/priority';
 
 export type FriendshipStatus = 'pending' | 'accepted' | 'rejected';
 
@@ -97,7 +98,7 @@ function sanitizeTodos(raw: unknown): Todo[] {
         icon: todo.icon ? String(todo.icon) : 'circle-check',
         category: typeof todo.category === 'string' ? todo.category : '',
         timeMinutes: typeof todo.timeMinutes === 'number' && todo.timeMinutes > 0 ? todo.timeMinutes : 30,
-        priority: typeof todo.priority === 'number' && !Number.isNaN(todo.priority) ? todo.priority : 0,
+        priority: normalizePriority(todo.priority),
         createdAt: todo.createdAt ? String(todo.createdAt) : new Date().toISOString(),
         completions,
         notificationTime: todo.notificationTime || '09:00 AM',

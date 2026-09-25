@@ -38,6 +38,12 @@ import { formatDateKey, parseDateKey, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
 import { pickAndStoreCustomRingtone } from '@/utils/custom-ringtone';
 import { DEFAULT_HABIT_ICON, POPULAR_HABIT_ICONS } from '@/utils/habit-icons';
+import {
+  PRIORITY_NONE,
+  PRIORITY_OPTIONS,
+  normalizePriority,
+  type PriorityValue,
+} from '@/utils/priority';
 import { startRingAlarm, stopRingAlarm } from '@/utils/ring-alarm';
 import {
   ALL_RINGTONE_OPTIONS,
@@ -56,7 +62,6 @@ import {
 } from '@/utils/todo-schedule';
 
 const TIME_PRESETS = [15, 30, 45, 60];
-const PRIORITY_PRESETS = [0, 1, 2, 3, 5];
 const SCHEDULE_TIMING_PRESETS = [
   '06:00 AM',
   '08:00 AM',
@@ -170,7 +175,9 @@ export default function AddOrEditTaskPage() {
   const [ringSoundName, setRingSoundName] = useState<string | undefined>(
     todo?.ringSoundUri ? 'Custom track' : undefined
   );
-  const [priority, setPriority] = useState(String(todo?.priority ?? 0));
+  const [priority, setPriority] = useState<PriorityValue>(
+    normalizePriority(todo?.priority ?? PRIORITY_NONE)
+  );
   const draftTodoId = useMemo(() => todoId || `draft_${Date.now()}`, [todoId]);
   const [repeatType, setRepeatType] = useState<TodoScheduleType>(initialRepeat.scheduleType);
   const [intervalDays, setIntervalDays] = useState(
@@ -205,7 +212,7 @@ export default function AddOrEditTaskPage() {
     setRingSoundId(normalizeRingSoundId(todo.ringSoundId ?? DEFAULT_RING_SOUND_ID));
     setRingSoundUri(todo.ringSoundUri);
     setRingSoundName(todo.ringSoundUri ? 'Custom track' : undefined);
-    setPriority(String(todo.priority ?? 0));
+    setPriority(normalizePriority(todo.priority ?? PRIORITY_NONE));
     setRepeatType(nextRepeat.scheduleType);
     setIntervalDays(String(nextRepeat.scheduleIntervalDays ?? SCHEDULE_INTERVAL_DEFAULT));
     setStartDateKey(nextRepeat.scheduleStartDate ?? formatDateKey(new Date()));
@@ -268,10 +275,6 @@ export default function AddOrEditTaskPage() {
     setTime(value.replace(/\D/g, '').slice(0, 4));
   };
 
-  const handlePriorityChange = (value: string) => {
-    setPriority(value.replace(/\D/g, '').slice(0, 4));
-  };
-
   const handleIntervalChange = (value: string) => {
     setIntervalDays(value.replace(/\D/g, '').slice(0, 3));
   };
@@ -297,10 +300,8 @@ export default function AddOrEditTaskPage() {
   };
 
   const durationInputRef = useRef<TextInputType>(null);
-  const priorityInputRef = useRef<TextInputType>(null);
   const intervalInputRef = useRef<TextInputType>(null);
   const isCustomDuration = !TIME_PRESETS.some((preset) => time.trim() === String(preset));
-  const isCustomPriority = !PRIORITY_PRESETS.some((preset) => priority.trim() === String(preset));
 
   const builtSchedule = useMemo(
     () =>
@@ -317,8 +318,7 @@ export default function AddOrEditTaskPage() {
     if (!canSubmit) return;
     const parsed = parseInt(time.trim(), 10);
     const minutes = !isNaN(parsed) && parsed > 0 ? parsed : 30;
-    const parsedPriority = parseInt(priority.trim(), 10);
-    const prioVal = !isNaN(parsedPriority) ? parsedPriority : 0;
+    const prioVal = normalizePriority(priority);
     const ringOptions = {
       ringEnabled,
       ringSoundId: ringEnabled ? ringSoundId : DEFAULT_RING_SOUND_ID,
@@ -888,53 +888,26 @@ export default function AddOrEditTaskPage() {
               <Zap size={15} color="#ea580c" />
             </View>
             <Text style={[styles.cardLabel, { flex: 1 }]}>Task Priority</Text>
-            <Text style={styles.fieldHint}>Tap field to type custom</Text>
           </View>
-          <View style={styles.fieldInputRow}>
-            <Pressable
-              style={[
-                styles.fieldInputWrap,
-                isCustomPriority && priority.trim().length > 0 && styles.fieldInputWrapCustom,
-              ]}
-              onPress={() => priorityInputRef.current?.focus()}
-            >
-              <TextInput
-                ref={priorityInputRef}
-                style={styles.fieldInput}
-                value={priority}
-                onChangeText={handlePriorityChange}
-                keyboardType="number-pad"
-                maxLength={4}
-                placeholder="e.g. 4"
-                placeholderTextColor={colors.inactive}
-                selectTextOnFocus
-              />
-              <Text style={styles.fieldInputSuffix}>level</Text>
-              <Pencil size={13} color={colors.inactive} style={{ marginLeft: 4 }} />
-            </Pressable>
-            <View style={styles.presetsRow}>
-              {PRIORITY_PRESETS.map((preset) => {
-                const isSelected = priority.trim() === String(preset);
-                return (
-                  <TouchableOpacity
-                    key={preset}
-                    style={[styles.presetChip, isSelected && styles.presetChipSelected]}
-                    onPress={() => setPriority(String(preset))}
-                    activeOpacity={0.75}
+          <View style={styles.presetsRow}>
+            {PRIORITY_OPTIONS.map((option) => {
+              const isSelected = priority === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[styles.presetChip, isSelected && styles.presetChipSelected]}
+                  onPress={() => setPriority(option.value)}
+                  activeOpacity={0.75}
+                >
+                  <Text
+                    style={[styles.presetChipText, isSelected && styles.presetChipTextSelected]}
                   >
-                    <Text
-                      style={[styles.presetChipText, isSelected && styles.presetChipTextSelected]}
-                    >
-                      P{preset}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          {isCustomPriority && priority.trim().length > 0 ? (
-            <Text style={styles.customValueNote}>Custom: P{priority}</Text>
-          ) : null}
         </View>
 
         {/* Pick an Icon */}
@@ -1148,8 +1121,8 @@ function createStyles(
   },
   presetsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
-    flexShrink: 0,
   },
   presetChip: {
     backgroundColor: colors.surfaceMuted,

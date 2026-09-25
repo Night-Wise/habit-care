@@ -7,6 +7,7 @@ import {
   scheduleTodoReminders,
   setupNotificationListeners,
 } from '@/utils/notifications';
+import { normalizePriority } from '@/utils/priority';
 import {
   normalizeRingSoundId,
   type RingSoundId,
@@ -378,8 +379,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
           }
           const timeMinutes =
             typeof t.timeMinutes === 'number' && t.timeMinutes > 0 ? t.timeMinutes : 30;
-          const priority =
-            typeof t.priority === 'number' && !isNaN(t.priority) ? t.priority : 0;
+          const priority = normalizePriority(t.priority);
           const schedule = normalizeScheduleFields(t);
           const notificationIds = collectNotificationIds(t);
           const ringNotificationIds = Array.isArray(t.ringNotificationIds)
@@ -498,7 +498,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       typeof timeMinutes === 'number' && !isNaN(timeMinutes) && timeMinutes > 0
         ? timeMinutes
         : 30;
-    const prio = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
+    const prio = normalizePriority(priority);
     const id = Date.now().toString();
     const timeStr = notificationTime || '09:00 AM';
     const scheduleFields = normalizeScheduleFields(schedule ?? {});
@@ -651,7 +651,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       typeof timeMinutes === 'number' && !isNaN(timeMinutes) && timeMinutes > 0
         ? timeMinutes
         : 30;
-    const prio = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
+    const prio = normalizePriority(priority);
     const timeStr = notificationTime || '09:00 AM';
 
     const existing = todos.find((t) => t.id === id);
@@ -833,8 +833,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         }
         const timeMinutes =
           typeof item.timeMinutes === 'number' && item.timeMinutes > 0 ? item.timeMinutes : 30;
-        const priority =
-          typeof item.priority === 'number' && !isNaN(item.priority) ? item.priority : 0;
+        const priority = normalizePriority(item.priority);
         const completions: Record<string, boolean> =
           item.completions && typeof item.completions === 'object'
             ? { ...item.completions }

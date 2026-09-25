@@ -16,6 +16,11 @@ import { HabitIcon } from '@/components/habit-icon';
 import { useTheme } from '@/context/theme-context';
 import { formatDateKey, Todo, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
+import {
+  formatPriorityLabel,
+  getPriorityTone as getPriorityToneLevel,
+  normalizePriority,
+} from '@/utils/priority';
 
 const MONTHLY_VIEW_PREFS_KEY = '@habit-app/monthly-view-prefs';
 
@@ -233,8 +238,7 @@ function buildMonthModel(
 
     completedTotal += completedDays;
     trackedTotal += trackedCount;
-    const priority =
-      typeof todo.priority === 'number' && !Number.isNaN(todo.priority) ? todo.priority : 0;
+    const priority = normalizePriority(todo.priority);
     const completionPercentage = trackedCount ? Math.round((completedDays / trackedCount) * 100) : 0;
     const category = typeof todo.category === 'string' ? todo.category.trim() : '';
     const categoryLabel = category.length > 0 ? category : 'Uncategorized';
@@ -249,7 +253,7 @@ function buildMonthModel(
       priority,
       sortPriority: priority,
       categoryLabel,
-      priorityTone: priority > 0 ? getPriorityTone(priority, scheme) : null,
+      priorityTone: priority > 0 ? getPriorityToneColors(priority, scheme) : null,
       summaryTone: getCompletionTone(completionPercentage, trackedCount > 0, scheme),
     };
   });
@@ -334,26 +338,21 @@ function getCompletionTone(
   return { bg: '#fecaca', text: '#991b1b', fill: '#dc2626' };
 }
 
-function getPriorityTone(priority: number, scheme: 'light' | 'dark') {
-  if (priority >= 5) {
-    return { bg: '#dc2626', text: '#ffffff' };
+function getPriorityToneColors(priority: number, scheme: 'light' | 'dark') {
+  const tone = getPriorityToneLevel(priority);
+  if (tone === 'high') {
+    return scheme === 'dark'
+      ? { bg: '#1a0808', text: '#f87171' }
+      : { bg: '#fee2e2', text: '#b91c1c' };
   }
-  if (scheme === 'dark') {
-    if (priority >= 3) {
-      return { bg: '#1a0808', text: '#f87171' };
-    }
-    if (priority >= 2) {
-      return { bg: '#1a1008', text: '#fb923c' };
-    }
-    return { bg: '#1a1408', text: '#facc15' };
+  if (tone === 'medium') {
+    return scheme === 'dark'
+      ? { bg: '#1a1008', text: '#fb923c' }
+      : { bg: '#ffedd5', text: '#c2410c' };
   }
-  if (priority >= 3) {
-    return { bg: '#fee2e2', text: '#b91c1c' };
-  }
-  if (priority >= 2) {
-    return { bg: '#ffedd5', text: '#c2410c' };
-  }
-  return { bg: '#fef9c3', text: '#a16207' };
+  return scheme === 'dark'
+    ? { bg: '#1a1408', text: '#facc15' }
+    : { bg: '#fef9c3', text: '#a16207' };
 }
 
 function sortRows(
@@ -416,6 +415,7 @@ function areRowPropsEqual(prev: MonthDataRowProps, next: MonthDataRowProps) {
 function TaskNameCell({ row }: { row: RowModel }) {
   const styles = useMonthlyViewStyles();
   const { todo, priority, priorityTone } = row;
+  const priorityLabel = formatPriorityLabel(priority);
 
   return (
     <View style={styles.monthTaskColumn}>
@@ -432,7 +432,7 @@ function TaskNameCell({ row }: { row: RowModel }) {
             { color: priorityTone.text, backgroundColor: priorityTone.bg },
           ]}
         >
-          P{priority}
+          {priorityLabel}
         </Text>
       ) : null}
     </View>

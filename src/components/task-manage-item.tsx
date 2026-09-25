@@ -8,6 +8,11 @@ import { getCategoryStyle, getIconBg } from '@/components/todo-item';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/theme/colors';
 import { isHabitIconId } from '@/utils/habit-icons';
+import {
+  formatPriorityLabel,
+  getPriorityTone,
+  normalizePriority,
+} from '@/utils/priority';
 
 export function TaskManageItem({
   name,
@@ -37,7 +42,9 @@ export function TaskManageItem({
     () => createStyles(colors, fs, fontFamilyValue),
     [colors, fs, fontFamilyValue]
   );
-  const prioLevel = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
+  const prioLevel = normalizePriority(priority);
+  const prioTone = getPriorityTone(prioLevel);
+  const prioLabel = formatPriorityLabel(prioLevel);
   const moreAnchorRef = useRef<View>(null);
   const [menuAnchor, setMenuAnchor] = useState<{ top: number; left: number } | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -109,32 +116,38 @@ export function TaskManageItem({
           </View>
 
           <View style={styles.badgesCol}>
-            {prioLevel > 0 ? (
+            {prioTone ? (
               <View
                 style={[
                   styles.priorityBadge,
-                  prioLevel >= 3
+                  prioTone === 'high'
                     ? styles.priorityBadgeHigh
-                    : prioLevel >= 1
+                    : prioTone === 'medium'
                       ? styles.priorityBadgeMed
                       : styles.priorityBadgeNormal,
                 ]}
               >
                 <Zap
                   size={9}
-                  color={prioLevel >= 3 ? colors.danger : prioLevel >= 1 ? '#d97706' : colors.textMuted}
+                  color={
+                    prioTone === 'high'
+                      ? colors.danger
+                      : prioTone === 'medium'
+                        ? '#d97706'
+                        : colors.textMuted
+                  }
                 />
                 <Text
                   style={[
                     styles.priorityBadgeText,
-                    prioLevel >= 3
+                    prioTone === 'high'
                       ? styles.priorityBadgeTextHigh
-                      : prioLevel >= 1
+                      : prioTone === 'medium'
                         ? styles.priorityBadgeTextMed
                         : styles.priorityBadgeTextNormal,
                   ]}
                 >
-                  P{prioLevel}
+                  {prioLabel}
                 </Text>
               </View>
             ) : null}

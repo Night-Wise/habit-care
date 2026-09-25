@@ -53,8 +53,8 @@ grow on based on number of days we have done that task
 
 - Instead of Priority as P1, P2 , etc. keep it as Low, Medium, High. And default priority should be "None"
 
-Features which are done: 
 
+Features which are done: 
 ------------------------
 
 

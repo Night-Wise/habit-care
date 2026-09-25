@@ -7,6 +7,11 @@ import { HabitIcon } from '@/components/habit-icon';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/theme/colors';
 import { isHabitIconId } from '@/utils/habit-icons';
+import {
+  formatPriorityLabel,
+  getPriorityTone,
+  normalizePriority,
+} from '@/utils/priority';
 
 export interface TodoItemProps {
   name: string;
@@ -90,7 +95,9 @@ export function TodoItem({
     onToggle();
   };
 
-  const prioLevel = typeof priority === 'number' && !isNaN(priority) ? priority : 0;
+  const prioLevel = normalizePriority(priority);
+  const prioTone = getPriorityTone(prioLevel);
+  const prioLabel = formatPriorityLabel(prioLevel);
 
   return (
     <Animated.View
@@ -162,32 +169,38 @@ export function TodoItem({
           </View>
 
           <View style={styles.badgesCol}>
-            {prioLevel > 0 ? (
+            {prioTone ? (
               <View
                 style={[
                   styles.priorityBadge,
-                  prioLevel >= 3
+                  prioTone === 'high'
                     ? styles.priorityBadgeHigh
-                    : prioLevel >= 1
+                    : prioTone === 'medium'
                       ? styles.priorityBadgeMed
                       : styles.priorityBadgeNormal,
                 ]}
               >
                 <Zap
                   size={9}
-                  color={prioLevel >= 3 ? colors.danger : prioLevel >= 1 ? '#d97706' : colors.textMuted}
+                  color={
+                    prioTone === 'high'
+                      ? colors.danger
+                      : prioTone === 'medium'
+                        ? '#d97706'
+                        : colors.textMuted
+                  }
                 />
                 <Text
                   style={[
                     styles.priorityBadgeText,
-                    prioLevel >= 3
+                    prioTone === 'high'
                       ? styles.priorityBadgeTextHigh
-                      : prioLevel >= 1
+                      : prioTone === 'medium'
                         ? styles.priorityBadgeTextMed
                         : styles.priorityBadgeTextNormal,
                   ]}
                 >
-                  P{prioLevel}
+                  {prioLabel}
                 </Text>
               </View>
             ) : null}
