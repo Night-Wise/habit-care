@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowRight,
   Bell,
+  BellRing,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -34,7 +36,15 @@ import { IconPickerModal } from '@/components/icon-picker-modal';
 import { useTheme } from '@/context/theme-context';
 import { formatDateKey, parseDateKey, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
+import { pickAndStoreCustomRingtone } from '@/utils/custom-ringtone';
 import { DEFAULT_HABIT_ICON, POPULAR_HABIT_ICONS } from '@/utils/habit-icons';
+import { startRingAlarm, stopRingAlarm } from '@/utils/ring-alarm';
+import {
+  ALL_RINGTONE_OPTIONS,
+  DEFAULT_RING_SOUND_ID,
+  normalizeRingSoundId,
+  type RingSoundId,
+} from '@/utils/ringtones';
 import {
   SCHEDULE_INTERVAL_DEFAULT,
   SCHEDULE_INTERVAL_MAX,
@@ -152,7 +162,16 @@ export default function AddOrEditTaskPage() {
   const [notificationEnabled, setNotificationEnabled] = useState(
     todo?.notificationEnabled ?? true
   );
+  const [ringEnabled, setRingEnabled] = useState(todo?.ringEnabled ?? false);
+  const [ringSoundId, setRingSoundId] = useState<RingSoundId>(
+    normalizeRingSoundId(todo?.ringSoundId ?? DEFAULT_RING_SOUND_ID)
+  );
+  const [ringSoundUri, setRingSoundUri] = useState<string | undefined>(todo?.ringSoundUri);
+  const [ringSoundName, setRingSoundName] = useState<string | undefined>(
+    todo?.ringSoundUri ? 'Custom track' : undefined
+  );
   const [priority, setPriority] = useState(String(todo?.priority ?? 0));
+  const draftTodoId = useMemo(() => todoId || `draft_${Date.now()}`, [todoId]);
   const [repeatType, setRepeatType] = useState<TodoScheduleType>(initialRepeat.scheduleType);
   const [intervalDays, setIntervalDays] = useState(
     String(initialRepeat.scheduleIntervalDays ?? SCHEDULE_INTERVAL_DEFAULT)
@@ -182,6 +201,10 @@ export default function AddOrEditTaskPage() {
     setScheduleMinute(schedule.minute);
     setSchedulePeriod(schedule.period);
     setNotificationEnabled(todo.notificationEnabled ?? true);
+    setRingEnabled(todo.ringEnabled ?? false);
+    setRingSoundId(normalizeRingSoundId(todo.ringSoundId ?? DEFAULT_RING_SOUND_ID));
+    setRingSoundUri(todo.ringSoundUri);
+    setRingSoundName(todo.ringSoundUri ? 'Custom track' : undefined);
     setPriority(String(todo.priority ?? 0));
     setRepeatType(nextRepeat.scheduleType);
     setIntervalDays(String(nextRepeat.scheduleIntervalDays ?? SCHEDULE_INTERVAL_DEFAULT));
@@ -296,6 +319,16 @@ export default function AddOrEditTaskPage() {
     const minutes = !isNaN(parsed) && parsed > 0 ? parsed : 30;
     const parsedPriority = parseInt(priority.trim(), 10);
     const prioVal = !isNaN(parsedPriority) ? parsedPriority : 0;
+    const ringOptions = {
+      ringEnabled,
+      ringSoundId: ringEnabled ? ringSoundId : DEFAULT_RING_SOUND_ID,
+      ringSoundUri: ringEnabled && ringSoundId === 'custom' ? ringSoundUri : undefined,
+    };
+
+    if (ringEnabled && ringSoundId === 'custom' && !ringSoundUri) {
+      Alert.alert('Choose a track', 'Pick a custom mp3, m4a, or wav file for the ring alarm.');
+      return;
+    }
 
     if (isEdit && todoId) {
       await editTodo(
@@ -307,7 +340,8 @@ export default function AddOrEditTaskPage() {
         notificationEnabled,
         prioVal,
         category.trim(),
-        builtSchedule
+        builtSchedule,
+        ringOptions
       );
     } else {
       await addTodo(
@@ -318,10 +352,32 @@ export default function AddOrEditTaskPage() {
         notificationEnabled,
         prioVal,
         category.trim(),
-        builtSchedule
+        builtSchedule,
+        ringOptions
       );
     }
+    void stopRingAlarm();
     dismissScreen();
+  };
+
+  const handlePickCustomRingtone = async () => {
+    try {
+      const picked = await pickAndStoreCustomRingtone(draftTodoId);
+      if (!picked) return;
+      setRingSoundId('custom');
+      setRingSoundUri(picked.uri);
+      setRingSoundName(picked.name);
+    } catch (err: any) {
+      Alert.alert('Could not use that file', err?.message || 'Please choose an mp3, m4a, or wav.');
+    }
+  };
+
+  const handlePreviewRingtone = async (id: RingSoundId) => {
+    if (id === 'custom' && !ringSoundUri) {
+      Alert.alert('No custom track', 'Pick a custom file first, then preview it.');
+      return;
+    }
+    await startRingAlarm(id, id === 'custom' ? ringSoundUri : undefined, 4000);
   };
 
   const selectCategory = (preset: string) => {
@@ -692,6 +748,81 @@ export default function AddOrEditTaskPage() {
             trackColor={{ false: colors.borderStrong, true: colors.primaryMuted }}
             thumbColor={notificationEnabled ? colors.primary : colors.surface}
           />
+        </View>
+
+        {/* Ring Notification */}
+        <View style={styles.ringCard}>
+          <View style={styles.ringHeader}>
+            <View style={[styles.sectionIcon, { backgroundColor: '#fee2e2' }]}>
+              <BellRing size={15} color="#dc2626" />
+            </View>
+            <View style={styles.notificationCopy}>
+              <Text style={styles.notificationTitle}>Ring Notification</Text>
+              <Text style={styles.notificationSub}>
+                {ringEnabled
+                  ? `Alarm rings 30 min after ${scheduledTime} (loops ~1 min)`
+                  : 'Off by default — enable for a looping alarm'}
+              </Text>
+            </View>
+            <Switch
+              value={ringEnabled}
+              onValueChange={(value) => {
+                setRingEnabled(value);
+                if (!value) void stopRingAlarm();
+              }}
+              trackColor={{ false: colors.borderStrong, true: colors.primaryMuted }}
+              thumbColor={ringEnabled ? colors.primary : colors.surface}
+            />
+          </View>
+
+          {ringEnabled ? (
+            <View style={styles.ringPicker}>
+              <Text style={styles.ringPickerLabel}>Ringtone</Text>
+              {ALL_RINGTONE_OPTIONS.map((option) => {
+                const selected = ringSoundId === option.id;
+                return (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[styles.ringOption, selected && styles.ringOptionSelected]}
+                    onPress={() => {
+                      if (option.id === 'custom') {
+                        void handlePickCustomRingtone();
+                        return;
+                      }
+                      setRingSoundId(option.id);
+                      void handlePreviewRingtone(option.id);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[styles.ringOptionTitle, selected && styles.ringOptionTitleSelected]}
+                      >
+                        {option.label}
+                      </Text>
+                      <Text style={styles.ringOptionSub}>
+                        {option.id === 'custom' && ringSoundName
+                          ? ringSoundName
+                          : option.description}
+                      </Text>
+                    </View>
+                    {option.id === 'custom' && ringSoundUri ? (
+                      <TouchableOpacity
+                        onPress={() => void handlePreviewRingtone('custom')}
+                        hitSlop={8}
+                      >
+                        <Text style={styles.ringPreviewLink}>Preview</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {selected ? <Text style={styles.ringCheck}>✓</Text> : null}
+                  </TouchableOpacity>
+                );
+              })}
+              <Text style={styles.ringHint}>
+                Lock-screen actions: Mark as done · Remind after 1 hour · Off
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Duration */}
@@ -1336,6 +1467,75 @@ function createStyles(
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  ringCard: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 12,
+  },
+  ringHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  ringPicker: {
+    gap: 8,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  ringPickerLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  ringOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  ringOptionSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  ringOptionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  ringOptionTitleSelected: {
+    color: colors.primary,
+  },
+  ringOptionSub: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  ringPreviewLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  ringCheck: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  ringHint: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 4,
+    lineHeight: 15,
   },
   searchIconsBtn: {
     flexDirection: 'row',

@@ -34,10 +34,28 @@
         }
       ],
       "expo-sharing",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/ringtones/funny.mp3",
+            "./assets/ringtones/dino.mp3",
+            "./assets/ringtones/clock.mp3",
+            "./assets/ringtones/eas.mp3",
+            "./assets/ringtones/stardust.mp3",
+            "./assets/ringtones/digital.mp3"
+          ]
+        }
+      ],
       "expo-image",
       "expo-web-browser",
-      "./plugins/withAndroidReleaseSigning.js"
+      "./plugins/withAndroidReleaseSigning.js",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

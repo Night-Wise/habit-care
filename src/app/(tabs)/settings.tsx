@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, BarChart3, Bell, ChevronDown, ChevronUp, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
+import { AlertTriangle, BarChart3, Bell, BellRing, ChevronDown, ChevronUp, Cloud, CloudDownload, CloudUpload, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -33,7 +33,12 @@ import {
   ThemeMode,
 } from '@/theme/colors';
 import type { ThemeColors } from '@/theme/colors';
-import { requestNotificationPermissions, sendTestNotification } from '@/utils/notifications';
+import {
+  requestNotificationPermissions,
+  sendTestNotification,
+  sendTestRingNotification,
+} from '@/utils/notifications';
+import { stopRingAlarm } from '@/utils/ring-alarm';
 
 const THEME_MODES: ThemeMode[] = ['light', 'dark', 'system'];
 const ACCENT_OPTIONS: AccentColor[] = ['blue', 'purple', 'green'];
@@ -257,6 +262,23 @@ export default function SettingsScreen() {
       Alert.alert(
         'Notification Info',
         'Push notifications require a development build or granted permissions. Ensure notifications are enabled in your device settings.'
+      );
+    }
+  };
+
+  const handleTestRingNotification = async () => {
+    await requestNotificationPermissions(colors.primary);
+    const result = await sendTestRingNotification('clock');
+    if (result.scheduled || result.ringing) {
+      showToast(
+        result.scheduled
+          ? '🔔 Ring test sent — alarm loops ~10s. Check lock-screen actions.'
+          : '🔔 Playing ring preview (~10s). Full lock-screen alarms need a native build.'
+      );
+    } else {
+      Alert.alert(
+        'Ring Notification',
+        'Could not play a ring preview. On web/Expo Go, audio may be limited — try a development build for full lock-screen ring alarms.'
       );
     }
   };
@@ -603,6 +625,37 @@ export default function SettingsScreen() {
           >
             <Bell size={16} color="#ffffff" style={{ marginRight: 6 }} />
             <Text style={styles.btnPrimaryText}>Test Notification</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Ring Notifications Section */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <BellRing size={24} color={colors.primary} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Ring Notifications</Text>
+              <Text style={styles.cardSub}>
+                Test the looping ring alarm (auto-stops). On device builds you also get lock-screen
+                actions: Mark as done, Remind after 1 hour, Off.
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={handleTestRingNotification}
+            activeOpacity={0.8}
+          >
+            <BellRing size={16} color="#ffffff" style={{ marginRight: 6 }} />
+            <Text style={styles.btnPrimaryText}>Test Ring Notification</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.btn, styles.btnSecondary, { marginTop: 10 }]}
+            onPress={() => void stopRingAlarm()}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.btnSecondaryText}>Stop Ring</Text>
           </TouchableOpacity>
         </View>
 
