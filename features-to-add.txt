@@ -53,6 +53,10 @@ grow on based on number of days we have done that task
 
 - Instead of Priority as P1, P2 , etc. keep it as Low, Medium, High. And default priority should be "None"
 
+- Fix issue and UI Improvement in Add friend -> No loading info when sending friend request,
+ no popup eg for user-id/email id not found info. No waiting/loading thing if we are checking the user in database: 
+ Some bug (may be) when connecting and removing friends - any one of the user is removing. 
+ No reload button on demand, to refresh the other users data. 
 
 Features which are done: 
 ------------------------

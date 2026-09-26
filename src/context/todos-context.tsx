@@ -18,6 +18,8 @@ import {
   type TodoScheduleFields,
   type TodoScheduleType,
 } from '@/utils/todo-schedule';
+import { syncMonthlyHeatmapWidget } from '@/widgets/sync-monthly-heatmap-widget';
+import { TODOS_STORAGE_KEY } from '@/widgets/constants';
 
 export type { TodoScheduleFields, TodoScheduleType };
 
@@ -355,7 +357,7 @@ interface TodosContextType {
   replaceTodos: (nextTodos: Todo[]) => void;
 }
 
-const TODOS_KEY = '@habit_app_todos';
+const TODOS_KEY = TODOS_STORAGE_KEY;
 
 const TodosContext = createContext<TodosContextType | undefined>(undefined);
 
@@ -436,12 +438,13 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // Persist todos whenever they change
+  // Persist todos whenever they change, and refresh the Android heatmap widget
   useEffect(() => {
     if (!isLoaded) return;
     AsyncStorage.setItem(TODOS_KEY, JSON.stringify(todos)).catch((e) =>
       console.warn('[TodosContext] Failed to save to AsyncStorage:', e)
     );
+    syncMonthlyHeatmapWidget(todos);
   }, [todos, isLoaded]);
 
   // Notification action buttons (Mark as done / Snooze / Off)

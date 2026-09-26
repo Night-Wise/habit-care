@@ -55,6 +55,25 @@
         {
           "enableBackgroundPlayback": true
         }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "MonthlyHeatmap",
+              "label": "Monthly Activity",
+              "description": "GitHub-style heatmap of all habits this month",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/widget-preview/monthly-heatmap.png"
+            }
+          ]
+        }
       ]
     ],
     "experiments": {

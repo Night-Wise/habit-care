@@ -3,6 +3,9 @@ const { withAppBuildGradle } = require('expo/config-plugins');
 /**
  * Ensures release builds use an upload keystore (MYAPP_UPLOAD_*) instead of the
  * debug keystore, so Play Store accepts the AAB. Survives `npx expo prebuild`.
+ *
+ * The keystore check is deferred to task-graph time so `assembleDebug` still works
+ * when upload credentials are not configured.
  */
 function withAndroidReleaseSigning(config) {
   return withAppBuildGradle(config, (config) => {
@@ -38,14 +41,27 @@ function withAndroidReleaseSigning(config) {
             // ~/.gradle/gradle.properties (see README) before building release.
             if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
                 signingConfig signingConfigs.release
-            } else {
-                throw new GradleException(
-                    "Release builds require an upload keystore. Set MYAPP_UPLOAD_STORE_FILE, " +
-                    "MYAPP_UPLOAD_KEY_ALIAS, MYAPP_UPLOAD_STORE_PASSWORD, and MYAPP_UPLOAD_KEY_PASSWORD " +
-                    "in ~/.gradle/gradle.properties. See README Signing for Play Store."
-                )
             }`
     );
+
+    if (!contents.includes('gradle.taskGraph.whenReady') && contents.includes('MYAPP_UPLOAD_STORE_FILE')) {
+      contents += `
+
+gradle.taskGraph.whenReady { taskGraph ->
+    def isReleaseAssemble = taskGraph.allTasks.any { task ->
+        def n = task.name.toLowerCase()
+        n.contains('assemblerelease') || n.contains('bundlerelease')
+    }
+    if (isReleaseAssemble && !project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+        throw new GradleException(
+            "Release builds require an upload keystore. Set MYAPP_UPLOAD_STORE_FILE, " +
+            "MYAPP_UPLOAD_KEY_ALIAS, MYAPP_UPLOAD_STORE_PASSWORD, and MYAPP_UPLOAD_KEY_PASSWORD " +
+            "in ~/.gradle/gradle.properties. See README Signing for Play Store."
+        )
+    }
+}
+`;
+    }
 
     if (!contents.includes('MYAPP_UPLOAD_STORE_FILE')) {
       throw new Error(

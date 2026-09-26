@@ -2,8 +2,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, BarChart3, Bell, BellRing, ChevronDown, ChevronUp, Cloud, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { AlertTriangle, BarChart3, Bell, BellRing, ChevronDown, ChevronUp, Cloud, Copy, Eye, FileDown, FileText, FolderOpen, GitMerge, LayoutGrid, LogOut, Palette, RefreshCw, Share2, Trash2, Upload } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -22,7 +22,17 @@ import { formatLastSyncedAt, useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
 import { useTodos } from '@/context/todos-context';
 import { GoogleLogo } from '@/components/google-logo';
+import { MonthlyHeatmapPreview } from '@/components/monthly-heatmap-preview';
 import { ScreenHeader } from '@/components/screen-header';
+import { buildCurrentMonthActivityHeatmap } from '@/utils/monthly-activity-heatmap';
+import { MONTHLY_HEATMAP_WIDGET_NAME } from '@/widgets/constants';
+import { syncMonthlyHeatmapWidget } from '@/widgets/sync-monthly-heatmap-widget';
+import {
+  getMonthlyHeatmapWidgetPrefs,
+  setMonthlyHeatmapWidgetEnabled,
+  setMonthlyHeatmapWidgetTheme,
+  type WidgetThemeMode,
+} from '@/widgets/widget-prefs';
 import {
   ACCENT_LABELS,
   AccentColor,
@@ -44,6 +54,12 @@ import { stopRingAlarm } from '@/utils/ring-alarm';
 const THEME_MODES: ThemeMode[] = ['light', 'dark', 'system'];
 const ACCENT_OPTIONS: AccentColor[] = ['blue', 'purple', 'green'];
 const FONT_SCALES: FontScaleId[] = ['small', 'default', 'large'];
+const WIDGET_THEME_MODES: WidgetThemeMode[] = ['system', 'light', 'dark'];
+const WIDGET_THEME_LABELS: Record<WidgetThemeMode, string> = {
+  system: 'System',
+  light: 'Light',
+  dark: 'Dark',
+};
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -80,6 +96,79 @@ export default function SettingsScreen() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [appearanceExpanded, setAppearanceExpanded] = useState(false);
+  const [widgetEnabled, setWidgetEnabled] = useState(true);
+  const [widgetTheme, setWidgetTheme] = useState<WidgetThemeMode>('system');
+  const [widgetPrefsLoaded, setWidgetPrefsLoaded] = useState(false);
+
+  const heatmapPreviewData = useMemo(
+    () => buildCurrentMonthActivityHeatmap(todos),
+    [todos]
+  );
+
+  const previewDark =
+    widgetTheme === 'dark' ||
+    (widgetTheme === 'system' && resolvedScheme === 'dark');
+
+  useEffect(() => {
+    void getMonthlyHeatmapWidgetPrefs().then((prefs) => {
+      setWidgetEnabled(prefs.enabled);
+      setWidgetTheme(prefs.theme);
+      setWidgetPrefsLoaded(true);
+    });
+  }, []);
+
+  const handleWidgetEnabledChange = (enabled: boolean) => {
+    setWidgetEnabled(enabled);
+    void setMonthlyHeatmapWidgetEnabled(enabled).then(() => {
+      syncMonthlyHeatmapWidget(todos);
+      showToast(
+        enabled
+          ? 'Home screen widget enabled'
+          : 'Home screen widget disabled'
+      );
+    });
+  };
+
+  const handleWidgetThemeChange = (theme: WidgetThemeMode) => {
+    setWidgetTheme(theme);
+    void setMonthlyHeatmapWidgetTheme(theme).then(() => {
+      syncMonthlyHeatmapWidget(todos);
+      showToast(
+        theme === 'system'
+          ? 'Widget follows system light/dark'
+          : `Widget locked to ${theme} mode`
+      );
+    });
+  };
+
+  const handleAddWidgetToHome = async () => {
+    if (Platform.OS !== 'android') {
+      Alert.alert(
+        'Android only',
+        'Home screen widgets are available on Android builds (not Expo Go / web).'
+      );
+      return;
+    }
+    try {
+      const { requestPinWidget } = await import('react-native-android-widget');
+      const accepted = await requestPinWidget({
+        widgetName: MONTHLY_HEATMAP_WIDGET_NAME,
+      });
+      if (accepted) {
+        showToast('Follow the system prompt to place the widget');
+      } else {
+        Alert.alert(
+          'Add widget manually',
+          'Long-press your home screen → Widgets → HabitCare → Monthly Activity. You can resize it freely after placing.'
+        );
+      }
+    } catch {
+      Alert.alert(
+        'Add widget manually',
+        'Long-press your home screen → Widgets → HabitCare → Monthly Activity. You can resize it freely after placing.'
+      );
+    }
+  };
 
   // Modals state
   const [isViewJsonOpen, setIsViewJsonOpen] = useState(false);
@@ -488,6 +577,103 @@ export default function SettingsScreen() {
               </View>
             </>
           ) : null}
+        </View>
+
+        {/* Home screen widget */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <LayoutGrid size={24} color={colors.primary} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Home Screen Widget</Text>
+              <Text style={styles.cardSub}>
+                Monthly GitHub-style heatmap. Follows system light/dark, or lock to one look.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.widgetPreviewRow}>
+            <View style={styles.widgetPreviewCol}>
+              <Text style={styles.widgetPreviewLabel}>Light</Text>
+              <MonthlyHeatmapPreview
+                data={heatmapPreviewData}
+                dark={false}
+                enabled={widgetEnabled}
+                width={148}
+                height={128}
+              />
+            </View>
+            <View style={styles.widgetPreviewCol}>
+              <Text style={styles.widgetPreviewLabel}>Dark</Text>
+              <MonthlyHeatmapPreview
+                data={heatmapPreviewData}
+                dark
+                enabled={widgetEnabled}
+                width={148}
+                height={128}
+              />
+            </View>
+          </View>
+
+          <Text style={[styles.appearanceLabel, { marginTop: 0 }]}>Widget theme</Text>
+          <View style={[styles.chipRow, { marginBottom: 12 }]}>
+            {WIDGET_THEME_MODES.map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                style={[
+                  styles.appearanceChip,
+                  widgetTheme === mode && styles.appearanceChipActive,
+                ]}
+                onPress={() => handleWidgetThemeChange(mode)}
+                disabled={!widgetPrefsLoaded}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.appearanceChipText,
+                    widgetTheme === mode && styles.appearanceChipTextActive,
+                  ]}
+                >
+                  {WIDGET_THEME_LABELS[mode]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={[styles.syncMetaSub, { marginBottom: 12 }]}>
+            {widgetTheme === 'system'
+              ? `Currently previewing ${previewDark ? 'dark' : 'light'} from your device theme.`
+              : `Widget stays ${widgetTheme} even if the phone theme changes.`}
+          </Text>
+
+          <View style={styles.syncMetaRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.syncMetaTitle}>Show activity on widget</Text>
+              <Text style={styles.syncMetaSub}>
+                When off, the home screen widget shows a disabled state until you turn it back on.
+              </Text>
+            </View>
+            <Switch
+              value={widgetEnabled}
+              onValueChange={handleWidgetEnabledChange}
+              disabled={!widgetPrefsLoaded}
+              trackColor={{ false: colors.border, true: colors.primarySoft }}
+              thumbColor={widgetEnabled ? colors.primary : colors.inactive}
+            />
+          </View>
+          {Platform.OS === 'android' ? (
+            <TouchableOpacity
+              style={[styles.btn, styles.btnPrimary, !widgetEnabled && { opacity: 0.55 }]}
+              onPress={handleAddWidgetToHome}
+              disabled={!widgetEnabled}
+              activeOpacity={0.8}
+            >
+              <LayoutGrid size={16} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.btnPrimaryText}>Add to Home Screen</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.setupHint}>
+              Widgets require an Android install (APK / development build), not Expo Go or web.
+            </Text>
+          )}
         </View>
 
         {/* Account Section */}
@@ -1057,6 +1243,28 @@ function createStyles(
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  widgetPreviewWrap: {
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
+  },
+  widgetPreviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 14,
+  },
+  widgetPreviewCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  widgetPreviewLabel: {
+    fontSize: fs(12),
+    fontWeight: '600',
+    color: colors.textMuted,
+    fontFamily,
   },
   syncMetaTitle: {
     fontSize: 15,
