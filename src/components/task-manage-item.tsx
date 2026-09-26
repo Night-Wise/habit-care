@@ -120,31 +120,37 @@ export function TaskManageItem({
               <View
                 style={[
                   styles.priorityBadge,
-                  prioTone === 'high'
-                    ? styles.priorityBadgeHigh
-                    : prioTone === 'medium'
-                      ? styles.priorityBadgeMed
-                      : styles.priorityBadgeNormal,
+                  prioTone === 'critical'
+                    ? styles.priorityBadgeCritical
+                    : prioTone === 'high'
+                      ? styles.priorityBadgeHigh
+                      : prioTone === 'medium'
+                        ? styles.priorityBadgeMed
+                        : styles.priorityBadgeNormal,
                 ]}
               >
                 <Zap
                   size={9}
                   color={
-                    prioTone === 'high'
-                      ? colors.danger
-                      : prioTone === 'medium'
-                        ? '#d97706'
-                        : colors.textMuted
+                    prioTone === 'critical'
+                      ? '#9f1239'
+                      : prioTone === 'high'
+                        ? colors.danger
+                        : prioTone === 'medium'
+                          ? '#d97706'
+                          : colors.textMuted
                   }
                 />
                 <Text
                   style={[
                     styles.priorityBadgeText,
-                    prioTone === 'high'
-                      ? styles.priorityBadgeTextHigh
-                      : prioTone === 'medium'
-                        ? styles.priorityBadgeTextMed
-                        : styles.priorityBadgeTextNormal,
+                    prioTone === 'critical'
+                      ? styles.priorityBadgeTextCritical
+                      : prioTone === 'high'
+                        ? styles.priorityBadgeTextHigh
+                        : prioTone === 'medium'
+                          ? styles.priorityBadgeTextMed
+                          : styles.priorityBadgeTextNormal,
                   ]}
                 >
                   {prioLabel}
@@ -266,8 +272,8 @@ function createStyles(
     taskRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 14,
-      paddingVertical: 13,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
     },
     itemPress: {
       flex: 1,
@@ -309,7 +315,7 @@ function createStyles(
     metaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 3,
+      marginTop: 1,
       gap: 6,
       flexWrap: 'wrap',
     },
@@ -356,6 +362,9 @@ function createStyles(
     priorityBadgeHigh: {
       backgroundColor: colors.dangerSoft,
     },
+    priorityBadgeCritical: {
+      backgroundColor: '#fce7f3',
+    },
     priorityBadgeText: {
       fontSize: fs(10),
       fontWeight: '700',
@@ -369,6 +378,9 @@ function createStyles(
     },
     priorityBadgeTextHigh: {
       color: '#b91c1c',
+    },
+    priorityBadgeTextCritical: {
+      color: '#9f1239',
     },
     timeBadge: {
       flexDirection: 'row',

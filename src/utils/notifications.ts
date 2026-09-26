@@ -179,7 +179,8 @@ export async function requestNotificationPermissions(
         lightColor,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
         bypassDnd: false,
-        sound: 'default',
+        // Omit `sound` for the system default. A string is treated as a custom
+        // sound filename and must exist in the expo-notifications plugin sounds list.
       });
     }
 

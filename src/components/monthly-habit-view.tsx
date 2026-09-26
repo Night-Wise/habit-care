@@ -340,6 +340,11 @@ function getCompletionTone(
 
 function getPriorityToneColors(priority: number, scheme: 'light' | 'dark') {
   const tone = getPriorityToneLevel(priority);
+  if (tone === 'critical') {
+    return scheme === 'dark'
+      ? { bg: '#1a0814', text: '#f472b6' }
+      : { bg: '#fce7f3', text: '#9f1239' };
+  }
   if (tone === 'high') {
     return scheme === 'dark'
       ? { bg: '#1a0808', text: '#f87171' }
