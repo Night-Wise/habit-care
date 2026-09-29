@@ -120,6 +120,14 @@ npm run release-apk
 
 The release APK is saved to `build-apk/app-release.apk`.
 
+Both `release-apk` and `test-apk` first run pre-flight checks (Android project, Java, Android SDK, `.env` Supabase keys, and for release the upload keystore, alias, and passwords) and stop before Gradle starts if anything is wrong. To run only the checks:
+
+```bash
+npm run preflight-apk
+```
+
+Pass `--skip-preflight` to `scripts/build-apk.js` to bypass them.
+
 ### Build Debug APK
 
 ```bash
@@ -210,42 +218,145 @@ After `bundleRelease`, use the [Copy Debug APK, Release APK, and Release Bundle]
 
 ### Signing for Play Store
 
-Play Console rejects bundles signed with the debug keystore (`CN=Android Debug`). Create an upload keystore once, keep it private, and reuse it for every future release.
+Play Console rejects bundles signed with the debug keystore (`CN=Android Debug`). Release builds must be signed with the **upload key**.
 
-#### 1. Create an upload keystore
+HabitCare uses **Play App Signing**, so there are two keys:
 
-From the project root (Windows; run from your JDK `bin` folder if `keytool` is not on PATH):
+| Key | Who holds it | Purpose |
+| --- | --- | --- |
+| App signing key | Google Play | Signs the APKs users download from Play. Never leaves Google. |
+| Upload key | You (`habitcare-upload.keystore`) | Signs the AAB you upload, so Play knows it came from you. |
 
-```bash
-keytool -genkeypair -v -storetype PKCS12 -keystore my-upload-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+Because Google holds the app signing key, losing the upload key does **not** lose the app. It can be reset (see [If the upload key is lost](#if-the-upload-key-is-lost)).
+
+#### Signing files
+
+All signing files live **outside the repo** in `~/.android-keys/` (on Windows: `C:\Users\<you>\.android-keys\`).
+
+| File | Secret? | What it is |
+| --- | --- | --- |
+| `~/.android-keys/habitcare-upload.keystore` | **Yes, private** | PKCS12 keystore holding the upload key (alias `my-key-alias`). Required for every release build. |
+| `~/.android-keys/upload_certificate.pem` | No, public | Upload certificate exported from the keystore. Only needed to register or reset the upload key in Play Console. |
+| `~/.gradle/gradle.properties` | **Yes, contains passwords** | Tells Gradle where the keystore is and how to open it (`MYAPP_UPLOAD_*` variables). |
+
+Current upload key fingerprint (compare with Play Console → App integrity → App signing → Upload key certificate):
+
+```text
+SHA-1:   AE:83:A4:6F:73:CB:E3:60:84:FE:E1:69:60:E2:BD:78:1A:98:CF:74
+SHA-256: 69:2D:67:9A:FE:59:FA:0E:EB:C9:79:12:F7:A6:70:13:AA:52:68:AE:83:BD:9B:18:B4:D5:D3:52:D3:08:F7:10
 ```
 
-Move the file into `android/app/`:
+History: the original upload key (SHA-1 `A2:CF:17:24:D7:95:3F:1A:B9:F7:61:CB:0D:0C:4A:B7:0E:02:70:85`, used for `release/app-releasev1.aab`) was stored in `android/app/`, was deleted when the `android/` folder was regenerated, and was replaced with the key above via an upload key reset (Sep 2026).
+
+Never keep the keystore in `android/`. That folder is generated and gitignored, and `npx expo prebuild --clean` deletes it along with anything inside. `.gitignore` already excludes `*.keystore`, `*.jks`, `*.p12`, and `*.pem`; never force-add them.
+
+#### 1. Create the upload keystore
+
+Only do this for a brand-new app, or when resetting a lost upload key. `keytool` ships with the JDK (`$JAVA_HOME/bin`).
+
+**Git Bash / macOS / Linux:**
 
 ```bash
-mv my-upload-key.keystore android/app/
+mkdir -p ~/.android-keys
+keytool -genkeypair -v -storetype PKCS12 \
+  -keystore ~/.android-keys/habitcare-upload.keystore \
+  -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000 \
+  -dname "CN=HabitCare, OU=Mobile, O=HabitCare, L=Unknown, ST=Unknown, C=US"
 ```
 
-Back up the keystore file and passwords somewhere safe. If you lose them, you cannot update the same Play Store app.
+**PowerShell:**
 
-#### 2. Add Gradle signing variables (do not commit these)
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.android-keys" | Out-Null
+& "$env:JAVA_HOME\bin\keytool" -genkeypair -v -storetype PKCS12 `
+  -keystore "$HOME\.android-keys\habitcare-upload.keystore" `
+  -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000 `
+  -dname "CN=HabitCare, OU=Mobile, O=HabitCare, L=Unknown, ST=Unknown, C=US"
+```
 
-Create or edit `~/.gradle/gradle.properties` (on Windows: `C:\Users\<you>\.gradle\gradle.properties`) and add:
+`keytool` prompts for a keystore password (at least 6 characters). PKCS12 keystores use the same password for the key, so you only choose one password.
+
+#### 2. Export the upload certificate (`upload_certificate.pem`)
+
+```bash
+keytool -export -rfc \
+  -keystore ~/.android-keys/habitcare-upload.keystore \
+  -alias my-key-alias \
+  -file ~/.android-keys/upload_certificate.pem
+```
+
+This file contains only the public certificate. Upload it to Play Console when registering or resetting the upload key.
+
+#### 3. Add Gradle signing variables (do not commit these)
+
+Gradle reads four variables. The keystore can live anywhere, as long as `MYAPP_UPLOAD_STORE_FILE` points to it.
+
+| Variable | Value |
+| --- | --- |
+| `MYAPP_UPLOAD_STORE_FILE` | Path to the keystore. Use an absolute path with forward slashes. A relative path is resolved against `android/app/`. |
+| `MYAPP_UPLOAD_KEY_ALIAS` | `my-key-alias` |
+| `MYAPP_UPLOAD_STORE_PASSWORD` | Keystore password |
+| `MYAPP_UPLOAD_KEY_PASSWORD` | Same as the keystore password (PKCS12) |
+
+**Option A: user Gradle properties (recommended for this machine).** Create or edit `~/.gradle/gradle.properties` (on Windows: `C:\Users\<you>\.gradle\gradle.properties`):
 
 ```properties
-MYAPP_UPLOAD_STORE_FILE=my-upload-key.keystore
+MYAPP_UPLOAD_STORE_FILE=C:/Users/<you>/.android-keys/habitcare-upload.keystore
 MYAPP_UPLOAD_KEY_ALIAS=my-key-alias
 MYAPP_UPLOAD_STORE_PASSWORD=*****
 MYAPP_UPLOAD_KEY_PASSWORD=*****
 ```
 
-Replace `*****` with the passwords you chose. Putting these in `~/.gradle/gradle.properties` keeps secrets out of the repo. Do not put them in `android/gradle.properties` if that file is committed.
+Use forward slashes: backslashes are escape characters in `.properties` files. Never put these in `android/gradle.properties` (it is regenerated by prebuild) or any committed file.
 
-#### 3. Confirm release signing is wired up
+**Option B: environment variables (CI, or keeping secrets somewhere else).** Gradle also reads any variable named `ORG_GRADLE_PROJECT_<name>`, and these override `gradle.properties`:
+
+```bash
+# Git Bash / macOS / Linux
+export ORG_GRADLE_PROJECT_MYAPP_UPLOAD_STORE_FILE="/path/to/habitcare-upload.keystore"
+export ORG_GRADLE_PROJECT_MYAPP_UPLOAD_KEY_ALIAS="my-key-alias"
+export ORG_GRADLE_PROJECT_MYAPP_UPLOAD_STORE_PASSWORD="*****"
+export ORG_GRADLE_PROJECT_MYAPP_UPLOAD_KEY_PASSWORD="*****"
+```
+
+```powershell
+# PowerShell (current session)
+$env:ORG_GRADLE_PROJECT_MYAPP_UPLOAD_STORE_FILE = "D:/secure/habitcare-upload.keystore"
+$env:ORG_GRADLE_PROJECT_MYAPP_UPLOAD_KEY_ALIAS = "my-key-alias"
+$env:ORG_GRADLE_PROJECT_MYAPP_UPLOAD_STORE_PASSWORD = "*****"
+$env:ORG_GRADLE_PROJECT_MYAPP_UPLOAD_KEY_PASSWORD = "*****"
+```
+
+To move the whole Gradle user folder (including `gradle.properties`) elsewhere, set `GRADLE_USER_HOME` to the new folder.
+
+#### 4. Back up the keystore and passwords
+
+Right after creating the keystore, store copies in at least two places that are not this laptop:
+
+1. A password manager entry (Bitwarden, 1Password, etc.) containing the keystore password, alias `my-key-alias`, and `habitcare-upload.keystore` as an attachment.
+2. An encrypted cloud drive or USB drive holding `habitcare-upload.keystore` and `upload_certificate.pem`.
+
+The keystore is useless without its password, and the password is useless without the keystore, so back up both together.
+
+#### 5. Verify the setup
+
+Run the pre-flight checks. They confirm the keystore exists, the password opens it, the alias exists, and the key password works, without starting Gradle:
+
+```bash
+npm run preflight-apk
+```
+
+To see the fingerprint and compare it with Play Console:
+
+```bash
+keytool -list -v -keystore ~/.android-keys/habitcare-upload.keystore -alias my-key-alias
+```
+
+#### 6. Confirm release signing is wired up
 
 `android/app/build.gradle` must use `signingConfigs.release` when `MYAPP_UPLOAD_STORE_FILE` is set. This repo includes `./plugins/withAndroidReleaseSigning.js` so that survives `npx expo prebuild`. If you regenerate native projects, run prebuild again before building.
 
-#### 4. Rebuild and verify the certificate
+#### 7. Rebuild and verify the certificate
 
 Do **not** run `./gradlew clean` before a release build. On React Native New Architecture, Gradle’s native clean re-runs CMake against codegen JNI folders that were already deleted, which fails with `add_subdirectory ... codegen/jni which is not an existing directory`.
 
@@ -272,7 +383,33 @@ Copy the new AAB into `release/` (see copy commands above), then confirm it is *
 keytool -printcert -jarfile release/app-release.aab
 ```
 
-The owner must **not** be `CN=Android Debug`. Upload that AAB to Play Console.
+The owner must **not** be `CN=Android Debug`, and the SHA-1 must match the upload key certificate in Play Console. Upload that AAB to Play Console.
+
+#### If the upload key is lost
+
+Symptoms: `npm run preflight-apk` reports `Keystore not found`, or Play Console rejects an upload because it is signed with the wrong key.
+
+1. **Search before resetting.** Look for any copy of the keystore (backups, Downloads, old project folders):
+
+   ```bash
+   find ~ -type f \( -iname "*.keystore" -o -iname "*.jks" -o -iname "*.p12" \) -not -path "*/node_modules/*" 2>/dev/null
+   ```
+
+   For each candidate, compare `keytool -list -v -keystore <file>` against the upload key SHA-1 in Play Console. If one matches, copy it to `~/.android-keys/habitcare-upload.keystore` and you are done.
+
+   The SHA-1 of the key used for a previous build can be read from that build: `keytool -printcert -jarfile release/app-releasev1.aab`.
+
+2. **Confirm it is the upload key.** In Play Console → your app → Test and release → App integrity → App signing, check that the lost key's SHA-1 is listed as the **Upload key certificate**, not the app signing key.
+
+3. **Create a new keystore and certificate** with [step 1](#1-create-the-upload-keystore) and [step 2](#2-export-the-upload-certificate-upload_certificatepem). Keeping the same alias and password means only `MYAPP_UPLOAD_STORE_FILE` may need to change.
+
+4. **Request the reset.** On the App signing page, choose **Request upload key reset**, select "I lost my upload key", and upload `~/.android-keys/upload_certificate.pem`.
+
+5. **Wait for Google.** Play Console shows the date the new upload key becomes active (usually within a couple of days). Until then, Play rejects AABs signed with the new key. Local debug and release APKs still build and install normally.
+
+6. **After activation,** confirm the Upload key certificate in Play Console shows the new SHA-1, update the fingerprint in [Signing files](#signing-files), and [back up](#4-back-up-the-keystore-and-passwords) the new keystore.
+
+Users who installed from Play are not affected by an upload key reset: Google keeps signing their updates with the same app signing key.
 
 See also [Expo: Create a release build locally](https://docs.expo.dev/guides/local-app-production/).
 

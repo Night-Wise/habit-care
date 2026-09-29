@@ -55,6 +55,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "release-apk": "node scripts/build-apk.js release",
+    "preflight-apk": "node scripts/build-apk.js preflight release",
     "test-apk": "node scripts/build-apk.js debug"
   },
   "private": true
