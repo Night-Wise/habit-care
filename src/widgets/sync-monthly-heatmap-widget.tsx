@@ -1,3 +1,4 @@
+import { isRunningInExpoGo } from 'expo';
 import { Platform } from 'react-native';
 
 import type { Todo } from '@/context/todos-context';
@@ -7,7 +8,8 @@ import { getMonthlyHeatmapWidgetPrefs } from '@/widgets/widget-prefs';
 
 /** Push the latest month heatmap to any Android home-screen widgets. */
 export function syncMonthlyHeatmapWidget(todos: Todo[]) {
-  if (Platform.OS !== 'android') return;
+  // Expo Go doesn't include the native widget module.
+  if (Platform.OS !== 'android' || isRunningInExpoGo()) return;
 
   const data = buildCurrentMonthActivityHeatmap(todos);
 

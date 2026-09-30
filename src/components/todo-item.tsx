@@ -1,4 +1,4 @@
-import { Bell, Clock, Zap } from 'lucide-react-native';
+import { Bell, Clock, RefreshCw, Zap } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -103,6 +103,7 @@ export function TodoItem({
     <Animated.View
       style={[
         styles.todoCard,
+        completed && styles.todoCardDone,
         { transform: [{ scale: scaleAnim }] },
         disabled && styles.todoCardDisabled,
       ]}
@@ -115,18 +116,14 @@ export function TodoItem({
       >
         <View
           style={[
-            styles.checkbox,
-            completed && styles.checkboxDone,
-            disabled && styles.checkboxDisabled,
+            styles.iconWrap,
+            { backgroundColor: iconBg },
+            completed && [styles.iconWrapDone, { borderColor: iconColor }],
           ]}
         >
-          {completed && <Text style={styles.checkmark}>✓</Text>}
-        </View>
-
-        <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
           <HabitIcon
             icon={icon}
-            size={20}
+            size={26}
             color={iconColor}
             strokeWidth={2.2}
             style={disabled ? styles.todoIconDisabled : undefined}
@@ -154,8 +151,11 @@ export function TodoItem({
                 </View>
               ) : null}
               {scheduleLabel ? (
-                <View style={styles.scheduleBadge}>
-                  <Text style={styles.scheduleBadgeText}>{scheduleLabel}</Text>
+                <View style={styles.scheduleBadge} accessibilityLabel={scheduleLabel}>
+                  <RefreshCw size={10} color={colors.textMuted} strokeWidth={2.4} />
+                  {scheduleLabel.trim().toLowerCase() !== 'everyday' ? (
+                    <Text style={styles.scheduleBadgeText}>{scheduleLabel}</Text>
+                  ) : null}
                 </View>
               ) : null}
               {category ? (
@@ -234,6 +234,16 @@ export function TodoItem({
             ) : null}
           </View>
         </View>
+
+        <View
+          style={[
+            styles.checkbox,
+            completed && styles.checkboxDone,
+            disabled && styles.checkboxDisabled,
+          ]}
+        >
+          {completed && <Text style={styles.checkmark}>✓</Text>}
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -251,6 +261,9 @@ function createStyles(
       borderWidth: 1,
       borderColor: colors.border,
     },
+    todoCardDone: {
+      backgroundColor: colors.successSoft,
+    },
     todoCardDisabled: {
       opacity: 0.65,
     },
@@ -266,7 +279,7 @@ function createStyles(
       borderRadius: 6,
       borderWidth: 2,
       borderColor: colors.borderStrong,
-      marginRight: 8,
+      marginLeft: 10,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -285,12 +298,15 @@ function createStyles(
       fontFamily,
     },
     iconWrap: {
-      width: 34,
-      height: 34,
-      borderRadius: 10,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 8,
+    },
+    iconWrapDone: {
+      borderWidth: 1,
     },
     todoIcon: {
       fontSize: 17,
@@ -326,7 +342,7 @@ function createStyles(
     metaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 1,
+      marginTop: 5,
       gap: 6,
       flexWrap: 'wrap',
     },
@@ -352,9 +368,12 @@ function createStyles(
       fontFamily,
     },
     scheduleBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
       borderRadius: 6,
-      paddingHorizontal: 6,
-      paddingVertical: 1,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
       backgroundColor: colors.surfaceMuted,
       borderWidth: 1,
       borderColor: colors.border,

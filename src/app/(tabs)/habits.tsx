@@ -253,7 +253,7 @@ function createStyles(
     divider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.borderStrong,
-      marginLeft: 68,
+      marginLeft: 14,
     },
     row: {
       flexDirection: 'row',
