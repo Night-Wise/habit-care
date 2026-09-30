@@ -1,5 +1,4 @@
-import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -13,12 +12,11 @@ import { getHabitTheme, HabitHeatmap } from '@/components/habit-heatmap';
 import { HabitIcon } from '@/components/habit-icon';
 import { MonthlyHabitView } from '@/components/monthly-habit-view';
 import { ScreenHeader } from '@/components/screen-header';
-import { TaskManageItem } from '@/components/task-manage-item';
 import { useTheme } from '@/context/theme-context';
 import { getTodoInsights, Todo, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
 
-type HabitsTab = 'heatmap' | 'monthly' | 'edit';
+type HabitsTab = 'heatmap' | 'monthly';
 
 function HabitRow({ todo }: { todo: Todo }) {
   const { colors, fs, fontFamilyValue } = useTheme();
@@ -87,22 +85,12 @@ function HabitsTabSwitcher({
           Monthly View
         </Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tabOption, activeTab === 'edit' && styles.tabOptionActive]}
-        onPress={() => onChange('edit')}
-        activeOpacity={0.7}
-      >
-        <Text style={[styles.tabOptionText, activeTab === 'edit' && styles.tabOptionTextActive]}>
-          Edit
-        </Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
 export default function HabitsScreen() {
-  const { todos, isLoaded, deleteTodo, toggleTodoNotification } = useTodos();
-  const router = useRouter();
+  const { todos, isLoaded } = useTodos();
   const insets = useSafeAreaInsets();
   const { colors, fs, fontFamilyValue, resolvedScheme } = useTheme();
   const pageBg = resolvedScheme === 'dark' ? colors.background : colors.white;
@@ -114,21 +102,12 @@ export default function HabitsScreen() {
 
   const activeCount = todos.length;
 
-  const openEdit = useCallback(
-    (todo: Todo) => {
-      router.push({ pathname: '/add-or-edit-task', params: { id: todo.id } });
-    },
-    [router]
-  );
-
   const subtitle =
     activeTab === 'heatmap'
       ? activeCount === 0
         ? 'No active habits'
         : `${activeCount} active habit${activeCount === 1 ? '' : 's'}`
-      : activeTab === 'monthly'
-        ? 'Month-by-month completion'
-        : 'Edit reminders, priority & more';
+      : 'Month-by-month completion';
 
   return (
     <View style={styles.root}>
@@ -140,7 +119,6 @@ export default function HabitsScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          activeTab === 'edit' && styles.editScrollContent,
           { paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
@@ -156,22 +134,6 @@ export default function HabitsScreen() {
           </View>
         ) : activeTab === 'monthly' ? (
           <MonthlyHabitView todos={todos} />
-        ) : activeTab === 'edit' ? (
-          todos.map((todo) => (
-            <TaskManageItem
-              key={todo.id}
-              name={todo.name}
-              icon={todo.icon}
-              category={todo.category}
-              timeMinutes={todo.timeMinutes}
-              priority={todo.priority}
-              notificationTime={todo.notificationTime}
-              notificationEnabled={todo.notificationEnabled}
-              onEdit={() => openEdit(todo)}
-              onDelete={() => deleteTodo(todo.id)}
-              onToggleNotification={() => toggleTodoNotification(todo.id)}
-            />
-          ))
         ) : (
           <View style={styles.listCard}>
             {todos.map((todo, index) => (
@@ -241,9 +203,6 @@ function createStyles(
     scrollContent: {
       paddingHorizontal: 16,
       paddingTop: 6,
-    },
-    editScrollContent: {
-      gap: 10,
     },
     listCard: {
       backgroundColor: bg,

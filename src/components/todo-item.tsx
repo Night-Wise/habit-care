@@ -4,6 +4,7 @@ import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 
 import { getHabitTheme } from '@/components/habit-heatmap';
 import { HabitIcon } from '@/components/habit-icon';
+import { ItemActionsMenu } from '@/components/item-actions-menu';
 import { useTheme } from '@/context/theme-context';
 import type { ThemeColors } from '@/theme/colors';
 import { isHabitIconId } from '@/utils/habit-icons';
@@ -27,6 +28,8 @@ export interface TodoItemProps {
   disabled?: boolean;
   onToggle: () => void;
   onToggleNotification?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const ICON_PASTELS = ['#fce7f3', '#e0f2fe', '#dcfce7', '#fef3c7', '#ede9fe', '#ffedd5'];
@@ -71,6 +74,8 @@ export function TodoItem({
   disabled = false,
   onToggle,
   onToggleNotification,
+  onEdit,
+  onDelete,
 }: TodoItemProps) {
   const { colors, fs, fontFamilyValue } = useTheme();
   const styles = useMemo(
@@ -235,6 +240,12 @@ export function TodoItem({
           </View>
         </View>
 
+        {onEdit && onDelete ? (
+          <View style={styles.actionsWrap}>
+            <ItemActionsMenu name={name} onEdit={onEdit} onDelete={onDelete} />
+          </View>
+        ) : null}
+
         <View
           style={[
             styles.checkbox,
@@ -272,6 +283,9 @@ function createStyles(
       alignItems: 'center',
       paddingHorizontal: 12,
       paddingVertical: 8,
+    },
+    actionsWrap: {
+      marginLeft: 8,
     },
     checkbox: {
       width: 22,

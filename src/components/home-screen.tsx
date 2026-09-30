@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import {
   ChevronDown,
   ChevronLeft,
@@ -225,6 +226,8 @@ export function HomeScreen({
   const todos = todosOverride ?? ownTodos.todos;
   const isLoaded = isLoadedOverride ?? ownTodos.isLoaded;
   const toggleTodo = ownTodos.toggleTodo;
+  const deleteTodo = ownTodos.deleteTodo;
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { colors, fs, fontFamilyValue } = useTheme();
@@ -631,6 +634,16 @@ export function HomeScreen({
                       toggleTodo(todo.id, selectedDateKey);
                     }
                   }}
+                  onEdit={
+                    readOnly
+                      ? undefined
+                      : () =>
+                          router.push({
+                            pathname: '/add-or-edit-task',
+                            params: { id: todo.id },
+                          })
+                  }
+                  onDelete={readOnly ? undefined : () => deleteTodo(todo.id)}
                 />
               );
             })
