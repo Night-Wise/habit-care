@@ -389,7 +389,7 @@ export default function SettingsScreen() {
     showToast('Merging habits with cloud...');
     try {
       const syncedTodos = await syncTodos(todos, 'merge');
-      replaceTodos(syncedTodos);
+      replaceTodos(syncedTodos, todos);
       Alert.alert(
         'Cloud sync successful',
         `${syncedTodos.length} habit${syncedTodos.length === 1 ? '' : 's'} synced successfully.`

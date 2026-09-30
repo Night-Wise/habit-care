@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import {
+  alarmBudgetPerTodo,
+  cancelStaleTodoNotifications,
   cancelTodoNotifications,
   registerNotificationActionHandlers,
   scheduleTodoReminders,
@@ -283,11 +285,19 @@ export interface TodoRingOptions {
   ringSoundUri?: string;
 }
 
-async function scheduleNotificationsForTodo(todo: Todo): Promise<{
+function hasReminders(todo: Todo): boolean {
+  return !!todo.notificationEnabled || !!todo.ringEnabled;
+}
+
+async function scheduleNotificationsForTodo(
+  todo: Todo,
+  maxAlarms: number
+): Promise<{
   notificationIds: string[];
   ringNotificationIds: string[];
 }> {
   return scheduleTodoReminders({
+    maxAlarms,
     todoId: todo.id,
     taskName: todo.name,
     timeStr: todo.notificationTime || '09:00 AM',
@@ -298,21 +308,6 @@ async function scheduleNotificationsForTodo(todo: Todo): Promise<{
     ringSoundId: normalizeRingSoundId(todo.ringSoundId),
     ringSoundUri: todo.ringSoundUri,
   });
-}
-
-/** Cancel and reschedule so already-completed days are not reminded. */
-async function resyncTodoNotifications(todo: Todo): Promise<Todo> {
-  await cancelTodoNotifications(todo);
-  if (!todo.notificationEnabled && !todo.ringEnabled) {
-    return {
-      ...todo,
-      notificationId: undefined,
-      notificationIds: undefined,
-      ringNotificationIds: undefined,
-    };
-  }
-  const { notificationIds, ringNotificationIds } = await scheduleNotificationsForTodo(todo);
-  return withNotificationIds(todo, notificationIds, ringNotificationIds);
 }
 
 interface TodosContextType {
@@ -354,7 +349,11 @@ interface TodosContextType {
     mode: 'merge' | 'replace'
   ) => { success: boolean; count: number; error?: string };
   clearAllData: () => void;
-  replaceTodos: (nextTodos: Todo[]) => void;
+  /**
+   * Replace all todos. Pass `snapshot` (the list the replacement was derived from) to keep
+   * local adds/edits/deletes made after it was taken, e.g. during a cloud sync round trip.
+   */
+  replaceTodos: (nextTodos: Todo[], snapshot?: Todo[]) => void;
 }
 
 const TODOS_KEY = TODOS_STORAGE_KEY;
@@ -364,6 +363,48 @@ const TodosContext = createContext<TodosContextType | undefined>(undefined);
 export function TodosProvider({ children }: { children: React.ReactNode }) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const todosRef = useRef<Todo[]>([]);
+  const notificationQueue = useRef<Promise<void>>(Promise.resolve());
+
+  useEffect(() => {
+    todosRef.current = todos;
+  }, [todos]);
+
+  /**
+   * Cancel/schedule calls must not interleave: two overlapping reschedules of the same task
+   * leave duplicate alarms behind and whichever finishes last would win.
+   */
+  const runNotificationTask = (task: () => Promise<void>): Promise<void> => {
+    const next = notificationQueue.current.then(task).catch((e) => {
+      console.warn('[TodosContext] Notification task failed:', e);
+    });
+    notificationQueue.current = next;
+    return next;
+  };
+
+  const applyScheduledIds = (
+    todoId: string,
+    scheduled: { notificationIds: string[]; ringNotificationIds: string[] }
+  ) => {
+    setTodos((latest) =>
+      latest.map((t) =>
+        t.id === todoId
+          ? withNotificationIds(t, scheduled.notificationIds, scheduled.ringNotificationIds)
+          : t
+      )
+    );
+  };
+
+  const alarmBudgetFor = (todo: Todo) => {
+    const others = todosRef.current.filter((t) => t.id !== todo.id && hasReminders(t)).length;
+    return alarmBudgetPerTodo(others + 1);
+  };
+
+  const rescheduleTodo = (todo: Todo) =>
+    runNotificationTask(async () => {
+      await cancelTodoNotifications(todo);
+      applyScheduledIds(todo.id, await scheduleNotificationsForTodo(todo, alarmBudgetFor(todo)));
+    });
 
   // Load from storage on mount and migrate legacy data if needed
   useEffect(() => {
@@ -412,23 +453,25 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
           );
         });
 
+        todosRef.current = migrated;
         setTodos(migrated);
 
-        // Refresh reminders so DATE triggers stay ahead of today and skip completed days
-        void (async () => {
-          const refreshed: Todo[] = [];
-          let changed = false;
-          for (const todo of migrated) {
-            if (!todo.notificationEnabled && !todo.ringEnabled) {
-              refreshed.push(todo);
-              continue;
-            }
-            const next = await resyncTodoNotifications(todo);
-            refreshed.push(next);
-            changed = true;
-          }
-          if (changed) setTodos(refreshed);
-        })();
+        // Refresh reminders so DATE triggers stay ahead of today and skip completed days.
+        // Reads the latest todo when each task runs, since this can take a while and the
+        // user may edit (or sync may replace) todos in the meantime.
+        void runNotificationTask(() => cancelStaleTodoNotifications(migrated));
+        for (const todo of migrated) {
+          if (!hasReminders(todo)) continue;
+          void runNotificationTask(async () => {
+            const current = todosRef.current.find((t) => t.id === todo.id);
+            if (!current || !hasReminders(current)) return;
+            await cancelTodoNotifications(current);
+            applyScheduledIds(
+              current.id,
+              await scheduleNotificationsForTodo(current, alarmBudgetFor(current))
+            );
+          });
+        }
       } catch (e) {
         console.warn('[TodosContext] Failed to load from AsyncStorage:', e);
         setTodos([]);
@@ -463,27 +506,15 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
             },
           };
           if (updated.notificationEnabled || updated.ringEnabled) {
-            void (async () => {
-              await cancelTodoNotifications(existing);
-              const scheduled = await scheduleNotificationsForTodo(updated);
-              setTodos((latest) =>
-                latest.map((t) =>
-                  t.id === todoId
-                    ? withNotificationIds(
-                        t,
-                        scheduled.notificationIds,
-                        scheduled.ringNotificationIds
-                      )
-                    : t
-                )
-              );
-            })();
+            void rescheduleTodo(updated);
           }
           return prev.map((t) => (t.id === todoId ? updated : t));
         });
       },
     });
     return cleanup;
+    // Register once; rescheduleTodo only touches refs and the state setter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const addTodo = async (
@@ -509,7 +540,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     const ringSoundId = normalizeRingSoundId(ring?.ringSoundId);
     const ringSoundUri = ring?.ringSoundUri;
 
-    const newTodoBase = applyScheduleToTodo(
+    const newTodo = applyScheduleToTodo(
       {
         id,
         name: name.trim(),
@@ -527,13 +558,8 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       },
       scheduleFields
     );
-    const scheduled = await scheduleNotificationsForTodo(newTodoBase);
-    const newTodo = withNotificationIds(
-      newTodoBase,
-      scheduled.notificationIds,
-      scheduled.ringNotificationIds
-    );
     setTodos((prev) => [...prev, newTodo]);
+    void rescheduleTodo(newTodo);
   };
 
   const toggleTodo = (id: string, dateKey?: string) => {
@@ -552,21 +578,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       };
 
       if (updated.notificationEnabled || updated.ringEnabled) {
-        void (async () => {
-          await cancelTodoNotifications(existing);
-          const scheduled = await scheduleNotificationsForTodo(updated);
-          setTodos((latest) =>
-            latest.map((t) =>
-              t.id === id
-                ? withNotificationIds(
-                    t,
-                    scheduled.notificationIds,
-                    scheduled.ringNotificationIds
-                  )
-                : t
-            )
-          );
-        })();
+        void rescheduleTodo(updated);
       }
 
       return prev.map((t) => (t.id === id ? updated : t));
@@ -596,34 +608,10 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         };
       });
 
-      const toResync = next.filter(
-        (t) => (t.notificationEnabled || t.ringEnabled) && byTodo.has(t.id)
-      );
-      if (toResync.length > 0) {
-        void (async () => {
-          for (const todo of toResync) {
-            await cancelTodoNotifications(todo);
-          }
-          const scheduledByTodo = new Map<
-            string,
-            { notificationIds: string[]; ringNotificationIds: string[] }
-          >();
-          for (const todo of toResync) {
-            scheduledByTodo.set(todo.id, await scheduleNotificationsForTodo(todo));
-          }
-          setTodos((latest) =>
-            latest.map((t) => {
-              const scheduled = scheduledByTodo.get(t.id);
-              return scheduled
-                ? withNotificationIds(
-                    t,
-                    scheduled.notificationIds,
-                    scheduled.ringNotificationIds
-                  )
-                : t;
-            })
-          );
-        })();
+      for (const todo of next) {
+        if ((todo.notificationEnabled || todo.ringEnabled) && byTodo.has(todo.id)) {
+          void rescheduleTodo(todo);
+        }
       }
 
       return next;
@@ -633,7 +621,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
   const deleteTodo = (id: string) => {
     const target = todos.find((t) => t.id === id);
     if (target) {
-      cancelTodoNotifications(target);
+      void runNotificationTask(() => cancelTodoNotifications(target));
     }
     setTodos((prev) => prev.filter((t) => t.id !== id));
   };
@@ -658,122 +646,51 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     const timeStr = notificationTime || '09:00 AM';
 
     const existing = todos.find((t) => t.id === id);
-    if (existing) {
-      await cancelTodoNotifications(existing);
-    }
+    if (!existing) return;
 
     const scheduleFields = normalizeScheduleFields({
-      ...(existing ?? {}),
+      ...existing,
       ...schedule,
     });
 
-    const ringEnabled = ring ? !!ring.ringEnabled : !!existing?.ringEnabled;
-    const ringSoundId = normalizeRingSoundId(
-      ring?.ringSoundId ?? existing?.ringSoundId
-    );
+    const ringEnabled = ring ? !!ring.ringEnabled : !!existing.ringEnabled;
+    const ringSoundId = normalizeRingSoundId(ring?.ringSoundId ?? existing.ringSoundId);
     const ringSoundUri =
-      ring && 'ringSoundUri' in ring ? ring.ringSoundUri : existing?.ringSoundUri;
+      ring && 'ringSoundUri' in ring ? ring.ringSoundUri : existing.ringSoundUri;
 
-    const updatedBase = applyScheduleToTodo(
-      {
-        ...(existing ?? {
-          id,
+    const applyEdits = (todo: Todo): Todo =>
+      applyScheduleToTodo(
+        {
+          ...todo,
           name: name.trim(),
           icon,
-          completions: {},
-        }),
-        name: name.trim(),
-        icon,
-        category: category?.trim() || '',
-        timeMinutes: minutes,
-        priority: prio,
-        notificationTime: timeStr,
-        notificationEnabled: !!notificationEnabled,
-        ringEnabled,
-        ringSoundId,
-        ringSoundUri,
-      },
-      scheduleFields
-    );
-    const scheduled = await scheduleNotificationsForTodo(updatedBase);
+          category: category?.trim() || '',
+          timeMinutes: minutes,
+          priority: prio,
+          notificationTime: timeStr,
+          notificationEnabled: !!notificationEnabled,
+          ringEnabled,
+          ringSoundId,
+          ringSoundUri,
+        },
+        scheduleFields
+      );
 
-    setTodos((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        return withNotificationIds(
-          applyScheduleToTodo(
-            {
-              ...t,
-              name: name.trim(),
-              icon,
-              category: category?.trim() || '',
-              timeMinutes: minutes,
-              priority: prio,
-              notificationTime: timeStr,
-              notificationEnabled: !!notificationEnabled,
-              ringEnabled,
-              ringSoundId,
-              ringSoundUri,
-            },
-            scheduleFields
-          ),
-          scheduled.notificationIds,
-          scheduled.ringNotificationIds
-        );
-      })
-    );
+    // Persist the edit first; rescheduling (up to ~120 native calls) patches ids in afterwards.
+    setTodos((prev) => prev.map((t) => (t.id === id ? applyEdits(t) : t)));
+    void rescheduleTodo(applyEdits(existing));
   };
 
   const toggleTodoNotification = async (id: string) => {
     const target = todos.find((t) => t.id === id);
     if (!target) return;
 
-    if (target.notificationEnabled) {
-      const updated: Todo = {
-        ...target,
-        notificationEnabled: false,
-      };
-      await cancelTodoNotifications(target);
-      const scheduled = await scheduleNotificationsForTodo(updated);
-      setTodos((prev) =>
-        prev.map((t) =>
-          t.id === id
-            ? withNotificationIds(
-                {
-                  ...t,
-                  notificationEnabled: false,
-                },
-                scheduled.notificationIds,
-                scheduled.ringNotificationIds
-              )
-            : t
-        )
-      );
-    } else {
-      const timing = target.notificationTime || '09:00 AM';
-      const enabledTodo: Todo = {
-        ...target,
-        notificationEnabled: true,
-        notificationTime: timing,
-      };
-      await cancelTodoNotifications(target);
-      const scheduled = await scheduleNotificationsForTodo(enabledTodo);
-      setTodos((prev) =>
-        prev.map((t) =>
-          t.id === id
-            ? withNotificationIds(
-                {
-                  ...t,
-                  notificationEnabled: true,
-                  notificationTime: timing,
-                },
-                scheduled.notificationIds,
-                scheduled.ringNotificationIds
-              )
-            : t
-        )
-      );
-    }
+    const notificationEnabled = !target.notificationEnabled;
+    const notificationTime = target.notificationTime || '09:00 AM';
+    setTodos((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, notificationEnabled, notificationTime } : t))
+    );
+    await rescheduleTodo({ ...target, notificationEnabled, notificationTime });
   };
 
   const exportData = (): string => {
@@ -952,13 +869,34 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
 
   const clearAllData = () => {
     todos.forEach((t) => {
-      cancelTodoNotifications(t);
+      void runNotificationTask(() => cancelTodoNotifications(t));
     });
     setTodos([]);
   };
 
-  const replaceTodos = (nextTodos: Todo[]) => {
-    setTodos(nextTodos);
+  const replaceTodos = (nextTodos: Todo[], snapshot?: Todo[]) => {
+    if (!snapshot) {
+      setTodos(nextTodos);
+      return;
+    }
+    setTodos((latest) => {
+      const before = new Map(snapshot.map((t) => [t.id, t]));
+      const latestIds = new Set(latest.map((t) => t.id));
+      const changedLocally = new Map(
+        latest.filter((t) => before.get(t.id) !== t).map((t) => [t.id, t])
+      );
+      const deletedLocally = new Set(snapshot.filter((t) => !latestIds.has(t.id)).map((t) => t.id));
+      if (changedLocally.size === 0 && deletedLocally.size === 0) return nextTodos;
+
+      const merged = nextTodos
+        .filter((t) => !deletedLocally.has(t.id))
+        .map((t) => changedLocally.get(t.id) ?? t);
+      const mergedIds = new Set(merged.map((t) => t.id));
+      for (const t of changedLocally.values()) {
+        if (!mergedIds.has(t.id)) merged.push(t);
+      }
+      return merged;
+    });
   };
 
   return (

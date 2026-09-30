@@ -17,6 +17,11 @@ type AudioPlayer = {
 
 let player: AudioPlayer | null = null;
 let stopTimer: ReturnType<typeof setTimeout> | null = null;
+/**
+ * Bumped by every start/stop. A start that awaited while another start/stop ran must not
+ * create its player, or it would loop forever with nothing referencing it.
+ */
+let generation = 0;
 let AudioModule: typeof import('expo-audio') | null = null;
 
 try {
@@ -33,7 +38,8 @@ function clearStopTimer() {
   }
 }
 
-export async function stopRingAlarm(): Promise<void> {
+function stopNow() {
+  generation += 1;
   clearStopTimer();
   if (!player) return;
   try {
@@ -45,6 +51,10 @@ export async function stopRingAlarm(): Promise<void> {
   player = null;
 }
 
+export async function stopRingAlarm(): Promise<void> {
+  stopNow();
+}
+
 /**
  * Play the selected ringtone on loop, then auto-stop after ~1 minute.
  */
@@ -53,7 +63,8 @@ export async function startRingAlarm(
   customUri?: string | null,
   durationMs: number = RING_DURATION_MS
 ): Promise<boolean> {
-  await stopRingAlarm();
+  stopNow();
+  const myGeneration = generation;
 
   const source = resolveRingAudioSource(soundId, customUri);
   if (!source || !AudioModule) {
@@ -67,6 +78,7 @@ export async function startRingAlarm(
       shouldPlayInBackground: Platform.OS !== 'web',
       interruptionMode: 'doNotMix',
     });
+    if (myGeneration !== generation) return false;
 
     const next = AudioModule.createAudioPlayer(source);
     next.loop = true;
@@ -74,6 +86,7 @@ export async function startRingAlarm(
     next.play();
     player = next;
 
+    clearStopTimer();
     stopTimer = setTimeout(() => {
       void stopRingAlarm();
     }, durationMs);

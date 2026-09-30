@@ -190,6 +190,7 @@ export default function AddOrEditTaskPage() {
     initialRepeat.scheduleWeekdays ?? [1, 2, 3, 4, 5]
   );
   const [hasHydratedEdit, setHasHydratedEdit] = useState(!isEdit);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!isEdit || !todo || hasHydratedEdit) return;
@@ -315,7 +316,7 @@ export default function AddOrEditTaskPage() {
   );
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || isSaving) return;
     const parsed = parseInt(time.trim(), 10);
     const minutes = !isNaN(parsed) && parsed > 0 ? parsed : 30;
     const prioVal = normalizePriority(priority);
@@ -330,31 +331,38 @@ export default function AddOrEditTaskPage() {
       return;
     }
 
-    if (isEdit && todoId) {
-      await editTodo(
-        todoId,
-        name.trim(),
-        displayIcon,
-        minutes,
-        scheduledTime,
-        notificationEnabled,
-        prioVal,
-        category.trim(),
-        builtSchedule,
-        ringOptions
-      );
-    } else {
-      await addTodo(
-        name.trim(),
-        displayIcon,
-        minutes,
-        scheduledTime,
-        notificationEnabled,
-        prioVal,
-        category.trim(),
-        builtSchedule,
-        ringOptions
-      );
+    setIsSaving(true);
+    try {
+      if (isEdit && todoId) {
+        await editTodo(
+          todoId,
+          name.trim(),
+          displayIcon,
+          minutes,
+          scheduledTime,
+          notificationEnabled,
+          prioVal,
+          category.trim(),
+          builtSchedule,
+          ringOptions
+        );
+      } else {
+        await addTodo(
+          name.trim(),
+          displayIcon,
+          minutes,
+          scheduledTime,
+          notificationEnabled,
+          prioVal,
+          category.trim(),
+          builtSchedule,
+          ringOptions
+        );
+      }
+    } catch (err: any) {
+      setIsSaving(false);
+      Alert.alert('Could not save', err?.message || 'Please try again.');
+      return;
     }
     void stopRingAlarm();
     dismissScreen();
@@ -958,10 +966,10 @@ export default function AddOrEditTaskPage() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
         <TouchableOpacity
-          style={[styles.addBtn, !canSubmit && styles.addBtnDisabled]}
+          style={[styles.addBtn, (!canSubmit || isSaving) && styles.addBtnDisabled]}
           onPress={handleSubmit}
           activeOpacity={0.85}
-          disabled={!canSubmit}
+          disabled={!canSubmit || isSaving}
         >
           <Text style={styles.addBtnText}>{isEdit ? 'Save Changes' : 'Add Task'}</Text>
           {!isEdit ? <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} /> : null}

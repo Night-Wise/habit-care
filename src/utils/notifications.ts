@@ -63,15 +63,6 @@ try {
             typeof todoId === 'string' && (await isStoredTodoCompletedOn(todoId, dateKey));
           const show = !alreadyDone;
 
-          if (show && data?.kind === 'ring' && typeof todoId === 'string') {
-            const soundId = normalizeRingSoundId(
-              (notification.request.content.data as { ringSoundId?: string })?.ringSoundId
-            );
-            const ringSoundUri = (notification.request.content.data as { ringSoundUri?: string })
-              ?.ringSoundUri;
-            void startRingAlarm(soundId, ringSoundUri);
-          }
-
           return {
             shouldShowAlert: show,
             shouldShowBanner: show,
@@ -93,6 +84,16 @@ try {
 const DEFAULT_NOTIFICATION_LIGHT_COLOR = '#6366f1';
 
 const INTERVAL_LOOKAHEAD = 60;
+
+/**
+ * Android rejects scheduling beyond 500 concurrent alarms per app. All tasks share this budget,
+ * leaving headroom for snoozes and tests; reminders are topped up on every app open.
+ */
+const ALARM_BUDGET = 400;
+
+export function alarmBudgetPerTodo(activeTodoCount: number): number {
+  return Math.max(2, Math.floor(ALARM_BUDGET / Math.max(1, activeTodoCount)));
+}
 
 function formatDateKey(date: Date): string {
   const y = date.getFullYear();
@@ -234,6 +235,7 @@ export function setupNotificationListeners(): () => void {
       dateKey?: string;
       ringSoundId?: string;
       ringSoundUri?: string;
+      ringDurationMs?: number;
     };
     if (data?.kind !== 'ring' || typeof data.todoId !== 'string') return;
     void (async () => {
@@ -242,7 +244,11 @@ export function setupNotificationListeners(): () => void {
         await stopRingAlarm();
         return;
       }
-      await startRingAlarm(normalizeRingSoundId(data.ringSoundId), data.ringSoundUri);
+      await startRingAlarm(
+        normalizeRingSoundId(data.ringSoundId),
+        data.ringSoundUri,
+        typeof data.ringDurationMs === 'number' ? data.ringDurationMs : undefined
+      );
     })();
   });
 
@@ -264,6 +270,13 @@ export function setupNotificationListeners(): () => void {
 async function handleNotificationResponse(
   response: import('expo-notifications').NotificationResponse
 ): Promise<void> {
+  // The last response persists across launches; without clearing, getLastNotificationResponseAsync
+  // replays it on every app start (e.g. scheduling another snooze each time).
+  try {
+    await Notifications?.clearLastNotificationResponseAsync();
+  } catch (err) {
+    console.warn('[Notifications] Failed to clear last response:', err);
+  }
   const actionId = response.actionIdentifier;
   const data = response.notification.request.content.data as {
     kind?: NotificationKind;
@@ -343,7 +356,8 @@ function buildRingContent(
   taskName: string,
   dateKey: string,
   ringSoundId: RingSoundId,
-  ringSoundUri?: string
+  ringSoundUri?: string,
+  ringDurationMs?: number
 ) {
   return {
     title: '🔔 Ring Alarm',
@@ -357,6 +371,7 @@ function buildRingContent(
       kind: 'ring' as const,
       ringSoundId,
       ringSoundUri,
+      ringDurationMs,
     },
     ...(Platform.OS === 'android' ? { channelId: 'ring' } : {}),
   };
@@ -392,6 +407,8 @@ export async function scheduleTodoReminders(options: {
   ringEnabled?: boolean;
   ringSoundId?: RingSoundId;
   ringSoundUri?: string;
+  /** Cap on alarms for this task (popup + ring combined), nearest days first. */
+  maxAlarms?: number;
 }): Promise<ScheduleRemindersResult> {
   const empty: ScheduleRemindersResult = { notificationIds: [], ringNotificationIds: [] };
   if (!Notifications || Platform.OS === 'web') return empty;
@@ -413,8 +430,11 @@ export async function scheduleTodoReminders(options: {
   const dueKeys = getUpcomingDueDateKeys(schedule, now, INTERVAL_LOOKAHEAD);
   const notificationIds: string[] = [];
   const ringNotificationIds: string[] = [];
+  const maxAlarms = options.maxAlarms ?? Infinity;
+  const hasRoom = () => notificationIds.length + ringNotificationIds.length < maxAlarms;
 
   for (const key of dueKeys) {
+    if (!hasRoom()) break;
     if (options.completions?.[key]) continue;
 
     const parts = key.split('-').map(Number);
@@ -425,10 +445,12 @@ export async function scheduleTodoReminders(options: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: popupAt,
       });
-      if (id) notificationIds.push(id);
+      // A failure here is almost always the OS alarm limit; retrying every day just spams errors.
+      if (!id) break;
+      notificationIds.push(id);
     }
 
-    if (wantsRing) {
+    if (wantsRing && hasRoom()) {
       const ringAt = new Date(popupAt.getTime() + RING_DELAY_MS);
       if (ringAt.getTime() > now.getTime()) {
         const id = await scheduleOne(
@@ -444,7 +466,8 @@ export async function scheduleTodoReminders(options: {
             date: ringAt,
           }
         );
-        if (id) ringNotificationIds.push(id);
+        if (!id) break;
+        ringNotificationIds.push(id);
       }
     }
   }
@@ -488,14 +511,15 @@ export async function scheduleSnoozeRingNotification(options: {
   }
 
   const fireAt = new Date(Date.now() + 60 * 60 * 1000);
+  const content = buildRingContent(
+    options.todoId,
+    options.taskName,
+    options.dateKey,
+    options.ringSoundId,
+    options.ringSoundUri
+  );
   return scheduleOne(
-    buildRingContent(
-      options.todoId,
-      options.taskName,
-      options.dateKey,
-      options.ringSoundId,
-      options.ringSoundUri
-    ),
+    { ...content, data: { ...content.data, snooze: true } },
     {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: fireAt,
@@ -522,12 +546,57 @@ export async function cancelTaskNotification(
   }
 }
 
+/**
+ * Cancel a task's reminders. Also sweeps scheduled requests tagged with the task id,
+ * so reminders whose ids were never persisted (e.g. overlapping reschedules) can't linger.
+ * One-off "remind me after 1 hour" snoozes are left alone.
+ */
 export async function cancelTodoNotifications(todo: {
+  id?: string;
   notificationId?: string;
   notificationIds?: string[];
   ringNotificationIds?: string[];
 }): Promise<void> {
-  await cancelTaskNotification(collectAllTodoNotificationIds(todo));
+  const ids = new Set(collectAllTodoNotificationIds(todo));
+  if (todo.id && Notifications && Platform.OS !== 'web') {
+    try {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      for (const request of scheduled) {
+        const data = request.content.data;
+        if (data?.todoId === todo.id && !data.snooze) ids.add(request.identifier);
+      }
+    } catch (err) {
+      console.warn('[Notifications] Failed to list scheduled notifications:', err);
+    }
+  }
+  await cancelTaskNotification([...ids]);
+}
+
+/**
+ * Cancel alarms that no current task should own: leftovers from deleted tasks or from tasks
+ * whose reminders are off (older builds could lose track of ids and leak them).
+ */
+export async function cancelStaleTodoNotifications(
+  todos: { id: string; notificationEnabled?: boolean; ringEnabled?: boolean }[]
+): Promise<void> {
+  if (!Notifications || Platform.OS === 'web') return;
+  const byId = new Map(todos.map((t) => [t.id, t]));
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const stale = scheduled
+      .filter((request) => {
+        const data = request.content.data;
+        const todoId = data?.todoId;
+        if (typeof todoId !== 'string' || todoId === 'test') return false;
+        const todo = byId.get(todoId);
+        if (!todo) return true;
+        return !data?.snooze && !todo.notificationEnabled && !todo.ringEnabled;
+      })
+      .map((request) => request.identifier);
+    await cancelTaskNotification(stale);
+  } catch (err) {
+    console.warn('[Notifications] Failed to clean up stale notifications:', err);
+  }
 }
 
 export async function sendTestNotification(): Promise<boolean> {
@@ -566,7 +635,8 @@ export async function sendTestRingNotification(
   soundId: RingSoundId = 'clock',
   customUri?: string | null
 ): Promise<{ scheduled: boolean; ringing: boolean }> {
-  const ringing = await startRingAlarm(soundId, customUri, 10_000);
+  const testDurationMs = 10_000;
+  const ringing = await startRingAlarm(soundId, customUri, testDurationMs);
 
   if (!Notifications || Platform.OS === 'web') {
     return { scheduled: false, ringing };
@@ -580,7 +650,14 @@ export async function sendTestRingNotification(
   try {
     const todayKey = formatDateKey(new Date());
     await Notifications.scheduleNotificationAsync({
-      content: buildRingContent('test', 'Test habit', todayKey, soundId, customUri ?? undefined),
+      content: buildRingContent(
+        'test',
+        'Test habit',
+        todayKey,
+        soundId,
+        customUri ?? undefined,
+        testDurationMs
+      ),
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: 1,

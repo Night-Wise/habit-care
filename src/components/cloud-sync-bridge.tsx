@@ -58,8 +58,9 @@ export function CloudSyncBridge() {
       syncInFlight.current = true;
       setIsSyncing(true);
       try {
-        const synced = await syncTodos(todosRef.current, mode);
-        replaceTodos(synced);
+        const snapshot = todosRef.current;
+        const synced = await syncTodos(snapshot, mode);
+        replaceTodos(synced, snapshot);
         hasAutoSyncedThisSession.current = true;
         if (!options?.silent) {
           Alert.alert(
