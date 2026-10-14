@@ -26,6 +26,7 @@ Open Supabase **SQL Editor** and run:
 create table public.habit_data (
   user_id uuid primary key references auth.users(id) on delete cascade,
   todos jsonb not null default '[]'::jsonb,
+  deleted_todos jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
 
@@ -44,6 +45,8 @@ create policy "Users can update their own habits"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 ```
+
+If you created `habit_data` before the `deleted_todos` column existed, run `supabase/migrations/20261014000000_add_habit_data_deleted_todos.sql` once. Sync records deleted habits there so they don't reappear after a merge; until it is applied, sync reports that the column is missing.
 
 ## 2b. Create friends tables
 

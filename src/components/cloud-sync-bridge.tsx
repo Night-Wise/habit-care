@@ -18,9 +18,10 @@ import { useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
 
 const MONTHLY_VIEW_PREFS_KEY = '@habit-app/monthly-view-prefs';
+const AUTO_PUSH_DELAY_MS = 3000;
 
 /**
- * Handles post-sign-in sync choice, auto-merge on open/resume,
+ * Handles post-sign-in sync choice, auto-merge on open/resume and shortly after local changes,
  * and full local reset on sign-out.
  */
 export function CloudSyncBridge() {
@@ -30,7 +31,13 @@ export function CloudSyncBridge() {
     autoSyncEnabled,
     syncTodos,
   } = useAuth();
-  const { todos, isLoaded: todosLoaded, replaceTodos, clearAllData } = useTodos();
+  const {
+    isLoaded: todosLoaded,
+    localRevision,
+    getSyncState,
+    applySyncResult,
+    clearAllData,
+  } = useTodos();
   const { colors, fs, fontFamilyValue, resetAppearance } = useTheme();
   const styles = useMemo(
     () => createStyles(colors, fs, fontFamilyValue),
@@ -45,27 +52,26 @@ export function CloudSyncBridge() {
   const skipNextAutoSync = useRef(false);
   const hasAutoSyncedThisSession = useRef(false);
   const syncInFlight = useRef(false);
-  const todosRef = useRef(todos);
+  const syncRequestedDuringFlight = useRef(false);
+  const [followUpSync, setFollowUpSync] = useState(0);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-
-  useEffect(() => {
-    todosRef.current = todos;
-  }, [todos]);
 
   const runSync = useCallback(
     async (mode: SyncMode, options?: { silent?: boolean }) => {
-      if (syncInFlight.current) return;
+      if (syncInFlight.current) {
+        syncRequestedDuringFlight.current = true;
+        return;
+      }
       syncInFlight.current = true;
       setIsSyncing(true);
       try {
-        const snapshot = todosRef.current;
-        const synced = await syncTodos(snapshot, mode);
-        replaceTodos(synced, snapshot);
+        const synced = await syncTodos(getSyncState(), mode);
+        applySyncResult(synced, { replaceLocal: mode === 'cloud' });
         hasAutoSyncedThisSession.current = true;
         if (!options?.silent) {
           Alert.alert(
             'Cloud sync successful',
-            `${synced.length} habit${synced.length === 1 ? '' : 's'} synced successfully.`
+            `${synced.todos.length} habit${synced.todos.length === 1 ? '' : 's'} synced successfully.`
           );
         }
       } catch (error: any) {
@@ -77,13 +83,17 @@ export function CloudSyncBridge() {
       } finally {
         syncInFlight.current = false;
         setIsSyncing(false);
+        if (syncRequestedDuringFlight.current) {
+          syncRequestedDuringFlight.current = false;
+          setFollowUpSync((n) => n + 1);
+        }
       }
     },
-    [replaceTodos, syncTodos]
+    [applySyncResult, getSyncState, syncTodos]
   );
 
   const resetLocalData = useCallback(async () => {
-    clearAllData();
+    clearAllData({ recordDeletions: false });
     resetAppearance();
     await AsyncStorage.removeItem(MONTHLY_VIEW_PREFS_KEY).catch(() => {});
   }, [clearAllData, resetAppearance]);
@@ -148,6 +158,18 @@ export function CloudSyncBridge() {
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
   }, [tryAutoMerge]);
+
+  const tryAutoMergeRef = useRef(tryAutoMerge);
+  useEffect(() => {
+    tryAutoMergeRef.current = tryAutoMerge;
+  }, [tryAutoMerge]);
+
+  // Push local adds/edits/deletes shortly after they happen (debounced)
+  useEffect(() => {
+    if (localRevision === 0 && followUpSync === 0) return;
+    const timer = setTimeout(() => tryAutoMergeRef.current(), AUTO_PUSH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [localRevision, followUpSync]);
 
   const chooseInitialSync = (mode: SyncMode) => {
     setIsInitialSyncOpen(false);

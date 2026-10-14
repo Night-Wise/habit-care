@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 import {
   alarmBudgetPerTodo,
@@ -20,6 +20,15 @@ import {
   type TodoScheduleFields,
   type TodoScheduleType,
 } from '@/utils/todo-schedule';
+import {
+  adoptSyncState,
+  mergeSyncStates,
+  parseDeletedTodos,
+  syncedContentChanged,
+  trackLocalChanges,
+  type DeletedTodos,
+  type TodoSyncState,
+} from '@/utils/todo-sync';
 import { syncMonthlyHeatmapWidget } from '@/widgets/sync-monthly-heatmap-widget';
 import { TODOS_STORAGE_KEY } from '@/widgets/constants';
 
@@ -51,6 +60,10 @@ export interface Todo {
   scheduleStartDate?: string;
   /** JS weekday numbers: 0=Sun … 6=Sat */
   scheduleWeekdays?: number[];
+  /** When the habit's settings were last changed; newest wins when syncing */
+  updatedAt?: string;
+  /** Per-day time each `completions` entry was last changed; newest wins when syncing */
+  completionsUpdatedAt?: Record<string, string>;
 }
 
 export interface TodoInsights {
@@ -348,27 +361,55 @@ interface TodosContextType {
     rawJson: string,
     mode: 'merge' | 'replace'
   ) => { success: boolean; count: number; error?: string };
-  clearAllData: () => void;
   /**
-   * Replace all todos. Pass `snapshot` (the list the replacement was derived from) to keep
-   * local adds/edits/deletes made after it was taken, e.g. during a cloud sync round trip.
+   * Remove every habit. By default the removals are recorded so sync deletes them everywhere;
+   * pass `recordDeletions: false` to only wipe this device (e.g. on sign-out).
    */
-  replaceTodos: (nextTodos: Todo[], snapshot?: Todo[]) => void;
+  clearAllData: (options?: { recordDeletions?: boolean }) => void;
+  deletedTodos: DeletedTodos;
+  /** Increments on every local change that should be pushed to the cloud. */
+  localRevision: number;
+  /** Latest todos + deletion records, for starting a sync. */
+  getSyncState: () => TodoSyncState;
+  /**
+   * Apply a sync result. Merges with the current list so changes made during the round trip
+   * survive; `replaceLocal` makes the result the whole list instead (cloud-only pull).
+   */
+  applySyncResult: (result: TodoSyncState, options?: { replaceLocal?: boolean }) => void;
 }
 
 const TODOS_KEY = TODOS_STORAGE_KEY;
+const DELETED_TODOS_KEY = '@habit_app_deleted_todos';
+
+type TodosStore = TodoSyncState & { localRevision: number };
 
 const TodosContext = createContext<TodosContextType | undefined>(undefined);
 
 export function TodosProvider({ children }: { children: React.ReactNode }) {
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [store, setStore] = useState<TodosStore>({
+    todos: [],
+    deletedTodos: {},
+    localRevision: 0,
+  });
+  const { todos, deletedTodos, localRevision } = store;
   const [isLoaded, setIsLoaded] = useState(false);
   const todosRef = useRef<Todo[]>([]);
+  const storeRef = useRef(store);
+  const todosBeforeSync = useRef<Todo[] | null>(null);
   const notificationQueue = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     todosRef.current = todos;
-  }, [todos]);
+    storeRef.current = store;
+  }, [todos, store]);
+
+  /** Every user-driven change goes through here so sync can tell what changed and when. */
+  const setTodos = (next: Todo[] | ((prev: Todo[]) => Todo[])) =>
+    setStore((s) => {
+      const nextTodos = typeof next === 'function' ? next(s.todos) : next;
+      const { state, changed } = trackLocalChanges(s, nextTodos, new Date().toISOString());
+      return { ...state, localRevision: changed ? s.localRevision + 1 : s.localRevision };
+    });
 
   /**
    * Cancel/schedule calls must not interleave: two overlapping reschedules of the same task
@@ -410,9 +451,14 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(TODOS_KEY);
+        const [stored, storedDeleted] = await Promise.all([
+          AsyncStorage.getItem(TODOS_KEY),
+          AsyncStorage.getItem(DELETED_TODOS_KEY),
+        ]);
         let parsed: any[] = [];
         try { parsed = stored ? JSON.parse(stored) : []; } catch { parsed = []; }
+        let loadedDeleted: DeletedTodos = {};
+        try { loadedDeleted = parseDeletedTodos(storedDeleted ? JSON.parse(storedDeleted) : {}); } catch { loadedDeleted = {}; }
 
         const todayKey = formatDateKey(new Date());
         const migrated: Todo[] = parsed.map((t) => {
@@ -448,13 +494,18 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
               ringSoundUri: typeof t.ringSoundUri === 'string' ? t.ringSoundUri : undefined,
               ringNotificationIds:
                 ringNotificationIds.length > 0 ? ringNotificationIds : undefined,
+              updatedAt: typeof t.updatedAt === 'string' ? t.updatedAt : undefined,
+              completionsUpdatedAt:
+                t.completionsUpdatedAt && typeof t.completionsUpdatedAt === 'object'
+                  ? { ...t.completionsUpdatedAt }
+                  : undefined,
             },
             schedule
           );
         });
 
         todosRef.current = migrated;
-        setTodos(migrated);
+        setStore({ todos: migrated, deletedTodos: loadedDeleted, localRevision: 0 });
 
         // Refresh reminders so DATE triggers stay ahead of today and skip completed days.
         // Reads the latest todo when each task runs, since this can take a while and the
@@ -474,7 +525,7 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         console.warn('[TodosContext] Failed to load from AsyncStorage:', e);
-        setTodos([]);
+        setStore({ todos: [], deletedTodos: {}, localRevision: 0 });
       } finally {
         setIsLoaded(true);
       }
@@ -489,6 +540,45 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     );
     syncMonthlyHeatmapWidget(todos);
   }, [todos, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    AsyncStorage.setItem(DELETED_TODOS_KEY, JSON.stringify(deletedTodos)).catch((e) =>
+      console.warn('[TodosContext] Failed to save deleted habits:', e)
+    );
+  }, [deletedTodos, isLoaded]);
+
+  // Habits added, edited or deleted on another device need this device's reminders updated
+  useEffect(() => {
+    const before = todosBeforeSync.current;
+    if (!before) return;
+    todosBeforeSync.current = null;
+
+    const afterIds = new Set(todos.map((t) => t.id));
+    for (const old of before) {
+      if (!afterIds.has(old.id)) void runNotificationTask(() => cancelTodoNotifications(old));
+    }
+
+    const beforeById = new Map(before.map((t) => [t.id, t]));
+    for (const todo of todos) {
+      const old = beforeById.get(todo.id);
+      if (old && !syncedContentChanged(old, todo)) continue;
+      if (!hasReminders(todo) && !(old && hasReminders(old))) continue;
+      void runNotificationTask(async () => {
+        const current = todosRef.current.find((t) => t.id === todo.id);
+        if (!current) return;
+        await cancelTodoNotifications(current);
+        applyScheduledIds(
+          current.id,
+          hasReminders(current)
+            ? await scheduleNotificationsForTodo(current, alarmBudgetFor(current))
+            : { notificationIds: [], ringNotificationIds: [] }
+        );
+      });
+    }
+    // Only reacts to sync results; the helpers used read refs and the state setter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todos]);
 
   // Notification action buttons (Mark as done / Snooze / Off)
   useEffect(() => {
@@ -867,37 +957,37 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const clearAllData = () => {
+  const clearAllData = (options?: { recordDeletions?: boolean }) => {
     todos.forEach((t) => {
       void runNotificationTask(() => cancelTodoNotifications(t));
     });
-    setTodos([]);
-  };
-
-  const replaceTodos = (nextTodos: Todo[], snapshot?: Todo[]) => {
-    if (!snapshot) {
-      setTodos(nextTodos);
-      return;
+    if (options?.recordDeletions === false) {
+      setStore((s) => ({ todos: [], deletedTodos: {}, localRevision: s.localRevision }));
+    } else {
+      setTodos([]);
     }
-    setTodos((latest) => {
-      const before = new Map(snapshot.map((t) => [t.id, t]));
-      const latestIds = new Set(latest.map((t) => t.id));
-      const changedLocally = new Map(
-        latest.filter((t) => before.get(t.id) !== t).map((t) => [t.id, t])
-      );
-      const deletedLocally = new Set(snapshot.filter((t) => !latestIds.has(t.id)).map((t) => t.id));
-      if (changedLocally.size === 0 && deletedLocally.size === 0) return nextTodos;
-
-      const merged = nextTodos
-        .filter((t) => !deletedLocally.has(t.id))
-        .map((t) => changedLocally.get(t.id) ?? t);
-      const mergedIds = new Set(merged.map((t) => t.id));
-      for (const t of changedLocally.values()) {
-        if (!mergedIds.has(t.id)) merged.push(t);
-      }
-      return merged;
-    });
   };
+
+  const getSyncState = useCallback(
+    (): TodoSyncState => ({
+      todos: storeRef.current.todos,
+      deletedTodos: storeRef.current.deletedTodos,
+    }),
+    []
+  );
+
+  const applySyncResult = useCallback(
+    (result: TodoSyncState, options?: { replaceLocal?: boolean }) => {
+      setStore((s) => {
+        const next = options?.replaceLocal
+          ? adoptSyncState(s, result)
+          : mergeSyncStates(s, result);
+        todosBeforeSync.current = s.todos;
+        return { ...next, localRevision: s.localRevision };
+      });
+    },
+    []
+  );
 
   return (
     <TodosContext.Provider
@@ -914,7 +1004,10 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         exportData,
         importData,
         clearAllData,
-        replaceTodos,
+        deletedTodos,
+        localRevision,
+        getSyncState,
+        applySyncResult,
       }}
     >
       {children}

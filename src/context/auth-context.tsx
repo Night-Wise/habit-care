@@ -8,6 +8,12 @@ import { Platform } from 'react-native';
 import type { Todo } from '@/context/todos-context';
 import { ensureUserProfile, getAuthDisplayName } from '@/lib/friends';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import {
+  mergeSyncStates,
+  parseDeletedTodos,
+  stripDeviceLocalFields,
+  type TodoSyncState,
+} from '@/utils/todo-sync';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -26,7 +32,7 @@ interface AuthContextType {
   setAutoSyncEnabled: (enabled: boolean) => void;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  syncTodos: (localTodos: Todo[], mode?: SyncMode) => Promise<Todo[]>;
+  syncTodos: (local: TodoSyncState, mode?: SyncMode) => Promise<TodoSyncState>;
 }
 
 function getCodeFromUrl(url: string): string | null {
@@ -45,22 +51,14 @@ function getRedirectUri(): string {
   });
 }
 
-export function mergeTodos(localTodos: Todo[], cloudTodos: Todo[]): Todo[] {
-  const merged = new Map<string, Todo>();
-  [...cloudTodos, ...localTodos].forEach((todo) => {
-    const existing = merged.get(todo.id);
-    merged.set(
-      todo.id,
-      existing
-        ? {
-            ...existing,
-            ...todo,
-            completions: { ...(existing.completions || {}), ...(todo.completions || {}) },
-          }
-        : todo
-    );
-  });
-  return Array.from(merged.values());
+const MISSING_DELETED_COLUMN_MESSAGE =
+  'The Supabase habit_data table is missing the deleted_todos column. Run supabase/migrations/20261014000000_add_habit_data_deleted_todos.sql in your Supabase SQL Editor, then try syncing again.';
+
+function isMissingDeletedColumn(error: { code?: string; message?: string }): boolean {
+  return (
+    (error.code === '42703' || error.code === 'PGRST204') &&
+    !!error.message?.includes('deleted_todos')
+  );
 }
 
 function getMissingSupabaseConfigMessage(): string {
@@ -208,10 +206,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await clearSyncMeta();
   };
 
-  const syncTodos = async (localTodos: Todo[], mode: SyncMode = 'merge') => {
+  const syncTodos = async (local: TodoSyncState, mode: SyncMode = 'merge') => {
     console.log('[Cloud Sync] Preparing Supabase sync', {
       mode,
-      localTodoCount: localTodos.length,
+      localTodoCount: local.todos.length,
       userId: session?.user?.id,
       isConfigured: isSupabaseConfigured,
     });
@@ -230,7 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('[Cloud Sync] Fetching habit_data row', { userId: session.user.id });
     const { data, error } = await supabase
       .from('habit_data')
-      .select('todos')
+      .select('todos, deleted_todos')
       .eq('user_id', session.user.id)
       .maybeSingle();
     if (error) {
@@ -243,22 +241,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error.code === 'PGRST205') {
         throw new Error('The Supabase habit_data table is missing. Run the SQL from SUPABASE_SETUP.md in your Supabase SQL Editor, then try syncing again.');
       }
+      if (isMissingDeletedColumn(error)) throw new Error(MISSING_DELETED_COLUMN_MESSAGE);
       throw error;
     }
 
-    const cloudTodos = Array.isArray(data?.todos) ? (data.todos as Todo[]) : [];
-    console.log('[Cloud Sync] Supabase fetch succeeded', { cloudTodoCount: cloudTodos.length });
-    const nextTodos =
-      mode === 'cloud'
-        ? cloudTodos
-        : mode === 'replace'
-          ? localTodos
-          : mergeTodos(localTodos, cloudTodos);
+    const cloud: TodoSyncState = {
+      todos: Array.isArray(data?.todos) ? (data.todos as Todo[]) : [],
+      deletedTodos: parseDeletedTodos(data?.deleted_todos),
+    };
+    console.log('[Cloud Sync] Supabase fetch succeeded', { cloudTodoCount: cloud.todos.length });
+    const next =
+      mode === 'cloud' ? cloud : mode === 'replace' ? local : mergeSyncStates(local, cloud);
 
-    console.log('[Cloud Sync] Saving habit_data row', { nextTodoCount: nextTodos.length });
+    console.log('[Cloud Sync] Saving habit_data row', { nextTodoCount: next.todos.length });
     const { error: saveError } = await supabase.from('habit_data').upsert({
       user_id: session.user.id,
-      todos: nextTodos,
+      todos: next.todos.map(stripDeviceLocalFields),
+      deleted_todos: next.deletedTodos,
       updated_at: new Date().toISOString(),
     });
     if (saveError) {
@@ -268,11 +267,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         details: saveError.details,
         hint: saveError.hint,
       });
+      if (isMissingDeletedColumn(saveError)) throw new Error(MISSING_DELETED_COLUMN_MESSAGE);
       throw saveError;
     }
     console.log('[Cloud Sync] Supabase save succeeded');
     await markSyncedNow();
-    return nextTodos;
+    return next;
   };
 
   return (

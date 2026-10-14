@@ -947,7 +947,7 @@ function createStyles(
   },
   progressCard: {
     backgroundColor: colors.card,
-    borderRadius: 24,
+    borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',

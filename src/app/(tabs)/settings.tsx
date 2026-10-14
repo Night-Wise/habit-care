@@ -63,7 +63,8 @@ const WIDGET_THEME_LABELS: Record<WidgetThemeMode, string> = {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { todos, exportData, importData, clearAllData, replaceTodos } = useTodos();
+  const { todos, exportData, importData, clearAllData, getSyncState, applySyncResult } =
+    useTodos();
   const {
     user,
     isConfigured,
@@ -388,11 +389,11 @@ export default function SettingsScreen() {
     setIsSyncing(true);
     showToast('Merging habits with cloud...');
     try {
-      const syncedTodos = await syncTodos(todos, 'merge');
-      replaceTodos(syncedTodos, todos);
+      const synced = await syncTodos(getSyncState(), 'merge');
+      applySyncResult(synced);
       Alert.alert(
         'Cloud sync successful',
-        `${syncedTodos.length} habit${syncedTodos.length === 1 ? '' : 's'} synced successfully.`
+        `${synced.todos.length} habit${synced.todos.length === 1 ? '' : 's'} synced successfully.`
       );
     } catch (error: any) {
       console.error('[Cloud Sync] Sync failed', error);
