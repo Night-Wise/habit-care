@@ -4,13 +4,16 @@ import {
   Bell,
   BellRing,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clock,
   FilePen,
   Palette,
   Pencil,
   Search,
+  SlidersHorizontal,
   Tag,
   Zap,
 } from 'lucide-react-native';
@@ -41,6 +44,7 @@ import { DEFAULT_HABIT_ICON, POPULAR_HABIT_ICONS } from '@/utils/habit-icons';
 import {
   PRIORITY_NONE,
   PRIORITY_OPTIONS,
+  formatPriorityLabel,
   normalizePriority,
   type PriorityValue,
 } from '@/utils/priority';
@@ -192,6 +196,7 @@ export default function AddOrEditTaskPage() {
   );
   const [hasHydratedEdit, setHasHydratedEdit] = useState(!isEdit);
   const [isSaving, setIsSaving] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     if (!isEdit || !todo || hasHydratedEdit) return;
@@ -315,6 +320,18 @@ export default function AddOrEditTaskPage() {
       }),
     [repeatType, intervalDays, startDateKey, selectedWeekdays]
   );
+
+  const advancedSummary = useMemo(() => {
+    const repeatLabel =
+      repeatType === 'interval'
+        ? `Every ${clampScheduleInterval(intervalDays)}d`
+        : REPEAT_OPTIONS.find((option) => option.type === repeatType)?.label ?? 'Everyday';
+    const parts = [repeatLabel, `${time.trim() || 30} min`];
+    if (category.trim()) parts.push(category.trim());
+    if (priority !== PRIORITY_NONE) parts.push(formatPriorityLabel(priority));
+    if (ringEnabled) parts.push('Ring on');
+    return parts.join(' · ');
+  }, [repeatType, intervalDays, time, category, priority, ringEnabled]);
 
   const handleSubmit = async () => {
     if (!canSubmit || isSaving) return;
@@ -476,181 +493,6 @@ export default function AddOrEditTaskPage() {
           />
         </View>
 
-        {/* Category */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: '#dcfce7' }]}>
-              <Tag size={15} color="#16a34a" />
-            </View>
-            <Text style={styles.cardLabel}>Category (Optional)</Text>
-          </View>
-          <View style={styles.chipWrap}>
-            {CATEGORY_PRESETS.map((preset) => {
-              const isSelected =
-                !isCustomCategory && category.trim().toLowerCase() === preset.toLowerCase();
-              return (
-                <TouchableOpacity
-                  key={preset}
-                  style={[styles.categoryChip, isSelected && styles.categoryChipSelected]}
-                  onPress={() => selectCategory(preset)}
-                  activeOpacity={0.75}
-                >
-                  <Text
-                    style={[styles.categoryChipText, isSelected && styles.categoryChipTextSelected]}
-                  >
-                    {preset}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-            <TouchableOpacity
-              style={[styles.customChip, isCustomCategory && styles.customChipActive]}
-              onPress={openCustomCategory}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.customChipText, isCustomCategory && styles.customChipTextActive]}>
-                + Custom
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {isCustomCategory ? (
-            <TextInput
-              style={[styles.input, styles.customCategoryInput]}
-              placeholder="Enter custom category"
-              placeholderTextColor={colors.inactive}
-              value={category}
-              onChangeText={setCategory}
-              maxLength={30}
-              autoFocus
-            />
-          ) : null}
-        </View>
-
-        {/* Repeat schedule */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: '#fef3c7' }]}>
-              <CalendarDays size={15} color="#d97706" />
-            </View>
-            <Text style={styles.cardLabel}>Repeat</Text>
-            <Text style={styles.cardHint}>One option per task</Text>
-          </View>
-
-          <View style={styles.repeatModeRow}>
-            {REPEAT_OPTIONS.map((option) => {
-              const isSelected = repeatType === option.type;
-              return (
-                <TouchableOpacity
-                  key={option.type}
-                  style={[styles.repeatModeChip, isSelected && styles.repeatModeChipSelected]}
-                  onPress={() => setRepeatType(option.type)}
-                  activeOpacity={0.75}
-                >
-                  <Text
-                    style={[
-                      styles.repeatModeChipText,
-                      isSelected && styles.repeatModeChipTextSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {repeatType === 'everyday' ? (
-            <Text style={styles.repeatHint}>Visible and reminds you every day.</Text>
-          ) : null}
-
-          {repeatType === 'interval' ? (
-            <View style={styles.repeatDetails}>
-              <Text style={styles.repeatSubLabel}>Repeat every</Text>
-              <Pressable
-                style={styles.intervalInputWrap}
-                onPress={() => intervalInputRef.current?.focus()}
-              >
-                <TextInput
-                  ref={intervalInputRef}
-                  style={styles.intervalInput}
-                  value={intervalDays}
-                  onChangeText={handleIntervalChange}
-                  onBlur={handleIntervalBlur}
-                  keyboardType="number-pad"
-                  maxLength={3}
-                  placeholder={String(SCHEDULE_INTERVAL_DEFAULT)}
-                  placeholderTextColor={colors.inactive}
-                  selectTextOnFocus
-                />
-                <Text style={styles.fieldInputSuffix}>
-                  day{clampScheduleInterval(intervalDays) === 1 ? '' : 's'}
-                </Text>
-              </Pressable>
-              <Text style={styles.repeatHint}>
-                Min {SCHEDULE_INTERVAL_MIN}, max {SCHEDULE_INTERVAL_MAX}. Default{' '}
-                {SCHEDULE_INTERVAL_DEFAULT}.
-              </Text>
-
-              <Text style={[styles.repeatSubLabel, { marginTop: 12 }]}>Starting from</Text>
-              <View style={styles.startDateRow}>
-                <TouchableOpacity
-                  style={styles.startDateNavBtn}
-                  onPress={() => shiftStartDate(-1)}
-                  activeOpacity={0.75}
-                >
-                  <ChevronLeft size={18} color={colors.text} />
-                </TouchableOpacity>
-                <View style={styles.startDateLabelWrap}>
-                  <Text style={styles.startDateLabel}>{formatStartDateLabel(startDateKey)}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.startDateNavBtn}
-                  onPress={() => shiftStartDate(1)}
-                  activeOpacity={0.75}
-                >
-                  <ChevronRight size={18} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity
-                style={styles.todayChip}
-                onPress={() => setStartDateKey(formatDateKey(new Date()))}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.todayChipText}>Use today</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-
-          {repeatType === 'weekdays' ? (
-            <View style={styles.repeatDetails}>
-              <Text style={styles.repeatSubLabel}>Active on</Text>
-              <View style={styles.weekdayRow}>
-                {WEEKDAY_OPTIONS.map((item, index) => {
-                  const isSelected = selectedWeekdays.includes(item.day);
-                  return (
-                    <TouchableOpacity
-                      key={`${item.label}-${item.day}-${index}`}
-                      style={[styles.weekdayChip, isSelected && styles.weekdayChipSelected]}
-                      onPress={() => toggleWeekday(item.day)}
-                      activeOpacity={0.75}
-                    >
-                      <Text
-                        style={[
-                          styles.weekdayChipText,
-                          isSelected && styles.weekdayChipTextSelected,
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              <Text style={styles.repeatHint}>Mon → Sun. At least one day required.</Text>
-            </View>
-          ) : null}
-        </View>
-
         {/* Timing */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -759,166 +601,6 @@ export default function AddOrEditTaskPage() {
           />
         </View>
 
-        {/* Ring Notification */}
-        <View style={styles.ringCard}>
-          <View style={styles.ringHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: '#fee2e2' }]}>
-              <BellRing size={15} color="#dc2626" />
-            </View>
-            <View style={styles.notificationCopy}>
-              <Text style={styles.notificationTitle}>Ring Notification</Text>
-              <Text style={styles.notificationSub}>
-                {ringEnabled
-                  ? `Alarm rings ${RING_DELAY_MINUTES} min after ${scheduledTime} (loops ~1 min)`
-                  : 'Off by default — enable for a looping alarm'}
-              </Text>
-            </View>
-            <Switch
-              value={ringEnabled}
-              onValueChange={(value) => {
-                setRingEnabled(value);
-                if (!value) void stopRingAlarm();
-              }}
-              trackColor={{ false: colors.borderStrong, true: colors.primaryMuted }}
-              thumbColor={ringEnabled ? colors.primary : colors.surface}
-            />
-          </View>
-
-          {ringEnabled ? (
-            <View style={styles.ringPicker}>
-              <Text style={styles.ringPickerLabel}>Ringtone</Text>
-              {ALL_RINGTONE_OPTIONS.map((option) => {
-                const selected = ringSoundId === option.id;
-                return (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[styles.ringOption, selected && styles.ringOptionSelected]}
-                    onPress={() => {
-                      if (option.id === 'custom') {
-                        void handlePickCustomRingtone();
-                        return;
-                      }
-                      setRingSoundId(option.id);
-                      void handlePreviewRingtone(option.id);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[styles.ringOptionTitle, selected && styles.ringOptionTitleSelected]}
-                      >
-                        {option.label}
-                      </Text>
-                      <Text style={styles.ringOptionSub}>
-                        {option.id === 'custom' && ringSoundName
-                          ? ringSoundName
-                          : option.description}
-                      </Text>
-                    </View>
-                    {option.id === 'custom' && ringSoundUri ? (
-                      <TouchableOpacity
-                        onPress={() => void handlePreviewRingtone('custom')}
-                        hitSlop={8}
-                      >
-                        <Text style={styles.ringPreviewLink}>Preview</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    {selected ? <Text style={styles.ringCheck}>✓</Text> : null}
-                  </TouchableOpacity>
-                );
-              })}
-              <Text style={styles.ringHint}>
-                Lock-screen actions: Mark as done · Remind after 1 hour · Off
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Duration */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: '#ccfbf1' }]}>
-              <Clock size={15} color="#0d9488" />
-            </View>
-            <Text style={[styles.cardLabel, { flex: 1 }]}>Estimated Duration</Text>
-            <Text style={styles.fieldHint}>Tap field to type custom</Text>
-          </View>
-          <View style={styles.fieldInputRow}>
-            <Pressable
-              style={[
-                styles.fieldInputWrap,
-                isCustomDuration && time.trim().length > 0 && styles.fieldInputWrapCustom,
-              ]}
-              onPress={() => durationInputRef.current?.focus()}
-            >
-              <TextInput
-                ref={durationInputRef}
-                style={styles.fieldInput}
-                value={time}
-                onChangeText={handleDurationChange}
-                keyboardType="number-pad"
-                maxLength={4}
-                placeholder="e.g. 20"
-                placeholderTextColor={colors.inactive}
-                selectTextOnFocus
-              />
-              <Text style={styles.fieldInputSuffix}>min</Text>
-              <Pencil size={13} color={colors.inactive} style={{ marginLeft: 4 }} />
-            </Pressable>
-            <View style={styles.presetsRow}>
-              {TIME_PRESETS.map((preset) => {
-                const isSelected = time.trim() === String(preset);
-                return (
-                  <TouchableOpacity
-                    key={preset}
-                    style={[styles.presetChip, isSelected && styles.presetChipSelected]}
-                    onPress={() => setTime(String(preset))}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      style={[styles.presetChipText, isSelected && styles.presetChipTextSelected]}
-                    >
-                      {preset}m
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-          {isCustomDuration && time.trim().length > 0 ? (
-            <Text style={styles.customValueNote}>Custom: {time} min</Text>
-          ) : null}
-        </View>
-
-        {/* Priority */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: '#ffedd5' }]}>
-              <Zap size={15} color="#ea580c" />
-            </View>
-            <Text style={[styles.cardLabel, { flex: 1 }]}>Task Priority</Text>
-          </View>
-          <View style={styles.presetsRow}>
-            {PRIORITY_OPTIONS.map((option) => {
-              const isSelected = priority === option.value;
-              return (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[styles.presetChip, isSelected && styles.presetChipSelected]}
-                  onPress={() => setPriority(option.value)}
-                  activeOpacity={0.75}
-                >
-                  <Text
-                    style={[styles.presetChipText, isSelected && styles.presetChipTextSelected]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
         {/* Pick an Icon */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -963,6 +645,367 @@ export default function AddOrEditTaskPage() {
             </Pressable>
           </ScrollView>
         </View>
+
+        {/* Advanced settings */}
+        <TouchableOpacity
+          style={styles.advancedToggle}
+          onPress={() => setShowAdvanced((current) => !current)}
+          activeOpacity={0.75}
+        >
+          <View style={[styles.sectionIcon, { backgroundColor: colors.surfaceMuted }]}>
+            <SlidersHorizontal size={15} color={colors.textSecondary} />
+          </View>
+          <View style={styles.notificationCopy}>
+            <Text style={styles.notificationTitle}>Advanced settings</Text>
+            <Text style={styles.notificationSub} numberOfLines={1}>
+              {advancedSummary}
+            </Text>
+          </View>
+          {showAdvanced ? (
+            <ChevronUp size={18} color={colors.textMuted} />
+          ) : (
+            <ChevronDown size={18} color={colors.textMuted} />
+          )}
+        </TouchableOpacity>
+
+        {showAdvanced ? (
+          <>
+            {/* Category */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: '#dcfce7' }]}>
+                  <Tag size={15} color="#16a34a" />
+                </View>
+                <Text style={styles.cardLabel}>Category (Optional)</Text>
+              </View>
+              <View style={styles.chipWrap}>
+                {CATEGORY_PRESETS.map((preset) => {
+                  const isSelected =
+                    !isCustomCategory && category.trim().toLowerCase() === preset.toLowerCase();
+                  return (
+                    <TouchableOpacity
+                      key={preset}
+                      style={[styles.categoryChip, isSelected && styles.categoryChipSelected]}
+                      onPress={() => selectCategory(preset)}
+                      activeOpacity={0.75}
+                    >
+                      <Text
+                        style={[styles.categoryChipText, isSelected && styles.categoryChipTextSelected]}
+                      >
+                        {preset}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity
+                  style={[styles.customChip, isCustomCategory && styles.customChipActive]}
+                  onPress={openCustomCategory}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.customChipText, isCustomCategory && styles.customChipTextActive]}>
+                    + Custom
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {isCustomCategory ? (
+                <TextInput
+                  style={[styles.input, styles.customCategoryInput]}
+                  placeholder="Enter custom category"
+                  placeholderTextColor={colors.inactive}
+                  value={category}
+                  onChangeText={setCategory}
+                  maxLength={30}
+                  autoFocus
+                />
+              ) : null}
+            </View>
+
+            {/* Repeat schedule */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: '#fef3c7' }]}>
+                  <CalendarDays size={15} color="#d97706" />
+                </View>
+                <Text style={styles.cardLabel}>Repeat</Text>
+                <Text style={styles.cardHint}>One option per task</Text>
+              </View>
+
+              <View style={styles.repeatModeRow}>
+                {REPEAT_OPTIONS.map((option) => {
+                  const isSelected = repeatType === option.type;
+                  return (
+                    <TouchableOpacity
+                      key={option.type}
+                      style={[styles.repeatModeChip, isSelected && styles.repeatModeChipSelected]}
+                      onPress={() => setRepeatType(option.type)}
+                      activeOpacity={0.75}
+                    >
+                      <Text
+                        style={[
+                          styles.repeatModeChipText,
+                          isSelected && styles.repeatModeChipTextSelected,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {repeatType === 'everyday' ? (
+                <Text style={styles.repeatHint}>Visible and reminds you every day.</Text>
+              ) : null}
+
+              {repeatType === 'interval' ? (
+                <View style={styles.repeatDetails}>
+                  <Text style={styles.repeatSubLabel}>Repeat every</Text>
+                  <Pressable
+                    style={styles.intervalInputWrap}
+                    onPress={() => intervalInputRef.current?.focus()}
+                  >
+                    <TextInput
+                      ref={intervalInputRef}
+                      style={styles.intervalInput}
+                      value={intervalDays}
+                      onChangeText={handleIntervalChange}
+                      onBlur={handleIntervalBlur}
+                      keyboardType="number-pad"
+                      maxLength={3}
+                      placeholder={String(SCHEDULE_INTERVAL_DEFAULT)}
+                      placeholderTextColor={colors.inactive}
+                      selectTextOnFocus
+                    />
+                    <Text style={styles.fieldInputSuffix}>
+                      day{clampScheduleInterval(intervalDays) === 1 ? '' : 's'}
+                    </Text>
+                  </Pressable>
+                  <Text style={styles.repeatHint}>
+                    Min {SCHEDULE_INTERVAL_MIN}, max {SCHEDULE_INTERVAL_MAX}. Default{' '}
+                    {SCHEDULE_INTERVAL_DEFAULT}.
+                  </Text>
+
+                  <Text style={[styles.repeatSubLabel, { marginTop: 12 }]}>Starting from</Text>
+                  <View style={styles.startDateRow}>
+                    <TouchableOpacity
+                      style={styles.startDateNavBtn}
+                      onPress={() => shiftStartDate(-1)}
+                      activeOpacity={0.75}
+                    >
+                      <ChevronLeft size={18} color={colors.text} />
+                    </TouchableOpacity>
+                    <View style={styles.startDateLabelWrap}>
+                      <Text style={styles.startDateLabel}>{formatStartDateLabel(startDateKey)}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.startDateNavBtn}
+                      onPress={() => shiftStartDate(1)}
+                      activeOpacity={0.75}
+                    >
+                      <ChevronRight size={18} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.todayChip}
+                    onPress={() => setStartDateKey(formatDateKey(new Date()))}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.todayChipText}>Use today</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              {repeatType === 'weekdays' ? (
+                <View style={styles.repeatDetails}>
+                  <Text style={styles.repeatSubLabel}>Active on</Text>
+                  <View style={styles.weekdayRow}>
+                    {WEEKDAY_OPTIONS.map((item, index) => {
+                      const isSelected = selectedWeekdays.includes(item.day);
+                      return (
+                        <TouchableOpacity
+                          key={`${item.label}-${item.day}-${index}`}
+                          style={[styles.weekdayChip, isSelected && styles.weekdayChipSelected]}
+                          onPress={() => toggleWeekday(item.day)}
+                          activeOpacity={0.75}
+                        >
+                          <Text
+                            style={[
+                              styles.weekdayChipText,
+                              isSelected && styles.weekdayChipTextSelected,
+                            ]}
+                          >
+                            {item.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <Text style={styles.repeatHint}>Mon → Sun. At least one day required.</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Ring Notification */}
+            <View style={styles.ringCard}>
+              <View style={styles.ringHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: '#fee2e2' }]}>
+                  <BellRing size={15} color="#dc2626" />
+                </View>
+                <View style={styles.notificationCopy}>
+                  <Text style={styles.notificationTitle}>Ring Notification</Text>
+                  <Text style={styles.notificationSub}>
+                    {ringEnabled
+                      ? `Alarm rings ${RING_DELAY_MINUTES} min after ${scheduledTime} (loops ~1 min)`
+                      : 'Off by default — enable for a looping alarm'}
+                  </Text>
+                </View>
+                <Switch
+                  value={ringEnabled}
+                  onValueChange={(value) => {
+                    setRingEnabled(value);
+                    if (!value) void stopRingAlarm();
+                  }}
+                  trackColor={{ false: colors.borderStrong, true: colors.primaryMuted }}
+                  thumbColor={ringEnabled ? colors.primary : colors.surface}
+                />
+              </View>
+
+              {ringEnabled ? (
+                <View style={styles.ringPicker}>
+                  <Text style={styles.ringPickerLabel}>Ringtone</Text>
+                  {ALL_RINGTONE_OPTIONS.map((option) => {
+                    const selected = ringSoundId === option.id;
+                    return (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[styles.ringOption, selected && styles.ringOptionSelected]}
+                        onPress={() => {
+                          if (option.id === 'custom') {
+                            void handlePickCustomRingtone();
+                            return;
+                          }
+                          setRingSoundId(option.id);
+                          void handlePreviewRingtone(option.id);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[styles.ringOptionTitle, selected && styles.ringOptionTitleSelected]}
+                          >
+                            {option.label}
+                          </Text>
+                          <Text style={styles.ringOptionSub}>
+                            {option.id === 'custom' && ringSoundName
+                              ? ringSoundName
+                              : option.description}
+                          </Text>
+                        </View>
+                        {option.id === 'custom' && ringSoundUri ? (
+                          <TouchableOpacity
+                            onPress={() => void handlePreviewRingtone('custom')}
+                            hitSlop={8}
+                          >
+                            <Text style={styles.ringPreviewLink}>Preview</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        {selected ? <Text style={styles.ringCheck}>✓</Text> : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                  <Text style={styles.ringHint}>
+                    Lock-screen actions: Mark as done · Remind after 1 hour · Off
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Duration */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: '#ccfbf1' }]}>
+                  <Clock size={15} color="#0d9488" />
+                </View>
+                <Text style={[styles.cardLabel, { flex: 1 }]}>Estimated Duration</Text>
+                <Text style={styles.fieldHint}>Tap field to type custom</Text>
+              </View>
+              <View style={styles.fieldInputRow}>
+                <Pressable
+                  style={[
+                    styles.fieldInputWrap,
+                    isCustomDuration && time.trim().length > 0 && styles.fieldInputWrapCustom,
+                  ]}
+                  onPress={() => durationInputRef.current?.focus()}
+                >
+                  <TextInput
+                    ref={durationInputRef}
+                    style={styles.fieldInput}
+                    value={time}
+                    onChangeText={handleDurationChange}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    placeholder="e.g. 20"
+                    placeholderTextColor={colors.inactive}
+                    selectTextOnFocus
+                  />
+                  <Text style={styles.fieldInputSuffix}>min</Text>
+                  <Pencil size={13} color={colors.inactive} style={{ marginLeft: 4 }} />
+                </Pressable>
+                <View style={styles.presetsRow}>
+                  {TIME_PRESETS.map((preset) => {
+                    const isSelected = time.trim() === String(preset);
+                    return (
+                      <TouchableOpacity
+                        key={preset}
+                        style={[styles.presetChip, isSelected && styles.presetChipSelected]}
+                        onPress={() => setTime(String(preset))}
+                        activeOpacity={0.75}
+                      >
+                        <Text
+                          style={[styles.presetChipText, isSelected && styles.presetChipTextSelected]}
+                        >
+                          {preset}m
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+              {isCustomDuration && time.trim().length > 0 ? (
+                <Text style={styles.customValueNote}>Custom: {time} min</Text>
+              ) : null}
+            </View>
+
+            {/* Priority */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: '#ffedd5' }]}>
+                  <Zap size={15} color="#ea580c" />
+                </View>
+                <Text style={[styles.cardLabel, { flex: 1 }]}>Task Priority</Text>
+              </View>
+              <View style={styles.presetsRow}>
+                {PRIORITY_OPTIONS.map((option) => {
+                  const isSelected = priority === option.value;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[styles.presetChip, isSelected && styles.presetChipSelected]}
+                      onPress={() => setPriority(option.value)}
+                      activeOpacity={0.75}
+                    >
+                      <Text
+                        style={[styles.presetChipText, isSelected && styles.presetChipTextSelected]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </>
+        ) : null}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
@@ -1439,6 +1482,17 @@ function createStyles(
   },
   notificationCopy: {
     flex: 1,
+  },
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    padding: 14,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
   },
   notificationTitle: {
     fontSize: 14,
