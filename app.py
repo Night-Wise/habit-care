@@ -7,6 +7,7 @@ Usage:
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,10 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 ANDROID_DIR = ROOT_DIR / "android"
 RELEASE_DIR = ROOT_DIR / "release"
+APP_JSON = ROOT_DIR / "app.json"
+PACKAGE_JSON = ROOT_DIR / "package.json"
+PACKAGE_LOCK = ROOT_DIR / "package-lock.json"
+APP_BUILD_GRADLE = ANDROID_DIR / "app" / "build.gradle"
 IS_WINDOWS = os.name == "nt"
 
 BUILDS = {
@@ -123,21 +128,100 @@ def run_emulator():
     run([npx(), "expo", "run:android"])
 
 
-def build_release(kind):
+def read_text(path):
+    return path.read_bytes().decode("utf-8")
+
+
+def write_text(path, text):
+    path.write_bytes(text.encode("utf-8"))
+
+
+def write_json(path, data, original_text):
+    text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    if "\r\n" in original_text:
+        text = text.replace("\n", "\r\n")
+    write_text(path, text)
+
+
+def next_patch_version(version):
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+    if not match:
+        raise CommandError(f"app.json version '{version}' is not in MAJOR.MINOR.PATCH format.")
+    major, minor, patch = (int(part) for part in match.groups())
+    return f"{major}.{minor}.{patch + 1}"
+
+
+def bump_version():
+    """Bump the patch version and Android versionCode everywhere they are stored.
+
+    Returns the original file contents so the bump can be undone if the build fails.
+    """
+    files = [APP_JSON, PACKAGE_JSON, PACKAGE_LOCK, APP_BUILD_GRADLE]
+    originals = {path: read_text(path) for path in files if path.exists()}
+
+    app_config = json.loads(originals[APP_JSON])
+    android = app_config["expo"]["android"]
+    old_version = app_config["expo"]["version"]
+    old_code = int(android.get("versionCode", 1))
+    new_version = next_patch_version(old_version)
+    new_code = old_code + 1
+
+    gradle = originals.get(APP_BUILD_GRADLE)
+    if gradle is None:
+        raise CommandError(f"{APP_BUILD_GRADLE.relative_to(ROOT_DIR)} not found.")
+    gradle, code_hits = re.subn(r"versionCode\s+\d+", f"versionCode {new_code}", gradle)
+    gradle, name_hits = re.subn(r'versionName\s+"[^"]*"', f'versionName "{new_version}"', gradle)
+    if not code_hits or not name_hits:
+        raise CommandError(f"Could not find versionCode/versionName in {APP_BUILD_GRADLE.relative_to(ROOT_DIR)}.")
+
+    app_config["expo"]["version"] = new_version
+    android["versionCode"] = new_code
+    write_json(APP_JSON, app_config, originals[APP_JSON])
+
+    package = json.loads(originals[PACKAGE_JSON])
+    package["version"] = new_version
+    write_json(PACKAGE_JSON, package, originals[PACKAGE_JSON])
+
+    if PACKAGE_LOCK in originals:
+        lock = json.loads(originals[PACKAGE_LOCK])
+        lock["version"] = new_version
+        if "" in lock.get("packages", {}):
+            lock["packages"][""]["version"] = new_version
+        write_json(PACKAGE_LOCK, lock, originals[PACKAGE_LOCK])
+
+    write_text(APP_BUILD_GRADLE, gradle)
+    print(f"\nVersion bumped: {old_version} -> {new_version}, versionCode {old_code} -> {new_code}")
+    return originals
+
+
+def restore_files(originals):
+    for path, text in originals.items():
+        write_text(path, text)
+    print("\nBuild failed, version bump reverted.")
+
+
+def build_release(kind, bump=False):
     build = BUILDS[kind]
     if not ANDROID_DIR.exists():
         raise CommandError("android/ folder not found. Run 'npx expo prebuild -p android' first.")
 
     run(["node", "scripts/build-apk.js", "preflight", "release"])
-    run([find_tool("npm"), "install"])
 
-    gradlew = ANDROID_DIR / ("gradlew.bat" if IS_WINDOWS else "gradlew")
-    started = time.time()
-    run([gradlew, build["gradle_task"]], cwd=ANDROID_DIR)
-    minutes = (time.time() - started) / 60
+    originals = bump_version() if bump else None
+    try:
+        run([find_tool("npm"), "install"])
 
-    if not build["output"].exists():
-        raise CommandError(f"Gradle finished but the file was not found at {build['output']}")
+        gradlew = ANDROID_DIR / ("gradlew.bat" if IS_WINDOWS else "gradlew")
+        started = time.time()
+        run([gradlew, build["gradle_task"]], cwd=ANDROID_DIR)
+        minutes = (time.time() - started) / 60
+
+        if not build["output"].exists():
+            raise CommandError(f"Gradle finished but the file was not found at {build['output']}")
+    except (CommandError, KeyboardInterrupt):
+        if originals:
+            restore_files(originals)
+        raise
 
     RELEASE_DIR.mkdir(exist_ok=True)
     shutil.copy2(build["output"], build["dest"])
@@ -238,7 +322,7 @@ OPTIONS = {
     "1": ("Run the app in Expo (npx expo start)", run_expo),
     "2": ("Run the app in emulator (npx expo run:android)", run_emulator),
     "3": ("Build release .apk and copy to release/", lambda: build_release("apk")),
-    "4": ("Build release .aab and copy to release/", lambda: build_release("aab")),
+    "4": ("Bump version, build release .aab and copy to release/", lambda: build_release("aab", bump=True)),
     "5": ("Install release .apk on USB phone (adb)", install_on_phone),
 }
 
