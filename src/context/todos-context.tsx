@@ -49,7 +49,7 @@ export interface Todo {
   /** @deprecated Prefer `notificationIds` for multi-trigger schedules */
   notificationId?: string;
   notificationIds?: string[];
-  /** Ring alarm 30 min after popup time (off by default) */
+  /** Ring alarm RING_DELAY_MINUTES after popup time (off by default) */
   ringEnabled?: boolean;
   ringSoundId?: RingSoundId;
   /** Local file URI for custom ringtone */

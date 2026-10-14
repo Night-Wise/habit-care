@@ -49,6 +49,7 @@ import {
   ALL_RINGTONE_OPTIONS,
   DEFAULT_RING_SOUND_ID,
   normalizeRingSoundId,
+  RING_DELAY_MINUTES,
   type RingSoundId,
 } from '@/utils/ringtones';
 import {
@@ -768,7 +769,7 @@ export default function AddOrEditTaskPage() {
               <Text style={styles.notificationTitle}>Ring Notification</Text>
               <Text style={styles.notificationSub}>
                 {ringEnabled
-                  ? `Alarm rings 30 min after ${scheduledTime} (loops ~1 min)`
+                  ? `Alarm rings ${RING_DELAY_MINUTES} min after ${scheduledTime} (loops ~1 min)`
                   : 'Off by default — enable for a looping alarm'}
               </Text>
             </View>

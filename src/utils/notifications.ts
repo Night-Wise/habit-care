@@ -395,7 +395,7 @@ async function scheduleOne(
 
 /**
  * Schedule popup and/or ring reminders for a task.
- * Ring fires 30 minutes after the popup time. Skips completed days.
+ * Ring fires RING_DELAY_MINUTES after the popup time. Skips completed days.
  */
 export async function scheduleTodoReminders(options: {
   todoId: string;

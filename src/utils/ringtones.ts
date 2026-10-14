@@ -1,3 +1,6 @@
+/** Minutes after the popup time before the ring alarm fires. */
+export const RING_DELAY_MINUTES = 30;
+
 export type BundledRingSoundId =
   | 'funny'
   | 'dino'
@@ -81,7 +84,7 @@ export const ALL_RINGTONE_OPTIONS: RingtoneOption[] = [
 ];
 
 export const DEFAULT_RING_SOUND_ID: BundledRingSoundId = 'clock';
-export const RING_DELAY_MS = 30 * 60 * 1000;
+export const RING_DELAY_MS = RING_DELAY_MINUTES * 60 * 1000;
 export const RING_DURATION_MS = 60 * 1000;
 
 export function isBundledRingSoundId(id: unknown): id is BundledRingSoundId {
