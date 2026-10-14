@@ -2,9 +2,10 @@
 
 Usage:
     python app.py          # interactive menu
-    python app.py <1-4>    # run an option directly
+    python app.py <1-5>    # run an option directly
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -144,11 +145,101 @@ def build_release(kind):
     print(f"\nBuilt {build['dest'].name} in {minutes:.1f} min -> {build['dest'].relative_to(ROOT_DIR)} ({size_mb:.2f} MB)")
 
 
+def android_package():
+    config = json.loads((ROOT_DIR / "app.json").read_text(encoding="utf-8"))
+    return config["expo"]["android"]["package"]
+
+
+def confirm(prompt, default=True):
+    suffix = " [Y/n]: " if default else " [y/N]: "
+    answer = input(prompt + suffix).strip().lower()
+    return default if not answer else answer in ("y", "yes")
+
+
+def usb_phones(adb):
+    """Return (ready_serials, problem_lines) for physical devices, skipping emulators."""
+    ready, problems = [], []
+    for line in adb_output(adb, "devices", "-l").splitlines()[1:]:
+        parts = line.split()
+        if len(parts) < 2 or parts[0].startswith("emulator-"):
+            continue
+        serial, state = parts[0], parts[1]
+        if state != "device":
+            problems.append((serial, state))
+            continue
+        if adb_output(adb, "-s", serial, "shell", "getprop", "ro.kernel.qemu") == "1":
+            continue
+        model = next((p.split(":", 1)[1] for p in parts if p.startswith("model:")), "unknown")
+        ready.append((serial, model))
+    return ready, problems
+
+
+def pick_phone(adb):
+    adb_output(adb, "start-server")
+    phones, problems = usb_phones(adb)
+    for serial, state in problems:
+        if state == "unauthorized":
+            print(f"Device {serial} is unauthorized: unlock the phone and accept the 'Allow USB debugging' prompt.")
+        else:
+            print(f"Device {serial} is '{state}': try replugging the USB cable.")
+    if not phones:
+        raise CommandError(
+            "No USB phone detected. Connect it with a data cable, enable Developer options > USB debugging, "
+            "and accept the authorization prompt on the phone."
+        )
+    if len(phones) == 1:
+        serial, model = phones[0]
+        print(f"Found phone: {model} ({serial})")
+        return serial
+    print("\nConnected phones:")
+    for i, (serial, model) in enumerate(phones, 1):
+        print(f"  {i}. {model} ({serial})")
+    while True:
+        choice = input("Pick a phone: ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(phones):
+            return phones[int(choice) - 1][0]
+
+
+def install_on_phone():
+    adb = find_tool("adb", "platform-tools")
+    serial = pick_phone(adb)
+
+    apk = BUILDS["apk"]["dest"]
+    if apk.exists():
+        age_hours = (time.time() - apk.stat().st_mtime) / 3600
+        if not confirm(f"Use existing {apk.relative_to(ROOT_DIR)} (built {age_hours:.1f} h ago)?"):
+            build_release("apk")
+    elif confirm(f"{apk.relative_to(ROOT_DIR)} not found. Build it now?"):
+        build_release("apk")
+    else:
+        raise CommandError("No APK to install.")
+
+    cmd = [adb, "-s", serial, "install", "-r", str(apk)]
+    print(f"\n> {' '.join(cmd)}\n", flush=True)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    output = (result.stdout + result.stderr).strip()
+    print(output)
+    if result.returncode == 0 and "Success" in output:
+        print("\nInstalled on phone.")
+        return
+
+    if "INSTALL_FAILED_UPDATE_INCOMPATIBLE" in output or "signatures do not match" in output:
+        package = android_package()
+        print(f"\nThe phone has {package} signed with a different key (e.g. a debug build).")
+        if confirm("Uninstall it and retry? This deletes the app's local data on the phone.", default=False):
+            run([adb, "-s", serial, "uninstall", package])
+            run([adb, "-s", serial, "install", str(apk)])
+            print("\nInstalled on phone.")
+            return
+    raise CommandError("adb install failed.")
+
+
 OPTIONS = {
     "1": ("Run the app in Expo (npx expo start)", run_expo),
     "2": ("Run the app in emulator (npx expo run:android)", run_emulator),
     "3": ("Build release .apk and copy to release/", lambda: build_release("apk")),
     "4": ("Build release .aab and copy to release/", lambda: build_release("aab")),
+    "5": ("Install release .apk on USB phone (adb)", install_on_phone),
 }
 
 
@@ -187,6 +278,6 @@ def menu():
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] not in OPTIONS:
-            sys.exit(f"Unknown option '{sys.argv[1]}'. Use 1-4.")
+            sys.exit(f"Unknown option '{sys.argv[1]}'. Use 1-{len(OPTIONS)}.")
         sys.exit(0 if run_option(sys.argv[1]) else 1)
     menu()
