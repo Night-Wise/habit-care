@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
+import { canScheduleExactAlarms } from '../../modules/exact-alarm';
 import {
   alarmBudgetPerTodo,
   cancelStaleTodoNotifications,
@@ -447,6 +449,25 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       applyScheduledIds(todo.id, await scheduleNotificationsForTodo(todo, alarmBudgetFor(todo)));
     });
 
+  /**
+   * Reads the latest todo when each task runs, since this can take a while and the
+   * user may edit (or sync may replace) todos in the meantime.
+   */
+  const rescheduleAllReminders = () => {
+    for (const todo of todosRef.current) {
+      if (!hasReminders(todo)) continue;
+      void runNotificationTask(async () => {
+        const current = todosRef.current.find((t) => t.id === todo.id);
+        if (!current || !hasReminders(current)) return;
+        await cancelTodoNotifications(current);
+        applyScheduledIds(
+          current.id,
+          await scheduleNotificationsForTodo(current, alarmBudgetFor(current))
+        );
+      });
+    }
+  };
+
   // Load from storage on mount and migrate legacy data if needed
   useEffect(() => {
     (async () => {
@@ -508,21 +529,8 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         setStore({ todos: migrated, deletedTodos: loadedDeleted, localRevision: 0 });
 
         // Refresh reminders so DATE triggers stay ahead of today and skip completed days.
-        // Reads the latest todo when each task runs, since this can take a while and the
-        // user may edit (or sync may replace) todos in the meantime.
         void runNotificationTask(() => cancelStaleTodoNotifications(migrated));
-        for (const todo of migrated) {
-          if (!hasReminders(todo)) continue;
-          void runNotificationTask(async () => {
-            const current = todosRef.current.find((t) => t.id === todo.id);
-            if (!current || !hasReminders(current)) return;
-            await cancelTodoNotifications(current);
-            applyScheduledIds(
-              current.id,
-              await scheduleNotificationsForTodo(current, alarmBudgetFor(current))
-            );
-          });
-        }
+        rescheduleAllReminders();
       } catch (e) {
         console.warn('[TodosContext] Failed to load from AsyncStorage:', e);
         setStore({ todos: [], deletedTodos: {}, localRevision: 0 });
@@ -547,6 +555,21 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       console.warn('[TodosContext] Failed to save deleted habits:', e)
     );
   }, [deletedTodos, isLoaded]);
+
+  // Alarms scheduled while exact alarms were denied stay inexact, so reschedule once access is granted
+  useEffect(() => {
+    if (!isLoaded) return;
+    let exactAllowed = canScheduleExactAlarms();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      const nowAllowed = canScheduleExactAlarms();
+      if (nowAllowed && !exactAllowed) rescheduleAllReminders();
+      exactAllowed = nowAllowed;
+    });
+    return () => sub.remove();
+    // The helpers used read refs and the state setter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]);
 
   // Habits added, edited or deleted on another device need this device's reminders updated
   useEffect(() => {

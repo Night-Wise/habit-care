@@ -50,5 +50,9 @@ example
 /ios
 /android
 
+# local Expo module build output
+modules/*/android/build/
+modules/*/android/.cxx/
+
 /.vscode
 /.claude

@@ -1,9 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
+import { canScheduleExactAlarms, openExactAlarmSettings } from '../../modules/exact-alarm';
 import { startRingAlarm, stopRingAlarm } from '@/utils/ring-alarm';
 import {
+  BUNDLED_RINGTONES,
+  DEVICE_RINGTONE,
   getNotificationSoundValue,
+  isBundledRingSoundId,
   normalizeRingSoundId,
   RING_DELAY_MS,
   type RingSoundId,
@@ -67,7 +71,8 @@ try {
             shouldShowAlert: show,
             shouldShowBanner: show,
             shouldShowList: show,
-            shouldPlaySound: show,
+            // In the foreground the ring listener loops the ringtone in-app; the channel sound would double it.
+            shouldPlaySound: show && data?.kind !== 'ring',
             shouldSetBadge: false,
           };
         },
@@ -84,6 +89,19 @@ try {
 const DEFAULT_NOTIFICATION_LIGHT_COLOR = '#6366f1';
 
 const INTERVAL_LOOKAHEAD = 60;
+
+/**
+ * Android 8+ takes the sound from the channel, never from the notification, and a channel's
+ * sound can't change after creation. So each bundled ringtone gets its own channel; device
+ * default and custom tracks share one using the system sound. Expo reads `channelId` from the
+ * trigger only, so every scheduled request must pass it there.
+ */
+const POPUP_CHANNEL_ID = 'default';
+const LEGACY_RING_CHANNEL_ID = 'ring';
+
+function ringChannelId(soundId: RingSoundId): string {
+  return isBundledRingSoundId(soundId) ? `ring-${soundId}` : `ring-${DEVICE_RINGTONE.id}`;
+}
 
 /**
  * Android rejects scheduling beyond 500 concurrent alarms per app. All tasks share this budget,
@@ -166,23 +184,30 @@ export async function requestNotificationPermissions(
     }
 
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
+      await Notifications.setNotificationChannelAsync(POPUP_CHANNEL_ID, {
         name: 'Task Reminders',
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
-      await Notifications.setNotificationChannelAsync('ring', {
-        name: 'Ring Alarms',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 500, 250, 500],
-        lightColor,
-        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-        bypassDnd: false,
-        // Omit `sound` for the system default. A string is treated as a custom
-        // sound filename and must exist in the expo-notifications plugin sounds list.
-      });
+      await Notifications.deleteNotificationChannelAsync(LEGACY_RING_CHANNEL_ID);
+      for (const ringtone of [...BUNDLED_RINGTONES, DEVICE_RINGTONE]) {
+        await Notifications.setNotificationChannelAsync(ringChannelId(ringtone.id), {
+          name: `Ring Alarm - ${ringtone.label}`,
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 500, 250, 500],
+          lightColor,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          bypassDnd: false,
+          // Filenames must be listed in the expo-notifications plugin `sounds`; omitted = system default.
+          ...(ringtone.notificationSoundName ? { sound: ringtone.notificationSoundName } : {}),
+          audioAttributes: {
+            usage: Notifications.AndroidAudioUsage.ALARM,
+            contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+          },
+        });
+      }
     }
 
     await ensureRingCategory();
@@ -191,6 +216,23 @@ export async function requestNotificationPermissions(
     console.warn('[Notifications] Error requesting permissions:', error);
     return false;
   }
+}
+
+/**
+ * Android 12+ delivers reminders late unless the user allows "Alarms & reminders" for the app.
+ * Offers to open that setting when it's off; returns whether exact alarms are allowed.
+ */
+export function promptExactAlarmAccess(): boolean {
+  if (canScheduleExactAlarms()) return true;
+  Alert.alert(
+    'Allow on-time reminders',
+    'Android may delay reminders and ring alarms until you allow "Alarms & reminders" for HabitCare.',
+    [
+      { text: 'Not now', style: 'cancel' },
+      { text: 'Allow', onPress: () => void openExactAlarmSettings() },
+    ]
+  );
+  return false;
 }
 
 async function ensureRingCategory(): Promise<void> {
@@ -373,7 +415,6 @@ function buildRingContent(
       ringSoundUri,
       ringDurationMs,
     },
-    ...(Platform.OS === 'android' ? { channelId: 'ring' } : {}),
   };
 }
 
@@ -413,8 +454,9 @@ export async function scheduleTodoReminders(options: {
   const empty: ScheduleRemindersResult = { notificationIds: [], ringNotificationIds: [] };
   if (!Notifications || Platform.OS === 'web') return empty;
 
-  const wantsPopup = !!options.notificationEnabled;
   const wantsRing = !!options.ringEnabled;
+  // A ring at the reminder time already shows the task; a popup at the same moment would double it.
+  const wantsPopup = !!options.notificationEnabled && !(wantsRing && RING_DELAY_MS === 0);
   if (!wantsPopup && !wantsRing) return empty;
 
   const granted = await requestNotificationPermissions();
@@ -444,6 +486,7 @@ export async function scheduleTodoReminders(options: {
       const id = await scheduleOne(buildPopupContent(options.todoId, options.taskName, key), {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: popupAt,
+        channelId: POPUP_CHANNEL_ID,
       });
       // A failure here is almost always the OS alarm limit; retrying every day just spams errors.
       if (!id) break;
@@ -464,6 +507,7 @@ export async function scheduleTodoReminders(options: {
           {
             type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: ringAt,
+            channelId: ringChannelId(ringSoundId),
           }
         );
         if (!id) break;
@@ -523,6 +567,7 @@ export async function scheduleSnoozeRingNotification(options: {
     {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: fireAt,
+      channelId: ringChannelId(options.ringSoundId),
     }
   );
 }
@@ -618,6 +663,7 @@ export async function sendTestNotification(): Promise<boolean> {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: 1,
         repeats: false,
+        channelId: POPUP_CHANNEL_ID,
       },
     });
     return true;
@@ -662,6 +708,7 @@ export async function sendTestRingNotification(
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: 1,
         repeats: false,
+        channelId: ringChannelId(soundId),
       },
     });
     return { scheduled: true, ringing };

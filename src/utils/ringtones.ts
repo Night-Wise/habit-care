@@ -1,5 +1,5 @@
-/** Minutes after the popup time before the ring alarm fires. */
-export const RING_DELAY_MINUTES = 30;
+/** Minutes after the popup time before the ring alarm fires. At 0 the ring replaces the popup. */
+export const RING_DELAY_MINUTES = 0;
 
 export type BundledRingSoundId =
   | 'funny'

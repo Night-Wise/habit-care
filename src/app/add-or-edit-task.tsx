@@ -41,6 +41,7 @@ import { formatDateKey, parseDateKey, useTodos } from '@/context/todos-context';
 import type { ThemeColors } from '@/theme/colors';
 import { pickAndStoreCustomRingtone } from '@/utils/custom-ringtone';
 import { DEFAULT_HABIT_ICON, POPULAR_HABIT_ICONS } from '@/utils/habit-icons';
+import { promptExactAlarmAccess } from '@/utils/notifications';
 import {
   PRIORITY_NONE,
   PRIORITY_OPTIONS,
@@ -384,6 +385,7 @@ export default function AddOrEditTaskPage() {
     }
     void stopRingAlarm();
     dismissScreen();
+    if (notificationEnabled || ringEnabled) promptExactAlarmAccess();
   };
 
   const handlePickCustomRingtone = async () => {
@@ -855,7 +857,9 @@ export default function AddOrEditTaskPage() {
                   <Text style={styles.notificationTitle}>Ring Notification</Text>
                   <Text style={styles.notificationSub}>
                     {ringEnabled
-                      ? `Alarm rings ${RING_DELAY_MINUTES} min after ${scheduledTime} (loops ~1 min)`
+                      ? RING_DELAY_MINUTES > 0
+                        ? `Alarm rings ${RING_DELAY_MINUTES} min after ${scheduledTime} (loops ~1 min)`
+                        : `Alarm rings at ${scheduledTime} (loops ~1 min)`
                       : 'Off by default — enable for a looping alarm'}
                   </Text>
                 </View>
