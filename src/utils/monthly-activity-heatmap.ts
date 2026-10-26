@@ -17,9 +17,12 @@ export type MonthlyActivityHeatmap = {
   maxCount: number;
 };
 
+/** Hex only: the Android home-screen widget rejects named colors like 'transparent'. */
+export type HeatmapColor = `#${string}`;
+
 /** GitHub-style greens: empty / level 0 (in month, 0 done) / 1–4 intensity */
 export const HEATMAP_COLORS = {
-  outOfMonth: 'transparent',
+  outOfMonth: '#00000000',
   level0: '#ebedf0',
   level1: '#9be9a8',
   level2: '#40c463',
@@ -28,7 +31,7 @@ export const HEATMAP_COLORS = {
 } as const;
 
 export const HEATMAP_COLORS_DARK = {
-  outOfMonth: 'transparent',
+  outOfMonth: '#00000000',
   level0: '#2d333b',
   level1: '#0e4429',
   level2: '#006d32',
@@ -77,7 +80,7 @@ function isTodoCompleted(todo: HeatmapTodo, dateKey: string): boolean {
   return false;
 }
 
-export function getHeatmapColor(cell: HeatmapCell, dark = false): string {
+export function getHeatmapColor(cell: HeatmapCell, dark = false): HeatmapColor {
   const palette = dark ? HEATMAP_COLORS_DARK : HEATMAP_COLORS;
   if (cell.kind === 'empty') return palette.outOfMonth;
   switch (cell.level) {
